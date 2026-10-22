@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 
 import { sistemDurumuGetir } from '../../api/sistem';
 import { tr } from '../../i18n/tr';
+import { Cip } from '../../bilesenler/Cip';
 
 /**
  * İlk uçtan uca dilim: üretilmiş istemciyle /health çağrısı, üç durum
@@ -37,7 +38,7 @@ export function SistemDurumu() {
 
       {isError && (
         <div role="alert" style={{ marginTop: 'var(--bosluk-3)' }}>
-          <Cip renk="kritik" metin={tr.sistem.ulasilamiyor} />
+          <Cip renk="kritik" ikon="✕" metin={tr.sistem.ulasilamiyor} />
           <p style={{ color: 'var(--renk-murekkep2)' }}>{tr.hata.aglaBaglanilamadi}</p>
           <button
             type="button"
@@ -58,7 +59,7 @@ export function SistemDurumu() {
 
       {data && (
         <div style={{ marginTop: 'var(--bosluk-3)' }}>
-          <Cip renk="marka" metin={tr.sistem.saglikli} />
+          <Cip renk="marka" ikon="✓" metin={tr.sistem.saglikli} />
           <dl
             style={{
               display: 'grid',
@@ -96,31 +97,5 @@ function Satir({ ad, deger }: { ad: string; deger: string }) {
       <dt style={{ color: 'var(--renk-sessiz)', fontSize: 'var(--etiket)' }}>{ad}</dt>
       <dd style={{ margin: 0, fontVariantNumeric: 'tabular-nums' }}>{deger}</dd>
     </>
-  );
-}
-
-/**
- * Durum çipi: renk tek başına anlam taşımaz, ikon + metin birlikte
- * (NFR-11 / tasarım sistemi "Durum çipi" kuralı).
- */
-function Cip({ renk, metin }: { renk: 'marka' | 'kritik'; metin: string }) {
-  const ikon = renk === 'marka' ? '✓' : '✕';
-  return (
-    <span
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 'var(--bosluk-1)',
-        padding: '2px var(--bosluk-3)',
-        borderRadius: 'var(--kose-cip)',
-        fontSize: 'var(--etiket)',
-        fontWeight: 600,
-        background: renk === 'marka' ? 'var(--renk-marka-acik)' : 'var(--renk-kritik-acik)',
-        color: renk === 'marka' ? 'var(--renk-marka)' : 'var(--renk-kritik)',
-      }}
-    >
-      <span aria-hidden="true">{ikon}</span>
-      {metin}
-    </span>
   );
 }

@@ -6,7 +6,8 @@ import pytest
 from fastapi.testclient import TestClient
 
 from talimatname.api.app import create_app
-from talimatname.api.errors import PROBLEM_MEDIA_TYPE, WindowClosed
+from talimatname.api.errors import PROBLEM_MEDIA_TYPE
+from talimatname.domain.errors import WindowClosed
 from talimatname.settings import Settings
 
 

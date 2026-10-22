@@ -15,6 +15,7 @@ export const tr = {
     planlar: 'Planlar',
     aksiyonlar: 'Aksiyonlar',
     raporlar: 'Raporlar',
+    henuzYok: 'Bu bölüm henüz geliştirilmedi',
   },
   sistem: {
     baslik: 'Sistem durumu',
@@ -28,6 +29,25 @@ export const tr = {
     yapilandirilmis: 'yapılandırılmış',
     yapilandirilmamis: 'yapılandırılmamış',
     yenile: 'Yeniden dene',
+  },
+  genel: {
+    yukleniyor: 'Yükleniyor…',
+  },
+  subeler: {
+    baslik: 'Şubeler',
+    pasifleriGoster: 'Pasifleri göster',
+    pasif: 'Pasif',
+    gunKisaltma: 'gün açık',
+    secimYok: 'Soldan bir şube seçin.',
+    calismaSaatleri: 'Çalışma saatleri',
+    kapali: 'Kapalı',
+    istasyonlar: 'İstasyonlar',
+    pasiflestir: 'Şubeyi pasifleştir',
+    pasiflestirmeNotu:
+      'Pasifleştirme silme değildir: geçmiş çalıştırmalar ve kanıtlar durur, yeni çalıştırma üretilmez.',
+    kod: 'Kod',
+    ad: 'Ad',
+    ekle: 'Şube ekle',
   },
   durum: {
     planli: 'Planlı',

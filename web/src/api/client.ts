@@ -28,8 +28,12 @@ export type Problem = {
  * alanına bakar — Türkçe `title` metni değişebilir, `type` sözleşmedir.
  */
 export function problemCoz(hata: unknown): Problem | null {
-  if (typeof hata === 'object' && hata !== null && 'type' in hata && 'title' in hata) {
-    return hata as Problem;
+  if (typeof hata !== 'object' || hata === null) return null;
+  // openapi-fetch hatayı doğrudan gövde olarak fırlatır; bazı sarmalayıcılar
+  // `{ error: gövde }` biçiminde verir — ikisini de kabul ediyoruz.
+  const aday = 'error' in hata ? (hata as { error: unknown }).error : hata;
+  if (typeof aday === 'object' && aday !== null && 'type' in aday && 'title' in aday) {
+    return aday as Problem;
   }
   return null;
 }

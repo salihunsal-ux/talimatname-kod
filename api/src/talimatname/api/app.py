@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field
 
 from talimatname import __version__
 from talimatname.api.errors import register_error_handlers
+from talimatname.api.routers import organization
 from talimatname.settings import Settings, get_settings
 
 API_PREFIX = "/api/v1"
@@ -61,6 +62,7 @@ def build_router(settings: Settings) -> APIRouter:
             object_store_configured=settings.object_store_endpoint is not None,
         )
 
+    router.include_router(organization.router)
     return router
 
 

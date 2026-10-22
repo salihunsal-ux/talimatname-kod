@@ -27,10 +27,114 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/branches': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Bölge → şube ağacı */
+    get: operations['sube_agaci_api_v1_branches_get'];
+    put?: never;
+    /** Şube ekle */
+    post: operations['sube_ekle_api_v1_branches_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/branches/{branch_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Şube detayı */
+    get: operations['sube_detayi_api_v1_branches__branch_id__get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /** Şube güncelle */
+    patch: operations['sube_guncelle_api_v1_branches__branch_id__patch'];
+    trace?: never;
+  };
+  '/api/v1/branches/{branch_id}/deactivate': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Şubeyi pasifleştir
+     * @description Silme değil: geçmiş kayıtlar ve kanıtlar durur (BR-22).
+     */
+    post: operations['sube_pasiflestir_api_v1_branches__branch_id__deactivate_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/branches/{branch_id}/activate': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Şubeyi yeniden aktif et */
+    post: operations['sube_aktif_et_api_v1_branches__branch_id__activate_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
+    /** BolgeDugumu */
+    BolgeDugumu: {
+      /** Id */
+      id: string | null;
+      /** Name */
+      name: string;
+      /** Branches */
+      branches: components['schemas']['SubeOzet'][];
+    };
+    /**
+     * CalismaSaati
+     * @description Bir günün açılış/kapanışı. `null` gün = kapalı.
+     */
+    CalismaSaati: {
+      /**
+       * Weekday
+       * @description 0 = Pazartesi
+       */
+      weekday: number;
+      /** Weekday Name */
+      weekday_name: string;
+      /** Open Time */
+      open_time?: string | null;
+      /** Close Time */
+      close_time?: string | null;
+    };
+    /** HTTPValidationError */
+    HTTPValidationError: {
+      /** Detail */
+      detail?: components['schemas']['ValidationError'][];
+    };
     /**
      * HealthResponse
      * @description Canlılık yanıtı. Şema açıkça tanımlı: istemci tipleri bundan üretilir.
@@ -63,6 +167,119 @@ export interface components {
        */
       object_store_configured: boolean;
     };
+    /** IstasyonOzet */
+    IstasyonOzet: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Name */
+      name: string;
+      /** Kind */
+      kind: string;
+    };
+    /** SubeDetay */
+    SubeDetay: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Code */
+      code: string;
+      /** Name */
+      name: string;
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: 'active' | 'inactive';
+      /** Region Id */
+      region_id?: string | null;
+      /** Timezone */
+      timezone: string;
+      /**
+       * Open Days
+       * @description Haftada açık gün sayısı
+       */
+      open_days: number;
+      /** Address */
+      address?: string | null;
+      /** Business Hours */
+      business_hours: components['schemas']['CalismaSaati'][];
+      /** Stations */
+      stations: components['schemas']['IstasyonOzet'][];
+    };
+    /**
+     * SubeGirdisi
+     * @description Şube oluşturma/güncelleme gövdesi.
+     *
+     *     Çalışma saatleri verilmezse 08:00–23:00 her gün uygulanır: kurulum
+     *     sihirbazının varsayılanı (FR-1401); şube sonradan düzeltir.
+     */
+    SubeGirdisi: {
+      /**
+       * Code
+       * @example KDK
+       */
+      code: string;
+      /**
+       * Name
+       * @example Kadıköy
+       */
+      name: string;
+      /**
+       * Timezone
+       * @default Europe/Istanbul
+       */
+      timezone: string;
+      /** Region Id */
+      region_id?: string | null;
+      /** Address */
+      address?: string | null;
+      /** Business Hours */
+      business_hours?: components['schemas']['CalismaSaati'][] | null;
+    };
+    /** SubeOzet */
+    SubeOzet: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Code */
+      code: string;
+      /** Name */
+      name: string;
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: 'active' | 'inactive';
+      /** Region Id */
+      region_id?: string | null;
+      /** Timezone */
+      timezone: string;
+      /**
+       * Open Days
+       * @description Haftada açık gün sayısı
+       */
+      open_days: number;
+    };
+    /** ValidationError */
+    ValidationError: {
+      /** Location */
+      loc: (string | number)[];
+      /** Message */
+      msg: string;
+      /** Error Type */
+      type: string;
+      /** Input */
+      input?: unknown;
+      /** Context */
+      ctx?: Record<string, never>;
+    };
   };
   responses: never;
   parameters: never;
@@ -88,6 +305,198 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['HealthResponse'];
+        };
+      };
+    };
+  };
+  sube_agaci_api_v1_branches_get: {
+    parameters: {
+      query?: {
+        include_inactive?: boolean;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['BolgeDugumu'][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  sube_ekle_api_v1_branches_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['SubeGirdisi'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SubeOzet'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  sube_detayi_api_v1_branches__branch_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        branch_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SubeDetay'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  sube_guncelle_api_v1_branches__branch_id__patch: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        branch_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['SubeGirdisi'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SubeOzet'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  sube_pasiflestir_api_v1_branches__branch_id__deactivate_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        branch_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SubeOzet'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  sube_aktif_et_api_v1_branches__branch_id__activate_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        branch_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SubeOzet'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
         };
       };
     };
