@@ -11,10 +11,12 @@ from functools import lru_cache
 
 from talimatname.infra.memory import (
     MemoryOrganizationRepository,
+    MemoryPlanRepository,
     MemoryTemplateRepository,
     MemoryUserRepository,
 )
 from talimatname.services.organization import OrganizationService
+from talimatname.services.plans import PlanService
 from talimatname.services.templates import TemplateService
 from talimatname.services.users import UserService
 from talimatname.settings import get_settings
@@ -52,6 +54,34 @@ def _bellek_sablon_deposu() -> MemoryTemplateRepository:
 def sablon_servisi() -> TemplateService:
     _veritabani_kontrolu()
     return TemplateService(_bellek_sablon_deposu())
+
+
+@lru_cache
+def _bellek_plan_deposu() -> MemoryPlanRepository:
+    return MemoryPlanRepository()
+
+
+def plan_servisi() -> PlanService:
+    _veritabani_kontrolu()
+    servis = PlanService(_bellek_plan_deposu(), _bellek_deposu(), _bellek_sablon_deposu())
+    _ilk_uretim(servis)
+    return servis
+
+
+_uretildi = False
+
+
+def _ilk_uretim(servis: PlanService) -> None:
+    """Tohum planların çalıştırmaları ilk istekte üretilir.
+
+    Zamanlayıcı (ST-027) yazılınca bu kalkar: üretim o zaman saatlik işin
+    sorumluluğu olur. Burada durması, panelin boş bir pano göstermemesi
+    içindir ve idempotenttir.
+    """
+    global _uretildi
+    if not _uretildi:
+        servis.generate_all()
+        _uretildi = True
 
 
 def kullanici_servisi() -> UserService:

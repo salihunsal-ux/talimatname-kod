@@ -898,10 +898,376 @@
           }
         }
       }
+    },
+    "/api/v1/plans": {
+      "get": {
+        "tags": [
+          "plan"
+        ],
+        "summary": "Plan listesi",
+        "operationId": "plan_listesi_api_v1_plans_get",
+        "parameters": [
+          {
+            "name": "include_inactive",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Include Inactive"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PlanOzet"
+                  },
+                  "title": "Response Plan Listesi Api V1 Plans Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "plan"
+        ],
+        "summary": "Plan oluştur",
+        "description": "Plan kaydedilir ve ufuk içindeki çalıştırmalar hemen üretilir.",
+        "operationId": "plan_olustur_api_v1_plans_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlanGirdisi"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanOzet"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/plans/preview": {
+      "post": {
+        "tags": [
+          "plan"
+        ],
+        "summary": "Kaydetmeden 7 gün önizleme",
+        "operationId": "plan_onizleme_api_v1_plans_preview_post",
+        "parameters": [
+          {
+            "name": "days",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 30,
+              "minimum": 1,
+              "default": 7,
+              "title": "Days"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlanGirdisi"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OnizlemeYaniti"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/plans/{plan_id}/deactivate": {
+      "post": {
+        "tags": [
+          "plan"
+        ],
+        "summary": "Planı durdur",
+        "description": "Durdurulan plandan yeni çalıştırma üretilmez; başlanmamışlar silinir.",
+        "operationId": "plan_durdur_api_v1_plans__plan_id__deactivate_post",
+        "parameters": [
+          {
+            "name": "plan_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Plan Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanOzet"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/plans/{plan_id}/activate": {
+      "post": {
+        "tags": [
+          "plan"
+        ],
+        "summary": "Planı yeniden başlat",
+        "operationId": "plan_baslat_api_v1_plans__plan_id__activate_post",
+        "parameters": [
+          {
+            "name": "plan_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Plan Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanOzet"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/plans/{plan_id}/generate": {
+      "post": {
+        "tags": [
+          "plan"
+        ],
+        "summary": "Çalıştırmaları şimdi üret",
+        "description": "Zamanlayıcının (ST-027) yapacağı işin elle tetiklenmesi; idempotenttir.",
+        "operationId": "plan_uret_api_v1_plans__plan_id__generate_post",
+        "parameters": [
+          {
+            "name": "plan_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Plan Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UretimYaniti"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/runs": {
+      "get": {
+        "tags": [
+          "plan"
+        ],
+        "summary": "Bir iş gününün çalıştırmaları",
+        "operationId": "calistirmalar_api_v1_runs_get",
+        "parameters": [
+          {
+            "name": "business_day",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Business Day"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CalistirmaOzet"
+                  },
+                  "title": "Response Calistirmalar Api V1 Runs Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
+      "AtamaGirdisi": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "anyone",
+              "role",
+              "user"
+            ],
+            "title": "Kind",
+            "default": "anyone"
+          },
+          "role": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role"
+          },
+          "user_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Id"
+          }
+        },
+        "type": "object",
+        "title": "AtamaGirdisi"
+      },
       "BolgeDugumu": {
         "properties": {
           "id": {
@@ -1048,6 +1414,71 @@
         ],
         "title": "CalismaSaati",
         "description": "Bir günün açılış/kapanışı. `null` gün = kapalı."
+      },
+      "CalistirmaOzet": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "plan_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Plan Id"
+          },
+          "branch_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Branch Id"
+          },
+          "branch_name": {
+            "type": "string",
+            "title": "Branch Name"
+          },
+          "business_day": {
+            "type": "string",
+            "format": "date",
+            "title": "Business Day"
+          },
+          "window_start": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Window Start"
+          },
+          "window_end": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Window End"
+          },
+          "tolerance_end": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Tolerance End"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "late": {
+            "type": "boolean",
+            "title": "Late",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "plan_id",
+          "branch_id",
+          "branch_name",
+          "business_day",
+          "window_start",
+          "window_end",
+          "tolerance_end",
+          "status"
+        ],
+        "title": "CalistirmaOzet"
       },
       "DavetYaniti": {
         "properties": {
@@ -1504,6 +1935,145 @@
           "title"
         ],
         "title": "MaddeGirdisi"
+      },
+      "OnizlemeYaniti": {
+        "properties": {
+          "days": {
+            "type": "integer",
+            "title": "Days"
+          },
+          "run_count": {
+            "type": "integer",
+            "title": "Run Count"
+          },
+          "runs": {
+            "items": {
+              "$ref": "#/components/schemas/CalistirmaOzet"
+            },
+            "type": "array",
+            "title": "Runs"
+          }
+        },
+        "type": "object",
+        "required": [
+          "days",
+          "run_count",
+          "runs"
+        ],
+        "title": "OnizlemeYaniti",
+        "description": "7 gün önizleme (FR-0511): kaydetmeden önce ne üretileceği."
+      },
+      "PlanGirdisi": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Name",
+            "examples": [
+              "Günlük kapanış"
+            ]
+          },
+          "template_version_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Template Version Id"
+          },
+          "branch_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Branch Ids"
+          },
+          "schedule": {
+            "$ref": "#/components/schemas/Zamanlama"
+          },
+          "assignment": {
+            "$ref": "#/components/schemas/AtamaGirdisi",
+            "default": {
+              "kind": "anyone"
+            }
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "template_version_id",
+          "branch_ids",
+          "schedule"
+        ],
+        "title": "PlanGirdisi"
+      },
+      "PlanOzet": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "template_version_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Template Version Id"
+          },
+          "template_name": {
+            "type": "string",
+            "title": "Template Name"
+          },
+          "branch_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Branch Ids"
+          },
+          "branch_count": {
+            "type": "integer",
+            "title": "Branch Count"
+          },
+          "active": {
+            "type": "boolean",
+            "title": "Active"
+          },
+          "assignment": {
+            "$ref": "#/components/schemas/AtamaGirdisi"
+          },
+          "recurrence": {
+            "type": "string",
+            "title": "Recurrence"
+          },
+          "duration_minutes": {
+            "type": "integer",
+            "title": "Duration Minutes"
+          },
+          "tolerance_minutes": {
+            "type": "integer",
+            "title": "Tolerance Minutes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "template_version_id",
+          "template_name",
+          "branch_ids",
+          "branch_count",
+          "active",
+          "assignment",
+          "recurrence",
+          "duration_minutes",
+          "tolerance_minutes"
+        ],
+        "title": "PlanOzet"
       },
       "RolAtamasi": {
         "properties": {
@@ -2046,6 +2616,24 @@
         ],
         "title": "TaslakGirdisi"
       },
+      "UretimYaniti": {
+        "properties": {
+          "created": {
+            "type": "integer",
+            "title": "Created"
+          },
+          "deleted": {
+            "type": "integer",
+            "title": "Deleted"
+          }
+        },
+        "type": "object",
+        "required": [
+          "created",
+          "deleted"
+        ],
+        "title": "UretimYaniti"
+      },
       "ValidationError": {
         "properties": {
           "loc": {
@@ -2103,6 +2691,94 @@
           "message"
         ],
         "title": "YayinSorunu"
+      },
+      "Zamanlama": {
+        "properties": {
+          "repeat": {
+            "type": "string",
+            "enum": [
+              "daily",
+              "weekly",
+              "once"
+            ],
+            "title": "Repeat",
+            "default": "daily"
+          },
+          "weekdays": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Weekdays",
+            "description": "0 = Pazartesi (haftalıkta)"
+          },
+          "starts_on": {
+            "type": "string",
+            "format": "date",
+            "title": "Starts On"
+          },
+          "start_mode": {
+            "type": "string",
+            "enum": [
+              "fixed",
+              "anchor"
+            ],
+            "title": "Start Mode",
+            "default": "fixed"
+          },
+          "start_time": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Time"
+          },
+          "anchor_reference": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "open",
+                  "close"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Anchor Reference"
+          },
+          "anchor_offset_minutes": {
+            "type": "integer",
+            "title": "Anchor Offset Minutes",
+            "default": 0
+          },
+          "duration_minutes": {
+            "type": "integer",
+            "maximum": 1440.0,
+            "exclusiveMinimum": 0.0,
+            "title": "Duration Minutes"
+          },
+          "tolerance_minutes": {
+            "type": "integer",
+            "maximum": 1440.0,
+            "minimum": 0.0,
+            "title": "Tolerance Minutes",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "starts_on",
+          "duration_minutes"
+        ],
+        "title": "Zamanlama",
+        "description": "Plan editörünün zaman kuralı (FR-0502…0507).\n\nRRULE metni burada kurulur: arayüz \"her gün / haftanın günleri / tek\nseferlik\" der, motor RFC 5545 alır. Başlangıç ya sabit saattir ya da\nşubenin çalışma saatinden türetilir (\"kapanıştan 60 dk önce\")."
       }
     }
   }

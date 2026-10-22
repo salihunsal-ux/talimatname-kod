@@ -12,10 +12,11 @@ zinciridir. Gerçek kişi ve müşteri verisi yoktur: adlar uydurmadır ve
 
 from __future__ import annotations
 
-from datetime import UTC, datetime, time
+from datetime import UTC, date, datetime, time
 from uuid import UUID, uuid5
 
 from talimatname.domain.organization import Branch, Region, Station, uniform_hours
+from talimatname.domain.plans import Assignment, Plan, Run
 from talimatname.domain.templates import (
     ChoiceOption,
     Item,
@@ -24,7 +25,7 @@ from talimatname.domain.templates import (
     TemplateVersion,
 )
 from talimatname.domain.users import RoleAssignment, User
-from talimatname.domain.window import BusinessHours
+from talimatname.domain.window import Anchor, BusinessHours, WindowRule
 
 # Tohum kimlikleri sabit: her açılışta aynı id'ler gelsin ki panel
 # yenilenince bağlantılar kırılmasın (uuid5, sabit ad alanı).
@@ -345,3 +346,60 @@ class MemoryTemplateRepository:
 
     def save_version(self, version: TemplateVersion) -> None:
         self._versions[version.id] = version
+
+
+def _tohum_planlar() -> list[Plan]:
+    """Kapanış listesi: her gün, kapanıştan 60 dk önce, 210 dk pencere.
+
+    Şablon kütüphanesindeki 1. şablonun plan karşılığı (02-urun/07):
+    "şube kapanış saatinden 60 dk önce başlar, pencere kapanış + 90 dk".
+    """
+    return [
+        Plan(
+            id=sabit_id("plan:kapanis"),
+            name="Günlük kapanış",
+            template_version_id=sabit_id("surum:kapanis:1"),
+            branch_ids=(
+                sabit_id("sube:KDK"),
+                sabit_id("sube:USK"),
+                sabit_id("sube:BSK"),
+            ),
+            rule=WindowRule(
+                recurrence="FREQ=DAILY",
+                starts_on=date(2026, 10, 1),
+                anchor=Anchor("close", -60),
+                duration_minutes=210,
+                tolerance_minutes=0,
+            ),
+            assignment=Assignment(kind="anyone"),
+        ).validated()
+    ]
+
+
+class MemoryPlanRepository:
+    """`PlanRepository` portunun bellek içi karşılığı."""
+
+    def __init__(self, *, seed: bool = True) -> None:
+        self._plans: dict[UUID, Plan] = {}
+        self._runs: dict[UUID, Run] = {}
+        if seed:
+            for plan in _tohum_planlar():
+                self._plans[plan.id] = plan
+
+    def plans(self) -> list[Plan]:
+        return list(self._plans.values())
+
+    def plan(self, plan_id: UUID) -> Plan | None:
+        return self._plans.get(plan_id)
+
+    def save_plan(self, plan: Plan) -> None:
+        self._plans[plan.id] = plan
+
+    def runs(self) -> list[Run]:
+        return list(self._runs.values())
+
+    def save_run(self, run: Run) -> None:
+        self._runs[run.id] = run
+
+    def delete_run(self, run_id: UUID) -> None:
+        self._runs.pop(run_id, None)
