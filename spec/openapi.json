@@ -1,0 +1,75 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Talimatname API",
+    "description": "Kanıtlı görev listesi API'si (v1 çekirdek). Hatalar RFC 9457 problem+json biçiminde döner.",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/api/v1/health": {
+      "get": {
+        "tags": [
+          "sistem"
+        ],
+        "summary": "Canlılık ve yapılandırma özeti",
+        "description": "Sürüm, ortam ve bağımlılıkların yapılandırılmış olup olmadığı.\n\nVeritabanına **bağlanmaz**: canlılık kontrolü bağımlılıkların\ndurumuna göre kırmızı olmamalı (hazırlık kontrolü ayrı gelecek).",
+        "operationId": "health_api_v1_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "HealthResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "const": "ok",
+            "title": "Status",
+            "default": "ok"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version",
+            "description": "API sürümü"
+          },
+          "environment": {
+            "type": "string",
+            "title": "Environment",
+            "description": "dev | test | staging | prod"
+          },
+          "database_configured": {
+            "type": "boolean",
+            "title": "Database Configured",
+            "description": "DATABASE_URL tanımlı mı"
+          },
+          "object_store_configured": {
+            "type": "boolean",
+            "title": "Object Store Configured",
+            "description": "Nesne depolama uç noktası tanımlı mı"
+          }
+        },
+        "type": "object",
+        "required": [
+          "version",
+          "environment",
+          "database_configured",
+          "object_store_configured"
+        ],
+        "title": "HealthResponse",
+        "description": "Canlılık yanıtı. Şema açıkça tanımlı: istemci tipleri bundan üretilir."
+      }
+    }
+  }
+}

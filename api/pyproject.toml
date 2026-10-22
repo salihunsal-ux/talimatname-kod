@@ -1,0 +1,59 @@
+[project]
+name = "talimatname-api"
+version = "0.1.0"
+description = "Talimatname API — kanıtlı görev listesi (v1 çekirdek)"
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi>=0.115",
+  "uvicorn[standard]>=0.30",
+  "pydantic-settings>=2.4",
+  "python-dateutil>=2.9",
+  "structlog>=24.1",
+  "sqlalchemy>=2.0",
+  "alembic>=1.13",
+  "psycopg[binary]>=3.2",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "pytest-cov>=5", "ruff>=0.6", "mypy>=1.11", "httpx>=0.27"]
+
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+# Alan kodunda okunabilirlik > kısalık; kuralları açıkça seçiyoruz (ADR-0014 md.10).
+select = ["E", "F", "I", "UP", "B", "SIM", "C4", "RUF", "ANN", "PT", "TID"]
+# RUF001-003: "belirsiz unicode karakter". Türkçe gövde metninde en-tire (–),
+# derece (°), çarpı (×) ve tırnak işaretleri meşru; kural homoglyph saldırısı
+# içindir ve bu depoda yalnızca gürültü üretir (285 bulgu, tamamı Türkçe metin).
+ignore = ["ANN401", "RUF001", "RUF002", "RUF003"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["ANN001", "ANN201"]
+
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+# domain katmanı saf kalmalı: I/O ve çerçeve importları orada yasak (ADR-0014 md.2).
+"requests".msg = "domain ve servis katmanında HTTP istemcisi kullanılmaz; infra katmanına taşı"
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unreachable = true
+mypy_path = "src"
+packages = ["talimatname"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q --strict-markers"
+markers = [
+  "db: çalışan bir PostgreSQL gerektirir (ADR-0014 md.9)",
+]

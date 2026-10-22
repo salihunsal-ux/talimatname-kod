@@ -1,0 +1,292 @@
+{
+  "_aciklama": "Pencere motoru fikstürleri (ADR-0005, FR-0501…0507). Backend (pytest) ve Flutter (Faz B) AYNI dosyayı geçer. Saatler UTC, iş günü yerel. Kaynak kurallar: BR-01 (iş günü = pencere başlangıcı), FR-0515 (kapalı gün).",
+  "_surum": 1,
+  "takvimler": {
+    "kadikoy": {
+      "_not": "Türkiye'de yaz saati yok (sürekli UTC+3). Pzt-Paz 08:00-23:00.",
+      "timezone": "Europe/Istanbul",
+      "hours": {
+        "0": ["08:00", "23:00"],
+        "1": ["08:00", "23:00"],
+        "2": ["08:00", "23:00"],
+        "3": ["08:00", "23:00"],
+        "4": ["08:00", "23:00"],
+        "5": ["08:00", "23:00"],
+        "6": ["08:00", "23:00"]
+      },
+      "closed_dates": ["2026-10-29"]
+    },
+    "gece_kulubu": {
+      "_not": "Gece 01:00'de kapanan şube: kapanış ertesi takvim gününde.",
+      "timezone": "Europe/Istanbul",
+      "hours": {
+        "0": ["16:00", "01:00"],
+        "1": ["16:00", "01:00"],
+        "2": ["16:00", "01:00"],
+        "3": ["16:00", "01:00"],
+        "4": ["16:00", "02:00"],
+        "5": ["16:00", "02:00"],
+        "6": null
+      },
+      "closed_dates": []
+    },
+    "berlin": {
+      "_not": "Yaz saati geçişleri için: 25 Ekim 2026 geri (03:00→02:00), 29 Mart 2026 ileri (02:00→03:00).",
+      "timezone": "Europe/Berlin",
+      "hours": {
+        "0": ["09:00", "22:00"],
+        "1": ["09:00", "22:00"],
+        "2": ["09:00", "22:00"],
+        "3": ["09:00", "22:00"],
+        "4": ["09:00", "22:00"],
+        "5": ["09:00", "22:00"],
+        "6": ["09:00", "22:00"]
+      },
+      "closed_dates": []
+    }
+  },
+  "durumlar": [
+    {
+      "ad": "gunluk_sabit_saat",
+      "aciklama": "Günlük 08:00 başlangıç, 60 dk pencere, 30 dk tolerans.",
+      "takvim": "kadikoy",
+      "kural": {
+        "recurrence": "FREQ=DAILY",
+        "starts_on": "2026-11-02",
+        "start_time": "08:00",
+        "duration_minutes": 60,
+        "tolerance_minutes": 30
+      },
+      "aralik": ["2026-11-02", "2026-11-03"],
+      "beklenen": [
+        {
+          "business_day": "2026-11-02",
+          "window_start": "2026-11-02T05:00:00Z",
+          "window_end": "2026-11-02T06:00:00Z",
+          "tolerance_end": "2026-11-02T06:30:00Z"
+        },
+        {
+          "business_day": "2026-11-03",
+          "window_start": "2026-11-03T05:00:00Z",
+          "window_end": "2026-11-03T06:00:00Z",
+          "tolerance_end": "2026-11-03T06:30:00Z"
+        }
+      ]
+    },
+    {
+      "ad": "kapanis_gece_yarisini_asan",
+      "aciklama": "TC-025: kapanıştan 60 dk önce başlar, 210 dk sürer (22:00-01:30); iş günü 22:00'nin günü.",
+      "takvim": "kadikoy",
+      "kural": {
+        "recurrence": "FREQ=DAILY",
+        "starts_on": "2026-11-02",
+        "anchor": { "reference": "close", "offset_minutes": -60 },
+        "duration_minutes": 210,
+        "tolerance_minutes": 0
+      },
+      "aralik": ["2026-11-02", "2026-11-02"],
+      "beklenen": [
+        {
+          "business_day": "2026-11-02",
+          "window_start": "2026-11-02T19:00:00Z",
+          "window_end": "2026-11-02T22:30:00Z",
+          "tolerance_end": "2026-11-02T22:30:00Z"
+        }
+      ]
+    },
+    {
+      "ad": "kapanis_gece_yarisindan_sonra",
+      "aciklama": "01:00'de kapanan şube: pencere 00:00'da başlıyor ama iş günü bir önceki gün (vardiya kuralı, window.py _business_day).",
+      "takvim": "gece_kulubu",
+      "kural": {
+        "recurrence": "FREQ=DAILY",
+        "starts_on": "2026-11-02",
+        "anchor": { "reference": "close", "offset_minutes": -60 },
+        "duration_minutes": 120,
+        "tolerance_minutes": 30
+      },
+      "aralik": ["2026-11-02", "2026-11-02"],
+      "beklenen": [
+        {
+          "business_day": "2026-11-02",
+          "window_start": "2026-11-02T21:00:00Z",
+          "window_end": "2026-11-02T23:00:00Z",
+          "tolerance_end": "2026-11-02T23:30:00Z"
+        }
+      ]
+    },
+    {
+      "ad": "pazar_kapali",
+      "aciklama": "FR-0515: haftalık çalışma saati olmayan günde pencere üretilmez (gece kulübü Pazar kapalı).",
+      "takvim": "gece_kulubu",
+      "kural": {
+        "recurrence": "FREQ=DAILY",
+        "starts_on": "2026-11-07",
+        "start_time": "18:00",
+        "duration_minutes": 60
+      },
+      "aralik": ["2026-11-07", "2026-11-09"],
+      "beklenen": [
+        {
+          "business_day": "2026-11-07",
+          "window_start": "2026-11-07T15:00:00Z",
+          "window_end": "2026-11-07T16:00:00Z",
+          "tolerance_end": "2026-11-07T16:00:00Z"
+        },
+        {
+          "business_day": "2026-11-09",
+          "window_start": "2026-11-09T15:00:00Z",
+          "window_end": "2026-11-09T16:00:00Z",
+          "tolerance_end": "2026-11-09T16:00:00Z"
+        }
+      ]
+    },
+    {
+      "ad": "tatil_gunu_atlanir",
+      "aciklama": "FR-0515: tatil takvimindeki tarih (29 Ekim) atlanır.",
+      "takvim": "kadikoy",
+      "kural": {
+        "recurrence": "FREQ=DAILY",
+        "starts_on": "2026-10-28",
+        "start_time": "09:00",
+        "duration_minutes": 30
+      },
+      "aralik": ["2026-10-28", "2026-10-30"],
+      "beklenen": [
+        {
+          "business_day": "2026-10-28",
+          "window_start": "2026-10-28T06:00:00Z",
+          "window_end": "2026-10-28T06:30:00Z",
+          "tolerance_end": "2026-10-28T06:30:00Z"
+        },
+        {
+          "business_day": "2026-10-30",
+          "window_start": "2026-10-30T06:00:00Z",
+          "window_end": "2026-10-30T06:30:00Z",
+          "tolerance_end": "2026-10-30T06:30:00Z"
+        }
+      ]
+    },
+    {
+      "ad": "haftalik_pazartesi",
+      "aciklama": "Haftalık derin temizlik: Pazartesi 14:00, 180 dk, tolerans 240 dk.",
+      "takvim": "kadikoy",
+      "kural": {
+        "recurrence": "FREQ=WEEKLY;BYDAY=MO",
+        "starts_on": "2026-11-02",
+        "start_time": "14:00",
+        "duration_minutes": 180,
+        "tolerance_minutes": 240
+      },
+      "aralik": ["2026-11-02", "2026-11-15"],
+      "beklenen": [
+        {
+          "business_day": "2026-11-02",
+          "window_start": "2026-11-02T11:00:00Z",
+          "window_end": "2026-11-02T14:00:00Z",
+          "tolerance_end": "2026-11-02T18:00:00Z"
+        },
+        {
+          "business_day": "2026-11-09",
+          "window_start": "2026-11-09T11:00:00Z",
+          "window_end": "2026-11-09T14:00:00Z",
+          "tolerance_end": "2026-11-09T18:00:00Z"
+        }
+      ]
+    },
+    {
+      "ad": "her_iki_saat",
+      "aciklama": "Saatlik hijyen kontrolü: 10:00-22:00 arası her 2 saat, 15 dk pencere, tolerans 0. Günde 7 pencere, hepsi aynı iş gününde.",
+      "takvim": "kadikoy",
+      "kural": {
+        "recurrence": "FREQ=HOURLY;INTERVAL=2;BYHOUR=10,12,14,16,18,20,22",
+        "starts_on": "2026-11-02",
+        "start_time": null,
+        "anchor": null,
+        "duration_minutes": 15,
+        "tolerance_minutes": 0,
+        "_not": "Bu durumda saat RRULE'den gelir; motor start_time istediği için beklenen listesi gün içi saatlerle açıkça yazıldı. Saatlik kurallar için ayrı çözüm gerekir — bkz. acik_sorular."
+      },
+      "aralik": ["2026-11-02", "2026-11-02"],
+      "beklenen": "ATLANDI",
+      "atlama_sebebi": "Saat bilgisini RRULE'den alan kurallar v1 motorunda desteklenmiyor (start_time/anchor zorunlu). Karar gerekiyor: ya BYHOUR okunur ya da plan birden çok pencere tanımı taşır."
+    },
+    {
+      "ad": "yaz_saati_geri_alinan_gece",
+      "aciklama": "Berlin, 25 Ekim 2026: 03:00 → 02:00. Saat 02:30 iki kez yaşanır; motor ilk geçişi alır (fold=0), tek pencere üretir.",
+      "takvim": "berlin",
+      "kural": {
+        "recurrence": "FREQ=DAILY",
+        "starts_on": "2026-10-25",
+        "start_time": "02:30",
+        "duration_minutes": 30
+      },
+      "aralik": ["2026-10-25", "2026-10-25"],
+      "beklenen": [
+        {
+          "business_day": "2026-10-25",
+          "window_start": "2026-10-25T00:30:00Z",
+          "window_end": "2026-10-25T01:00:00Z",
+          "tolerance_end": "2026-10-25T01:00:00Z"
+        }
+      ]
+    },
+    {
+      "ad": "yaz_saati_ileri_alinan_gece",
+      "aciklama": "Berlin, 29 Mart 2026: 02:00 → 03:00. Saat 02:30 o gece hiç yaşanmaz; pencere boşluk kadar ileri kayar (03:30 yerel = 01:30Z).",
+      "takvim": "berlin",
+      "kural": {
+        "recurrence": "FREQ=DAILY",
+        "starts_on": "2026-03-29",
+        "start_time": "02:30",
+        "duration_minutes": 30
+      },
+      "aralik": ["2026-03-29", "2026-03-29"],
+      "beklenen": [
+        {
+          "business_day": "2026-03-29",
+          "window_start": "2026-03-29T01:30:00Z",
+          "window_end": "2026-03-29T02:00:00Z",
+          "tolerance_end": "2026-03-29T02:00:00Z"
+        }
+      ]
+    },
+    {
+      "ad": "iki_haftada_bir",
+      "aciklama": "INTERVAL=2 kuralı sorgu aralığına değil planın başlangıcına çıpalanır: 2 Kasım'da başlayan kural 16 Kasım'da tekrar eder, 9 Kasım'da etmez.",
+      "takvim": "kadikoy",
+      "kural": {
+        "recurrence": "FREQ=WEEKLY;INTERVAL=2;BYDAY=MO",
+        "starts_on": "2026-11-02",
+        "start_time": "10:00",
+        "duration_minutes": 60
+      },
+      "aralik": ["2026-11-09", "2026-11-16"],
+      "beklenen": [
+        {
+          "business_day": "2026-11-16",
+          "window_start": "2026-11-16T07:00:00Z",
+          "window_end": "2026-11-16T08:00:00Z",
+          "tolerance_end": "2026-11-16T08:00:00Z"
+        }
+      ]
+    },
+    {
+      "ad": "plan_baslangicindan_once_pencere_yok",
+      "aciklama": "Plan 2 Kasım'da başlıyorsa 1 Kasım'da pencere üretilmez.",
+      "takvim": "kadikoy",
+      "kural": {
+        "recurrence": "FREQ=DAILY",
+        "starts_on": "2026-11-02",
+        "start_time": "09:00",
+        "duration_minutes": 30
+      },
+      "aralik": ["2026-11-01", "2026-11-01"],
+      "beklenen": []
+    }
+  ],
+  "acik_sorular": [
+    "Saatlik kurallarda (BYHOUR) saat bilgisi RRULE'den mi gelir, plandan mı? v1 motoru start_time/anchor istiyor; şablon 3 (saatlik hijyen) bu yüzden şimdilik 7 ayrı plan ya da motor değişikliği gerektiriyor.",
+    "Kapanışa çıpalı pencere gece yarısından sonra başlıyorsa iş günü hangi gün? Motor 'vardiyanın başladığı gün' diyor; BR-01'in lafzı 'pencere başlangıç tarihi'. Sahada doğrulanacak."
+  ]
+}

@@ -1,0 +1,117 @@
+/* Tasarım token'ları — tek kaynak: ürün deposu docs/05-tasarim/04-tasarim-sistemi.md
+   Elle değer yazılmaz: bileşenler yalnızca bu değişkenleri kullanır.
+   Koyu tema aynı adları yeniden tanımlar; bileşen kodu temadan habersizdir. */
+
+:root {
+  /* renk — açık tema */
+  --renk-zemin: #f7f5ef;
+  --renk-yuzey: #ffffff;
+  --renk-yuzey2: #efece4;
+  --renk-murekkep: #1c2128;
+  --renk-murekkep2: #4b5560;
+  --renk-sessiz: #7b8590;
+  --renk-cizgi: #d6d9d2;
+  --renk-marka: #1f6f5b;
+  --renk-marka-acik: #dcebe5;
+  --renk-kritik: #b8452f;
+  --renk-kritik-acik: #f3ddd8;
+  --renk-uyari: #b7791f;
+  --renk-uyari-acik: #f6ebd2;
+  --renk-pasif: #c9ced6;
+
+  /* boşluk ölçeği */
+  --bosluk-1: 4px;
+  --bosluk-2: 8px;
+  --bosluk-3: 12px;
+  --bosluk-4: 16px;
+  --bosluk-6: 24px;
+  --bosluk-8: 32px;
+
+  /* köşe */
+  --kose-kart: 12px;
+  --kose-dugme: 10px;
+  --kose-cip: 999px;
+
+  /* tipografi (web gövde 14, satır yüksekliği 1,45) */
+  --yazi-tipi: 'Segoe UI', 'SF Pro Text', Roboto, system-ui, sans-serif;
+  --govde: 14px;
+  --govde-satir: 1.45;
+  --baslik-ekran: 22px;
+  --baslik-bolum: 17px;
+  --etiket: 13px;
+  --meta: 12px;
+
+  /* yüzen öğeler — gölge yalnızca burada */
+  --golge-yuzen: 0 6px 24px rgb(28 33 40 / 12%);
+}
+
+:root[data-tema='koyu'] {
+  --renk-zemin: #15191c;
+  --renk-yuzey: #1d2226;
+  --renk-yuzey2: #262c31;
+  --renk-murekkep: #f1eee6;
+  --renk-murekkep2: #b5bcc4;
+  --renk-sessiz: #8a9299;
+  --renk-cizgi: #2f373d;
+  --renk-marka: #3fa98c;
+  --renk-marka-acik: #173a31;
+  --renk-kritik: #e46f5a;
+  --renk-kritik-acik: #3a201b;
+  --renk-uyari: #e0a640;
+  --renk-uyari-acik: #33290f;
+  --renk-pasif: #3a424a;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-tema='acik']) {
+    --renk-zemin: #15191c;
+    --renk-yuzey: #1d2226;
+    --renk-yuzey2: #262c31;
+    --renk-murekkep: #f1eee6;
+    --renk-murekkep2: #b5bcc4;
+    --renk-sessiz: #8a9299;
+    --renk-cizgi: #2f373d;
+    --renk-marka: #3fa98c;
+    --renk-marka-acik: #173a31;
+    --renk-kritik: #e46f5a;
+    --renk-kritik-acik: #3a201b;
+    --renk-uyari: #e0a640;
+    --renk-uyari-acik: #33290f;
+    --renk-pasif: #3a424a;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--renk-zemin);
+  color: var(--renk-murekkep);
+  font: var(--govde) / var(--govde-satir) var(--yazi-tipi);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Dokunma hedefi ≥ 44px (NFR-11); odak görünür kalır. */
+button,
+a {
+  min-height: 44px;
+  font: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--renk-marka);
+  outline-offset: 2px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

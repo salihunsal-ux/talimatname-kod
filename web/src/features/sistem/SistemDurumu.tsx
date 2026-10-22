@@ -1,0 +1,126 @@
+import { useQuery } from '@tanstack/react-query';
+
+import { sistemDurumuGetir } from '../../api/sistem';
+import { tr } from '../../i18n/tr';
+
+/**
+ * İlk uçtan uca dilim: üretilmiş istemciyle /health çağrısı, üç durum
+ * (yükleniyor · hata · veri) ve token'larla biçim. Panelin geri kalanı
+ * bu desenin üstüne gelecek.
+ */
+export function SistemDurumu() {
+  const { data, isPending, isError, refetch } = useQuery({
+    queryKey: ['sistem-durumu'],
+    queryFn: sistemDurumuGetir,
+  });
+
+  return (
+    <section
+      aria-labelledby="sistem-baslik"
+      style={{
+        background: 'var(--renk-yuzey)',
+        border: '1px solid var(--renk-cizgi)',
+        borderRadius: 'var(--kose-kart)',
+        padding: 'var(--bosluk-4)',
+        maxWidth: 520,
+      }}
+    >
+      <h1 id="sistem-baslik" style={{ fontSize: 'var(--baslik-bolum)', margin: 0 }}>
+        {tr.sistem.baslik}
+      </h1>
+
+      {isPending && (
+        <p style={{ color: 'var(--renk-sessiz)' }} role="status">
+          {tr.sistem.yukleniyor}
+        </p>
+      )}
+
+      {isError && (
+        <div role="alert" style={{ marginTop: 'var(--bosluk-3)' }}>
+          <Cip renk="kritik" metin={tr.sistem.ulasilamiyor} />
+          <p style={{ color: 'var(--renk-murekkep2)' }}>{tr.hata.aglaBaglanilamadi}</p>
+          <button
+            type="button"
+            onClick={() => void refetch()}
+            style={{
+              padding: '0 var(--bosluk-4)',
+              borderRadius: 'var(--kose-dugme)',
+              border: '1px solid var(--renk-cizgi)',
+              background: 'var(--renk-yuzey2)',
+              color: 'var(--renk-murekkep)',
+              cursor: 'pointer',
+            }}
+          >
+            {tr.sistem.yenile}
+          </button>
+        </div>
+      )}
+
+      {data && (
+        <div style={{ marginTop: 'var(--bosluk-3)' }}>
+          <Cip renk="marka" metin={tr.sistem.saglikli} />
+          <dl
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'auto 1fr',
+              gap: 'var(--bosluk-2) var(--bosluk-4)',
+              margin: 'var(--bosluk-3) 0 0',
+            }}
+          >
+            <Satir ad={tr.sistem.surum} deger={data.version} />
+            <Satir ad={tr.sistem.ortam} deger={data.environment} />
+            <Satir
+              ad={tr.sistem.veritabani}
+              deger={
+                data.database_configured ? tr.sistem.yapilandirilmis : tr.sistem.yapilandirilmamis
+              }
+            />
+            <Satir
+              ad={tr.sistem.nesneDepo}
+              deger={
+                data.object_store_configured
+                  ? tr.sistem.yapilandirilmis
+                  : tr.sistem.yapilandirilmamis
+              }
+            />
+          </dl>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function Satir({ ad, deger }: { ad: string; deger: string }) {
+  return (
+    <>
+      <dt style={{ color: 'var(--renk-sessiz)', fontSize: 'var(--etiket)' }}>{ad}</dt>
+      <dd style={{ margin: 0, fontVariantNumeric: 'tabular-nums' }}>{deger}</dd>
+    </>
+  );
+}
+
+/**
+ * Durum çipi: renk tek başına anlam taşımaz, ikon + metin birlikte
+ * (NFR-11 / tasarım sistemi "Durum çipi" kuralı).
+ */
+function Cip({ renk, metin }: { renk: 'marka' | 'kritik'; metin: string }) {
+  const ikon = renk === 'marka' ? '✓' : '✕';
+  return (
+    <span
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 'var(--bosluk-1)',
+        padding: '2px var(--bosluk-3)',
+        borderRadius: 'var(--kose-cip)',
+        fontSize: 'var(--etiket)',
+        fontWeight: 600,
+        background: renk === 'marka' ? 'var(--renk-marka-acik)' : 'var(--renk-kritik-acik)',
+        color: renk === 'marka' ? 'var(--renk-marka)' : 'var(--renk-kritik)',
+      }}
+    >
+      <span aria-hidden="true">{ikon}</span>
+      {metin}
+    </span>
+  );
+}

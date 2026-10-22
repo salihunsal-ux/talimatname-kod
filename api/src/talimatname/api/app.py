@@ -1,0 +1,91 @@
+"""Uygulama fabrikası. Tek bir global `app` yok: test ayarlarıyla kurulabilir."""
+
+from __future__ import annotations
+
+import logging
+from typing import Literal
+
+import structlog
+from fastapi import APIRouter, FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, Field
+
+from talimatname import __version__
+from talimatname.api.errors import register_error_handlers
+from talimatname.settings import Settings, get_settings
+
+API_PREFIX = "/api/v1"
+
+
+def configure_logging(level: str) -> None:
+    """JSON günlük: her satırda istek kimliği ve kiracı olacak şekilde (ADR-0014 md.1)."""
+    logging.basicConfig(format="%(message)s", level=getattr(logging, level.upper(), logging.INFO))
+    structlog.configure(
+        processors=[
+            structlog.contextvars.merge_contextvars,
+            structlog.processors.add_log_level,
+            structlog.processors.TimeStamper(fmt="iso", utc=True),
+            structlog.processors.JSONRenderer(),
+        ],
+        wrapper_class=structlog.make_filtering_bound_logger(
+            getattr(logging, level.upper(), logging.INFO)
+        ),
+        cache_logger_on_first_use=True,
+    )
+
+
+class HealthResponse(BaseModel):
+    """Canlılık yanıtı. Şema açıkça tanımlı: istemci tipleri bundan üretilir."""
+
+    status: Literal["ok"] = "ok"
+    version: str = Field(description="API sürümü")
+    environment: str = Field(description="dev | test | staging | prod")
+    database_configured: bool = Field(description="DATABASE_URL tanımlı mı")
+    object_store_configured: bool = Field(description="Nesne depolama uç noktası tanımlı mı")
+
+
+def build_router(settings: Settings) -> APIRouter:
+    router = APIRouter(prefix=API_PREFIX)
+
+    @router.get("/health", tags=["sistem"], summary="Canlılık ve yapılandırma özeti")
+    def health() -> HealthResponse:
+        """Sürüm, ortam ve bağımlılıkların yapılandırılmış olup olmadığı.
+
+        Veritabanına **bağlanmaz**: canlılık kontrolü bağımlılıkların
+        durumuna göre kırmızı olmamalı (hazırlık kontrolü ayrı gelecek).
+        """
+        return HealthResponse(
+            version=__version__,
+            environment=settings.environment,
+            database_configured=settings.database_url is not None,
+            object_store_configured=settings.object_store_endpoint is not None,
+        )
+
+    return router
+
+
+def create_app(settings: Settings | None = None) -> FastAPI:
+    settings = settings or get_settings()
+    configure_logging(settings.log_level)
+
+    app = FastAPI(
+        title="Talimatname API",
+        version=__version__,
+        description=(
+            "Kanıtlı görev listesi API'si (v1 çekirdek). "
+            "Hatalar RFC 9457 problem+json biçiminde döner."
+        ),
+        openapi_url=f"{API_PREFIX}/openapi.json",
+        docs_url=f"{API_PREFIX}/docs",
+    )
+    if settings.cors_origins:
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=settings.cors_origins,
+            allow_credentials=True,
+            allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
+            allow_headers=["Authorization", "Content-Type", "Idempotency-Key"],
+        )
+    register_error_handlers(app)
+    app.include_router(build_router(settings))
+    return app
