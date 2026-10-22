@@ -99,7 +99,9 @@ def personel_listesi(
     """Şubeye ya da role göre süzülebilir; kapsam denetimi `can_access` ile."""
     return [
         _ozet(k)
-        for k in servis.list(branch_id=branch_id, role=role, include_inactive=include_inactive)
+        for k in servis.list_users(
+            branch_id=branch_id, role=role, include_inactive=include_inactive
+        )
     ]
 
 

@@ -153,18 +153,18 @@ def test_olmayan_kapsam_reddedilir() -> None:
 
 def test_tc007_pasiflestirme_kaydi_silmez() -> None:
     servis = _servis()
-    emre = next(k for k in servis.list() if k.full_name.startswith("Emre"))
+    emre = next(k for k in servis.list_users() if k.full_name.startswith("Emre"))
 
     servis.set_status(emre.id, "inactive")
 
     assert servis.get(emre.id).status == "inactive"
-    assert emre.id not in {k.id for k in servis.list()}
-    assert emre.id in {k.id for k in servis.list(include_inactive=True)}
+    assert emre.id not in {k.id for k in servis.list_users()}
+    assert emre.id in {k.id for k in servis.list_users(include_inactive=True)}
 
 
 def test_subeye_gore_suzme() -> None:
     servis = _servis()
-    kadikoy_ekibi = {k.full_name for k in servis.list(branch_id=KADIKOY)}
+    kadikoy_ekibi = {k.full_name for k in servis.list_users(branch_id=KADIKOY)}
     # Kadıköy'ün kendi ekibi + Anadolu bölge müdürü + yönetici
     assert "Ayşe Şube" in kadikoy_ekibi
     assert "Emre Personel" in kadikoy_ekibi
@@ -175,7 +175,7 @@ def test_subeye_gore_suzme() -> None:
 
 def test_role_gore_suzme() -> None:
     servis = _servis()
-    assert {k.full_name for k in servis.list(role="branch_manager")} == {
+    assert {k.full_name for k in servis.list_users(role="branch_manager")} == {
         "Ayşe Şube",
         "Deniz Şube",
     }
@@ -184,7 +184,7 @@ def test_role_gore_suzme() -> None:
 def test_tc104_maskeleme_kisi_verisini_siler_kaydi_birakir() -> None:
     an = datetime(2027, 5, 1, 12, 0, tzinfo=UTC)
     servis = _servis(an)
-    emre = next(k for k in servis.list() if k.full_name.startswith("Emre"))
+    emre = next(k for k in servis.list_users() if k.full_name.startswith("Emre"))
 
     maskeli = servis.mask(emre.id)
 
@@ -198,7 +198,7 @@ def test_tc104_maskeleme_kisi_verisini_siler_kaydi_birakir() -> None:
 
 def test_maskeli_kullanici_degistirilemez() -> None:
     servis = _servis()
-    emre = next(k for k in servis.list() if k.full_name.startswith("Emre"))
+    emre = next(k for k in servis.list_users() if k.full_name.startswith("Emre"))
     servis.mask(emre.id)
     with pytest.raises(MaskedUserImmutable):
         servis.update(emre.id, full_name="Yeni Ad")

@@ -9,8 +9,13 @@ from __future__ import annotations
 
 from functools import lru_cache
 
-from talimatname.infra.memory import MemoryOrganizationRepository, MemoryUserRepository
+from talimatname.infra.memory import (
+    MemoryOrganizationRepository,
+    MemoryTemplateRepository,
+    MemoryUserRepository,
+)
 from talimatname.services.organization import OrganizationService
+from talimatname.services.templates import TemplateService
 from talimatname.services.users import UserService
 from talimatname.settings import get_settings
 
@@ -37,6 +42,16 @@ def _veritabani_kontrolu() -> None:
 def organizasyon_servisi() -> OrganizationService:
     _veritabani_kontrolu()
     return OrganizationService(_bellek_deposu())
+
+
+@lru_cache
+def _bellek_sablon_deposu() -> MemoryTemplateRepository:
+    return MemoryTemplateRepository()
+
+
+def sablon_servisi() -> TemplateService:
+    _veritabani_kontrolu()
+    return TemplateService(_bellek_sablon_deposu())
 
 
 def kullanici_servisi() -> UserService:

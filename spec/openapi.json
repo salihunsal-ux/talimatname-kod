@@ -651,6 +651,253 @@
           }
         }
       }
+    },
+    "/api/v1/templates": {
+      "get": {
+        "tags": [
+          "şablon"
+        ],
+        "summary": "Şablon listesi (sürümleriyle)",
+        "operationId": "sablon_listesi_api_v1_templates_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SablonOzet"
+                  },
+                  "type": "array",
+                  "title": "Response Sablon Listesi Api V1 Templates Get"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "şablon"
+        ],
+        "summary": "Şablon oluştur",
+        "description": "Yeni şablon boş bir **taslak** sürümle açılır (FR-0301).",
+        "operationId": "sablon_olustur_api_v1_templates_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SablonGirdisi"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SurumDetay"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/template-versions/{version_id}": {
+      "get": {
+        "tags": [
+          "şablon"
+        ],
+        "summary": "Sürüm detayı",
+        "operationId": "surum_detayi_api_v1_template_versions__version_id__get",
+        "parameters": [
+          {
+            "name": "version_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Version Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SurumDetay"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "şablon"
+        ],
+        "summary": "Taslağı kaydet",
+        "operationId": "taslak_kaydet_api_v1_template_versions__version_id__put",
+        "parameters": [
+          {
+            "name": "version_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Version Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaslakGirdisi"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SurumDetay"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/templates/{template_id}/new-draft": {
+      "post": {
+        "tags": [
+          "şablon"
+        ],
+        "summary": "Yayından yeni taslak türet",
+        "description": "Yayınlanmış sürüm değişmez; düzenleme yeni taslakta sürer (FR-0301).",
+        "operationId": "yeni_taslak_api_v1_templates__template_id__new_draft_post",
+        "parameters": [
+          {
+            "name": "template_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Template Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SurumDetay"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/template-versions/{version_id}/publish": {
+      "post": {
+        "tags": [
+          "şablon"
+        ],
+        "summary": "Sürümü yayınla",
+        "description": "Doğrulama geçmezse 422 ve **tüm** sorunların listesi döner (FR-0312).",
+        "operationId": "surum_yayinla_api_v1_template_versions__version_id__publish_post",
+        "parameters": [
+          {
+            "name": "version_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Version Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SurumDetay"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -688,6 +935,73 @@
           "branches"
         ],
         "title": "BolgeDugumu"
+      },
+      "BolumCiktisi": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "order": {
+            "type": "integer",
+            "title": "Order"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/MaddeCiktisi"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "order",
+          "title",
+          "items"
+        ],
+        "title": "BolumCiktisi"
+      },
+      "BolumGirdisi": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Title"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/MaddeGirdisi"
+            },
+            "type": "array",
+            "title": "Items",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "title"
+        ],
+        "title": "BolumGirdisi"
       },
       "CalismaSaati": {
         "properties": {
@@ -970,6 +1284,227 @@
         ],
         "title": "KullaniciOzet"
       },
+      "MaddeCiktisi": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "confirm",
+              "choice",
+              "number",
+              "temperature",
+              "text",
+              "photo",
+              "instruction"
+            ],
+            "title": "Type"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Title"
+          },
+          "hint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hint"
+          },
+          "required": {
+            "type": "boolean",
+            "title": "Required",
+            "default": true
+          },
+          "photo_required": {
+            "type": "boolean",
+            "title": "Photo Required",
+            "default": false
+          },
+          "critical": {
+            "type": "boolean",
+            "title": "Critical",
+            "default": false
+          },
+          "options": {
+            "items": {
+              "$ref": "#/components/schemas/SecenekGirdisi"
+            },
+            "type": "array",
+            "title": "Options",
+            "default": []
+          },
+          "min_value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min Value"
+          },
+          "max_value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Value"
+          },
+          "unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit"
+          },
+          "type_label": {
+            "type": "string",
+            "title": "Type Label"
+          },
+          "scored": {
+            "type": "boolean",
+            "title": "Scored"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "type",
+          "title",
+          "type_label",
+          "scored"
+        ],
+        "title": "MaddeCiktisi"
+      },
+      "MaddeGirdisi": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Yoksa yeni madde üretilir"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "confirm",
+              "choice",
+              "number",
+              "temperature",
+              "text",
+              "photo",
+              "instruction"
+            ],
+            "title": "Type"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Title"
+          },
+          "hint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hint"
+          },
+          "required": {
+            "type": "boolean",
+            "title": "Required",
+            "default": true
+          },
+          "photo_required": {
+            "type": "boolean",
+            "title": "Photo Required",
+            "default": false
+          },
+          "critical": {
+            "type": "boolean",
+            "title": "Critical",
+            "default": false
+          },
+          "options": {
+            "items": {
+              "$ref": "#/components/schemas/SecenekGirdisi"
+            },
+            "type": "array",
+            "title": "Options",
+            "default": []
+          },
+          "min_value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min Value"
+          },
+          "max_value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Value"
+          },
+          "unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit"
+          }
+        },
+        "type": "object",
+        "required": [
+          "type",
+          "title"
+        ],
+        "title": "MaddeGirdisi"
+      },
       "RolAtamasi": {
         "properties": {
           "role": {
@@ -1048,6 +1583,93 @@
         ],
         "title": "RolGirdisi",
         "description": "Rol atama gövdesi. Kapsam türü rolden belirlenir, ayrıca gönderilmez."
+      },
+      "SablonGirdisi": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Name",
+            "examples": [
+              "Kapanış (kafe)"
+            ]
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "SablonGirdisi"
+      },
+      "SablonOzet": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category"
+          },
+          "versions": {
+            "items": {
+              "$ref": "#/components/schemas/SurumOzet"
+            },
+            "type": "array",
+            "title": "Versions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "versions"
+        ],
+        "title": "SablonOzet"
+      },
+      "SecenekGirdisi": {
+        "properties": {
+          "label": {
+            "type": "string",
+            "maxLength": 60,
+            "minLength": 1,
+            "title": "Label"
+          },
+          "passing": {
+            "type": "boolean",
+            "title": "Passing",
+            "default": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "label"
+        ],
+        "title": "SecenekGirdisi"
       },
       "SubeDetay": {
         "properties": {
@@ -1259,6 +1881,171 @@
         ],
         "title": "SubeOzet"
       },
+      "SurumDetay": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "version_no": {
+            "type": "integer",
+            "title": "Version No"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "published",
+              "archived"
+            ],
+            "title": "Status"
+          },
+          "published_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Published At"
+          },
+          "scored_item_count": {
+            "type": "integer",
+            "title": "Scored Item Count"
+          },
+          "critical_item_count": {
+            "type": "integer",
+            "title": "Critical Item Count"
+          },
+          "photo_item_count": {
+            "type": "integer",
+            "title": "Photo Item Count"
+          },
+          "template_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Template Id"
+          },
+          "template_name": {
+            "type": "string",
+            "title": "Template Name"
+          },
+          "camera_only": {
+            "type": "boolean",
+            "title": "Camera Only"
+          },
+          "sections": {
+            "items": {
+              "$ref": "#/components/schemas/BolumCiktisi"
+            },
+            "type": "array",
+            "title": "Sections"
+          },
+          "publish_issues": {
+            "items": {
+              "$ref": "#/components/schemas/YayinSorunu"
+            },
+            "type": "array",
+            "title": "Publish Issues"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "version_no",
+          "status",
+          "scored_item_count",
+          "critical_item_count",
+          "photo_item_count",
+          "template_id",
+          "template_name",
+          "camera_only",
+          "sections",
+          "publish_issues"
+        ],
+        "title": "SurumDetay"
+      },
+      "SurumOzet": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "version_no": {
+            "type": "integer",
+            "title": "Version No"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "published",
+              "archived"
+            ],
+            "title": "Status"
+          },
+          "published_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Published At"
+          },
+          "scored_item_count": {
+            "type": "integer",
+            "title": "Scored Item Count"
+          },
+          "critical_item_count": {
+            "type": "integer",
+            "title": "Critical Item Count"
+          },
+          "photo_item_count": {
+            "type": "integer",
+            "title": "Photo Item Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "version_no",
+          "status",
+          "scored_item_count",
+          "critical_item_count",
+          "photo_item_count"
+        ],
+        "title": "SurumOzet"
+      },
+      "TaslakGirdisi": {
+        "properties": {
+          "sections": {
+            "items": {
+              "$ref": "#/components/schemas/BolumGirdisi"
+            },
+            "type": "array",
+            "title": "Sections"
+          },
+          "camera_only": {
+            "type": "boolean",
+            "title": "Camera Only",
+            "default": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "sections"
+        ],
+        "title": "TaslakGirdisi"
+      },
       "ValidationError": {
         "properties": {
           "loc": {
@@ -1298,6 +2085,24 @@
           "type"
         ],
         "title": "ValidationError"
+      },
+      "YayinSorunu": {
+        "properties": {
+          "where": {
+            "type": "string",
+            "title": "Where"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "where",
+          "message"
+        ],
+        "title": "YayinSorunu"
       }
     }
   }

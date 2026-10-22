@@ -12,10 +12,17 @@ zinciridir. Gerçek kişi ve müşteri verisi yoktur: adlar uydurmadır ve
 
 from __future__ import annotations
 
-from datetime import time
+from datetime import UTC, datetime, time
 from uuid import UUID, uuid5
 
 from talimatname.domain.organization import Branch, Region, Station, uniform_hours
+from talimatname.domain.templates import (
+    ChoiceOption,
+    Item,
+    Section,
+    Template,
+    TemplateVersion,
+)
 from talimatname.domain.users import RoleAssignment, User
 from talimatname.domain.window import BusinessHours
 
@@ -207,3 +214,134 @@ class MemoryUserRepository:
     def next_mask_counter(self) -> int:
         self._mask_counter += 1
         return self._mask_counter
+
+
+def _madde(
+    sira: int,
+    tur: str,
+    baslik: str,
+    *,
+    kritik: bool = False,
+    foto: bool = False,
+    secenekler: tuple[tuple[str, bool], ...] = (),
+    alt: float | None = None,
+    ust: float | None = None,
+    birim: str | None = None,
+) -> Item:
+    return Item(
+        id=sabit_id(f"madde:{baslik}"),
+        order=sira,
+        type=tur,  # type: ignore[arg-type]
+        title=baslik,
+        critical=kritik,
+        photo_required=foto,
+        options=tuple(ChoiceOption(etiket, gecer) for etiket, gecer in secenekler),
+        min_value=alt,
+        max_value=ust,
+        unit=birim,
+    )
+
+
+EVET_HAYIR = (("Evet", True), ("Hayır", False), ("Uygun değil", True))
+
+
+def _tohum_sablonlar() -> tuple[list[Template], list[TemplateVersion]]:
+    """Kütüphanenin ilk şablonu: Kapanış (02-urun/07, şablon 1'in kısaltması).
+
+    Tam 15 madde yerine temsilî 8 madde: editörün her madde türünü
+    gösterebilmesi için biri her türden.
+    """
+    kapanis = Template(id=sabit_id("sablon:kapanis"), name="Kapanış (kafe)", category="Kapanış")
+    acilis = Template(id=sabit_id("sablon:acilis"), name="Açılış", category="Açılış")
+
+    kapanis_v1 = TemplateVersion(
+        id=sabit_id("surum:kapanis:1"),
+        template_id=kapanis.id,
+        version_no=1,
+        status="published",
+        published_at=datetime(2026, 10, 1, 7, 0, tzinfo=UTC),
+        sections=(
+            Section(
+                id=sabit_id("bolum:mutfak"),
+                order=1,
+                title="Mutfak",
+                items=(
+                    _madde(1, "instruction", "Kapanış sırası: mutfak → salon → güvenlik"),
+                    _madde(2, "confirm", "Espresso makinesi geri yıkama yapıldı"),
+                    _madde(3, "photo", "Kahve makinesi ve öğütücü temizlendi", foto=True),
+                    _madde(
+                        4,
+                        "temperature",
+                        "Süt dolabı sıcaklığı",
+                        kritik=True,
+                        alt=0,
+                        ust=4,
+                        birim="°C",
+                    ),
+                    _madde(
+                        5,
+                        "choice",
+                        "Açık ürünler etiketlendi ve dolaba kaldırıldı",
+                        secenekler=EVET_HAYIR,
+                    ),
+                ),
+            ),
+            Section(
+                id=sabit_id("bolum:guvenlik"),
+                order=2,
+                title="Güvenlik",
+                items=(
+                    _madde(1, "choice", "Gaz vanası kapatıldı", kritik=True, secenekler=EVET_HAYIR),
+                    _madde(2, "photo", "Kapı ve kepenk kilitlendi, alarm kuruldu", foto=True),
+                    _madde(3, "text", "Devreden vardiyaya not"),
+                ),
+            ),
+        ),
+    )
+    acilis_taslak = TemplateVersion(
+        id=sabit_id("surum:acilis:1"),
+        template_id=acilis.id,
+        version_no=1,
+        status="draft",
+        sections=(
+            Section(
+                id=sabit_id("bolum:acilis-hazirlik"),
+                order=1,
+                title="Hazırlık",
+                items=(_madde(1, "confirm", "Espresso makinesi açıldı ve ısındı"),),
+            ),
+        ),
+    )
+    return [kapanis, acilis], [kapanis_v1, acilis_taslak]
+
+
+class MemoryTemplateRepository:
+    """`TemplateRepository` portunun bellek içi karşılığı."""
+
+    def __init__(self, *, seed: bool = True) -> None:
+        self._templates: dict[UUID, Template] = {}
+        self._versions: dict[UUID, TemplateVersion] = {}
+        if seed:
+            sablonlar, surumler = _tohum_sablonlar()
+            for sablon in sablonlar:
+                self._templates[sablon.id] = sablon
+            for surum in surumler:
+                self._versions[surum.id] = surum
+
+    def templates(self) -> list[Template]:
+        return list(self._templates.values())
+
+    def template(self, template_id: UUID) -> Template | None:
+        return self._templates.get(template_id)
+
+    def save_template(self, template: Template) -> None:
+        self._templates[template.id] = template
+
+    def versions(self, template_id: UUID) -> list[TemplateVersion]:
+        return [s for s in self._versions.values() if s.template_id == template_id]
+
+    def version(self, version_id: UUID) -> TemplateVersion | None:
+        return self._versions.get(version_id)
+
+    def save_version(self, version: TemplateVersion) -> None:
+        self._versions[version.id] = version

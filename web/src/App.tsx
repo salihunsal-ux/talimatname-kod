@@ -5,9 +5,10 @@ import { sorguIstemcisi } from './api/sorguIstemcisi';
 import { Kabuk } from './bilesenler/Kabuk';
 import { SistemDurumu } from './features/sistem/SistemDurumu';
 import { PersonelSayfasi } from './features/personel/PersonelSayfasi';
+import { SablonlarSayfasi } from './features/sablonlar/SablonlarSayfasi';
 import { SubelerSayfasi } from './features/subeler/SubelerSayfasi';
 
-export type Bolum = 'subeler' | 'personel' | 'sistem';
+export type Bolum = 'subeler' | 'personel' | 'sablonlar' | 'sistem';
 
 export function App() {
   const [bolum, setBolum] = useState<Bolum>('subeler');
@@ -17,6 +18,7 @@ export function App() {
       <Kabuk bolum={bolum} onBolum={setBolum}>
         {bolum === 'subeler' && <SubelerSayfasi />}
         {bolum === 'personel' && <PersonelSayfasi />}
+        {bolum === 'sablonlar' && <SablonlarSayfasi />}
         {bolum === 'sistem' && <SistemDurumu />}
       </Kabuk>
     </QueryClientProvider>

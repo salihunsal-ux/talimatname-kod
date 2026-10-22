@@ -69,7 +69,7 @@ class UserService:
 
     # --- okuma -------------------------------------------------------
 
-    def list(
+    def list_users(
         self,
         *,
         branch_id: UUID | None = None,
