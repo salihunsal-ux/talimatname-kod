@@ -32,7 +32,9 @@ cp .env.example .env
 - Dokümantasyon: `http://127.0.0.1:8010/api/v1/docs`
 - OpenAPI: `http://127.0.0.1:8010/api/v1/openapi.json`
 
-Port notu: belgelenmiş varsayılan **8010**'dur (8000 bu makinede başka bir projede). Başka bir port gerekirse `--port` ile başlatın ve panelde `web/.env.local` içine `VITE_API_URL` yazın; CORS listesi `CORS_ORIGINS` ile ayarlanır (joker `*` kabul edilmez).
+**Port ve CORS:** panel geliştirmede API'yi **kendi kaynağından** çağırır; Vite `/api` isteklerini backend'e aktarır (`vite.config.ts`, hedef `VITE_API_TARGET`). Böylece geliştirmede CORS diye bir sorun yok ve backend portu değişince tek satır güncellenir. API'deki CORS ayarı (`CORS_ORIGINS`, joker `*` kabul edilmez) dağıtılmış ortamlar içindir.
+
+Varsayılan backend portu **8010**'dur; bu makinede 8000 başka bir projeye ait ve 8010/8011 soketleri ölü süreçlerce tutulduğu için şu an **8020** kullanılıyor (`web/.env.local` → `VITE_API_TARGET`). Makine yeniden başlayınca varsayılana dönülebilir.
 
 ### Panel
 

@@ -100,6 +100,119 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/users': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Personel listesi
+     * @description Şubeye ya da role göre süzülebilir; kapsam denetimi `can_access` ile.
+     */
+    get: operations['personel_listesi_api_v1_users_get'];
+    put?: never;
+    /** Personel davet et */
+    post: operations['personel_davet_api_v1_users_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/users/{user_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Personel detayı */
+    get: operations['personel_detayi_api_v1_users__user_id__get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/users/{user_id}/roles': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /** Rolleri değiştir */
+    patch: operations['roller_guncelle_api_v1_users__user_id__roles_patch'];
+    trace?: never;
+  };
+  '/api/v1/users/{user_id}/deactivate': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Personeli pasifleştir
+     * @description Giriş kapanır, gelecek atamalar düşer; geçmiş cevap ve kanıtlar kalır (BR-22).
+     */
+    post: operations['personel_pasiflestir_api_v1_users__user_id__deactivate_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/users/{user_id}/activate': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Personeli yeniden aktif et */
+    post: operations['personel_aktif_et_api_v1_users__user_id__activate_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/users/{user_id}/mask': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * KVKK: kişi verisini maskele
+     * @description Silme talebi karşılığı (FR-1310): ad takma etikete döner, telefon
+     *     ve e-posta silinir; cevaplar ve kanıtlar iş kaydı olarak kalır.
+     */
+    post: operations['personel_maskele_api_v1_users__user_id__mask_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -129,6 +242,26 @@ export interface components {
       open_time?: string | null;
       /** Close Time */
       close_time?: string | null;
+    };
+    /**
+     * DavetYaniti
+     * @description Davet sonucu.
+     *
+     *     `invite_sent` bugün **her zaman false**: SMS sağlayıcısı bağlı değil
+     *     (ST-044). Arayüz "gönderildi" demez, "kuyruğa alındı" der.
+     */
+    DavetYaniti: {
+      user: components['schemas']['KullaniciOzet'];
+      /**
+       * Invite Sent
+       * @default false
+       */
+      invite_sent: boolean;
+      /**
+       * Invite Note
+       * @default SMS sağlayıcısı bağlanınca davet gönderilecek (ST-044).
+       */
+      invite_note: string;
     };
     /** HTTPValidationError */
     HTTPValidationError: {
@@ -178,6 +311,87 @@ export interface components {
       name: string;
       /** Kind */
       kind: string;
+    };
+    /** KullaniciGirdisi */
+    KullaniciGirdisi: {
+      /**
+       * Full Name
+       * @example Ayşe Yılmaz
+       */
+      full_name: string;
+      /**
+       * Phone
+       * @description E.164'e çevrilir
+       * @example 0532 111 00 08
+       */
+      phone: string;
+      /** Email */
+      email?: string | null;
+      /** Assignments */
+      assignments: components['schemas']['RolGirdisi'][];
+    };
+    /** KullaniciOzet */
+    KullaniciOzet: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Full Name */
+      full_name: string;
+      /** Phone */
+      phone: string | null;
+      /** Email */
+      email?: string | null;
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: 'active' | 'inactive' | 'masked';
+      /** Assignments */
+      assignments: components['schemas']['RolAtamasi'][];
+      /** Invited At */
+      invited_at?: string | null;
+      /** Masked At */
+      masked_at?: string | null;
+      /**
+       * Pin Set
+       * @default false
+       */
+      pin_set: boolean;
+    };
+    /** RolAtamasi */
+    RolAtamasi: {
+      /**
+       * Role
+       * @enum {string}
+       */
+      role: 'admin' | 'region_manager' | 'branch_manager' | 'staff';
+      /**
+       * Role Label
+       * @description Rolün Türkçe adı; arayüz bunu gösterir
+       */
+      role_label: string;
+      /**
+       * Scope Type
+       * @enum {string}
+       */
+      scope_type: 'tenant' | 'region' | 'branch';
+      /** Scope Id */
+      scope_id?: string | null;
+    };
+    /**
+     * RolGirdisi
+     * @description Rol atama gövdesi. Kapsam türü rolden belirlenir, ayrıca gönderilmez.
+     */
+    RolGirdisi: {
+      /**
+       * Role
+       * @enum {string}
+       */
+      role: 'admin' | 'region_manager' | 'branch_manager' | 'staff';
+      /** Scope Id */
+      scope_id?: string | null;
     };
     /** SubeDetay */
     SubeDetay: {
@@ -488,6 +702,231 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['SubeOzet'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  personel_listesi_api_v1_users_get: {
+    parameters: {
+      query?: {
+        branch_id?: string | null;
+        role?: ('admin' | 'region_manager' | 'branch_manager' | 'staff') | null;
+        include_inactive?: boolean;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['KullaniciOzet'][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  personel_davet_api_v1_users_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['KullaniciGirdisi'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['DavetYaniti'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  personel_detayi_api_v1_users__user_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        user_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['KullaniciOzet'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  roller_guncelle_api_v1_users__user_id__roles_patch: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        user_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['RolGirdisi'][];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['KullaniciOzet'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  personel_pasiflestir_api_v1_users__user_id__deactivate_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        user_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['KullaniciOzet'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  personel_aktif_et_api_v1_users__user_id__activate_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        user_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['KullaniciOzet'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  personel_maskele_api_v1_users__user_id__mask_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        user_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['KullaniciOzet'];
         };
       };
       /** @description Validation Error */

@@ -7,9 +7,10 @@ import createClient from 'openapi-fetch';
 
 import type { paths } from './schema';
 
-// Varsayılan 8010: bu makinede 8000 başka bir projeye ait (bkz. README).
-// Ortama göre VITE_API_URL ile ezilir.
-const taban = import.meta.env.VITE_API_URL ?? 'http://127.0.0.1:8010';
+// Varsayılan: **aynı kaynak**. Geliştirmede Vite `/api` isteklerini
+// backend'e aktarır (vite.config.ts), üretimde panel API ile aynı alan
+// adından servis edilir. Ayrı bir adres gerekiyorsa VITE_API_URL verilir.
+const taban = import.meta.env.VITE_API_URL ?? '';
 
 export const api = createClient<paths>({ baseUrl: taban });
 

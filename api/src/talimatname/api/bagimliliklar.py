@@ -9,8 +9,9 @@ from __future__ import annotations
 
 from functools import lru_cache
 
-from talimatname.infra.memory import MemoryOrganizationRepository
+from talimatname.infra.memory import MemoryOrganizationRepository, MemoryUserRepository
 from talimatname.services.organization import OrganizationService
+from talimatname.services.users import UserService
 from talimatname.settings import get_settings
 
 
@@ -19,13 +20,25 @@ def _bellek_deposu() -> MemoryOrganizationRepository:
     return MemoryOrganizationRepository()
 
 
-def organizasyon_servisi() -> OrganizationService:
-    ayar = get_settings()
-    if ayar.database_url:
-        # PostgreSQL adaptörü buraya gelecek; henüz yok, sessizce belleğe
-        # düşmek yerine açıkça söyle.
+@lru_cache
+def _bellek_kullanici_deposu() -> MemoryUserRepository:
+    return MemoryUserRepository()
+
+
+def _veritabani_kontrolu() -> None:
+    """DATABASE_URL doluysa sessizce belleğe düşme; açıkça söyle."""
+    if get_settings().database_url:
         raise NotImplementedError(
             "PostgreSQL adaptörü henüz yazılmadı; DATABASE_URL'i boş bırakın "
-            "(bellek içi tohum veri) — bkz. README · yerel ortam."
+            "(bellek içi tohum veri) — bkz. README · veri."
         )
+
+
+def organizasyon_servisi() -> OrganizationService:
+    _veritabani_kontrolu()
     return OrganizationService(_bellek_deposu())
+
+
+def kullanici_servisi() -> UserService:
+    _veritabani_kontrolu()
+    return UserService(_bellek_kullanici_deposu(), _bellek_deposu())

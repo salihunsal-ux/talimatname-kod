@@ -14,7 +14,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from talimatname.domain.errors import DomainError, ErrorKind
-from talimatname.domain.organization import ValidationError
+from talimatname.domain.validation import ValidationError
 
 PROBLEM_MEDIA_TYPE = "application/problem+json"
 URN_PREFIX = "urn:talimatname:"

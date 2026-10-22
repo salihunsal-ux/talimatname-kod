@@ -16,6 +16,7 @@ from datetime import time
 from uuid import UUID, uuid5
 
 from talimatname.domain.organization import Branch, Region, Station, uniform_hours
+from talimatname.domain.users import RoleAssignment, User
 from talimatname.domain.window import BusinessHours
 
 # Tohum kimlikleri sabit: her açılışta aynı id'ler gelsin ki panel
@@ -121,3 +122,88 @@ class MemoryOrganizationRepository:
 
     def stations(self, branch_id: UUID) -> list[Station]:
         return [s for s in self._stations.values() if s.branch_id == branch_id]
+
+
+def _tohum_kullanicilar() -> list[User]:
+    """Örnek personel. Adlar **uydurmadır**; gerçek kişi verisi yoktur (ADR-0003)."""
+    tanim: list[tuple[str, str, str | None, list[RoleAssignment]]] = [
+        (
+            "Cem Yönetici",
+            "+905321110001",
+            "cem@ornek.test",
+            [RoleAssignment("admin")],
+        ),
+        (
+            "Murat Bölge",
+            "+905321110002",
+            "murat@ornek.test",
+            [RoleAssignment("region_manager", sabit_id("bolge:anadolu"))],
+        ),
+        (
+            "Ayşe Şube",
+            "+905321110003",
+            None,
+            [RoleAssignment("branch_manager", sabit_id("sube:KDK"))],
+        ),
+        (
+            "Deniz Şube",
+            "+905321110004",
+            None,
+            [RoleAssignment("branch_manager", sabit_id("sube:BSK"))],
+        ),
+        (
+            "Emre Personel",
+            "+905321110005",
+            None,
+            [RoleAssignment("staff", sabit_id("sube:KDK"))],
+        ),
+        (
+            "Zeynep Personel",
+            "+905321110006",
+            None,
+            [RoleAssignment("staff", sabit_id("sube:KDK"))],
+        ),
+        (
+            "Selin Personel",
+            "+905321110007",
+            None,
+            [RoleAssignment("staff", sabit_id("sube:BSK"))],
+        ),
+    ]
+    return [
+        User(
+            id=sabit_id(f"kullanici:{telefon}"),
+            full_name=ad,
+            phone=telefon,
+            email=eposta,
+            assignments=tuple(atamalar),
+        ).validated()
+        for ad, telefon, eposta, atamalar in tanim
+    ]
+
+
+class MemoryUserRepository:
+    """`UserRepository` portunun bellek içi karşılığı."""
+
+    def __init__(self, *, seed: bool = True) -> None:
+        self._users: dict[UUID, User] = {}
+        self._mask_counter = 4820  # tohum numarası: maskeleme etiketleri sıradan görünsün
+        if seed:
+            for kullanici in _tohum_kullanicilar():
+                self._users[kullanici.id] = kullanici
+
+    def users(self) -> list[User]:
+        return list(self._users.values())
+
+    def user(self, user_id: UUID) -> User | None:
+        return self._users.get(user_id)
+
+    def user_by_phone(self, phone: str) -> User | None:
+        return next((k for k in self._users.values() if k.phone == phone), None)
+
+    def save_user(self, user: User) -> None:
+        self._users[user.id] = user
+
+    def next_mask_counter(self) -> int:
+        self._mask_counter += 1
+        return self._mask_counter

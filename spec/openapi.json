@@ -294,6 +294,363 @@
           }
         }
       }
+    },
+    "/api/v1/users": {
+      "get": {
+        "tags": [
+          "personel"
+        ],
+        "summary": "Personel listesi",
+        "description": "Şubeye ya da role göre süzülebilir; kapsam denetimi `can_access` ile.",
+        "operationId": "personel_listesi_api_v1_users_get",
+        "parameters": [
+          {
+            "name": "branch_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Branch Id"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "admin",
+                    "region_manager",
+                    "branch_manager",
+                    "staff"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Role"
+            }
+          },
+          {
+            "name": "include_inactive",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Include Inactive"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/KullaniciOzet"
+                  },
+                  "title": "Response Personel Listesi Api V1 Users Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "personel"
+        ],
+        "summary": "Personel davet et",
+        "operationId": "personel_davet_api_v1_users_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KullaniciGirdisi"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DavetYaniti"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/users/{user_id}": {
+      "get": {
+        "tags": [
+          "personel"
+        ],
+        "summary": "Personel detayı",
+        "operationId": "personel_detayi_api_v1_users__user_id__get",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "User Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KullaniciOzet"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/users/{user_id}/roles": {
+      "patch": {
+        "tags": [
+          "personel"
+        ],
+        "summary": "Rolleri değiştir",
+        "operationId": "roller_guncelle_api_v1_users__user_id__roles_patch",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "User Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/RolGirdisi"
+                },
+                "title": "Girdi"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KullaniciOzet"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/users/{user_id}/deactivate": {
+      "post": {
+        "tags": [
+          "personel"
+        ],
+        "summary": "Personeli pasifleştir",
+        "description": "Giriş kapanır, gelecek atamalar düşer; geçmiş cevap ve kanıtlar kalır (BR-22).",
+        "operationId": "personel_pasiflestir_api_v1_users__user_id__deactivate_post",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "User Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KullaniciOzet"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/users/{user_id}/activate": {
+      "post": {
+        "tags": [
+          "personel"
+        ],
+        "summary": "Personeli yeniden aktif et",
+        "operationId": "personel_aktif_et_api_v1_users__user_id__activate_post",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "User Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KullaniciOzet"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/users/{user_id}/mask": {
+      "post": {
+        "tags": [
+          "personel"
+        ],
+        "summary": "KVKK: kişi verisini maskele",
+        "description": "Silme talebi karşılığı (FR-1310): ad takma etikete döner, telefon\nve e-posta silinir; cevaplar ve kanıtlar iş kaydı olarak kalır.",
+        "operationId": "personel_maskele_api_v1_users__user_id__mask_post",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "User Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KullaniciOzet"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -378,6 +735,29 @@
         "title": "CalismaSaati",
         "description": "Bir günün açılış/kapanışı. `null` gün = kapalı."
       },
+      "DavetYaniti": {
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/KullaniciOzet"
+          },
+          "invite_sent": {
+            "type": "boolean",
+            "title": "Invite Sent",
+            "default": false
+          },
+          "invite_note": {
+            "type": "string",
+            "title": "Invite Note",
+            "default": "SMS sağlayıcısı bağlanınca davet gönderilecek (ST-044)."
+          }
+        },
+        "type": "object",
+        "required": [
+          "user"
+        ],
+        "title": "DavetYaniti",
+        "description": "Davet sonucu.\n\n`invite_sent` bugün **her zaman false**: SMS sağlayıcısı bağlı değil\n(ST-044). Arayüz \"gönderildi\" demez, \"kuyruğa alındı\" der."
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -453,6 +833,221 @@
           "kind"
         ],
         "title": "IstasyonOzet"
+      },
+      "KullaniciGirdisi": {
+        "properties": {
+          "full_name": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Full Name",
+            "examples": [
+              "Ayşe Yılmaz"
+            ]
+          },
+          "phone": {
+            "type": "string",
+            "title": "Phone",
+            "description": "E.164'e çevrilir",
+            "examples": [
+              "0532 111 00 08"
+            ]
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "assignments": {
+            "items": {
+              "$ref": "#/components/schemas/RolGirdisi"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Assignments"
+          }
+        },
+        "type": "object",
+        "required": [
+          "full_name",
+          "phone",
+          "assignments"
+        ],
+        "title": "KullaniciGirdisi"
+      },
+      "KullaniciOzet": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "full_name": {
+            "type": "string",
+            "title": "Full Name"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "inactive",
+              "masked"
+            ],
+            "title": "Status"
+          },
+          "assignments": {
+            "items": {
+              "$ref": "#/components/schemas/RolAtamasi"
+            },
+            "type": "array",
+            "title": "Assignments"
+          },
+          "invited_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Invited At"
+          },
+          "masked_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Masked At"
+          },
+          "pin_set": {
+            "type": "boolean",
+            "title": "Pin Set",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "full_name",
+          "phone",
+          "status",
+          "assignments"
+        ],
+        "title": "KullaniciOzet"
+      },
+      "RolAtamasi": {
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": [
+              "admin",
+              "region_manager",
+              "branch_manager",
+              "staff"
+            ],
+            "title": "Role"
+          },
+          "role_label": {
+            "type": "string",
+            "title": "Role Label",
+            "description": "Rolün Türkçe adı; arayüz bunu gösterir"
+          },
+          "scope_type": {
+            "type": "string",
+            "enum": [
+              "tenant",
+              "region",
+              "branch"
+            ],
+            "title": "Scope Type"
+          },
+          "scope_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scope Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "role",
+          "role_label",
+          "scope_type"
+        ],
+        "title": "RolAtamasi"
+      },
+      "RolGirdisi": {
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": [
+              "admin",
+              "region_manager",
+              "branch_manager",
+              "staff"
+            ],
+            "title": "Role"
+          },
+          "scope_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scope Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "role"
+        ],
+        "title": "RolGirdisi",
+        "description": "Rol atama gövdesi. Kapsam türü rolden belirlenir, ayrıca gönderilmez."
       },
       "SubeDetay": {
         "properties": {

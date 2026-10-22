@@ -14,6 +14,7 @@ from typing import Literal
 from uuid import UUID
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
+from talimatname.domain.validation import ValidationError, clean_name
 from talimatname.domain.window import BranchCalendar, BusinessHours
 
 Status = Literal["active", "inactive"]
@@ -24,24 +25,6 @@ StationKind = Literal["kitchen", "bar", "hall", "storage", "restroom", "other"]
 BRANCH_CODE = re.compile(r"^[A-Z0-9][A-Z0-9-]{1,15}$")
 
 WEEKDAYS = (0, 1, 2, 3, 4, 5, 6)
-
-
-class ValidationError(ValueError):
-    """Alan doğrulama hatası. `field` sunum katmanında alan adına döner."""
-
-    def __init__(self, field_name: str, message: str) -> None:
-        super().__init__(message)
-        self.field_name = field_name
-        self.message = message
-
-
-def _clean_name(value: str, field_name: str, *, max_length: int = 80) -> str:
-    cleaned = " ".join(value.split())
-    if not cleaned:
-        raise ValidationError(field_name, "Boş olamaz")
-    if len(cleaned) > max_length:
-        raise ValidationError(field_name, f"En fazla {max_length} karakter")
-    return cleaned
 
 
 def _check_timezone(value: str) -> str:
@@ -59,7 +42,7 @@ class Region:
     code: str | None = None
 
     def validated(self) -> Region:
-        return replace(self, name=_clean_name(self.name, "name"))
+        return replace(self, name=clean_name(self.name, "name"))
 
 
 @dataclass(frozen=True, slots=True)
@@ -70,7 +53,7 @@ class Station:
     kind: StationKind = "other"
 
     def validated(self) -> Station:
-        return replace(self, name=_clean_name(self.name, "name", max_length=40))
+        return replace(self, name=clean_name(self.name, "name", max_length=40))
 
 
 @dataclass(frozen=True, slots=True)
@@ -108,7 +91,7 @@ class Branch:
         return replace(
             self,
             code=code,
-            name=_clean_name(self.name, "name"),
+            name=clean_name(self.name, "name"),
             timezone=_check_timezone(self.timezone),
             business_hours=hours,
             address=self.address.strip() if self.address else None,

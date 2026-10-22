@@ -10,12 +10,8 @@ import pytest
 from fastapi.testclient import TestClient
 
 from talimatname.api.app import create_app
-from talimatname.domain.organization import (
-    Branch,
-    BusinessHours,
-    ValidationError,
-    uniform_hours,
-)
+from talimatname.domain.organization import Branch, BusinessHours, uniform_hours
+from talimatname.domain.validation import ValidationError
 from talimatname.infra.memory import MemoryOrganizationRepository, sabit_id
 from talimatname.services.organization import (
     BranchCodeTaken,

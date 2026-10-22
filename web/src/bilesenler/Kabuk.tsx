@@ -11,7 +11,7 @@ import { tr } from '../i18n/tr';
 const BOLUMLER: { anahtar: Bolum | null; ad: string }[] = [
   { anahtar: null, ad: tr.gezinme.pano },
   { anahtar: 'subeler', ad: tr.gezinme.subeler },
-  { anahtar: null, ad: tr.gezinme.personel },
+  { anahtar: 'personel', ad: tr.gezinme.personel },
   { anahtar: null, ad: tr.gezinme.sablonlar },
   { anahtar: null, ad: tr.gezinme.planlar },
   { anahtar: null, ad: tr.gezinme.aksiyonlar },
