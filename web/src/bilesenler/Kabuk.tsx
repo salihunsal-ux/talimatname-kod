@@ -9,7 +9,7 @@ import { tr } from '../i18n/tr';
  * (ST-013 personel, ST-016 şablonlar, ST-029 planlar…).
  */
 const BOLUMLER: { anahtar: Bolum | null; ad: string }[] = [
-  { anahtar: null, ad: tr.gezinme.pano },
+  { anahtar: 'pano', ad: tr.gezinme.pano },
   { anahtar: 'subeler', ad: tr.gezinme.subeler },
   { anahtar: 'personel', ad: tr.gezinme.personel },
   { anahtar: 'sablonlar', ad: tr.gezinme.sablonlar },

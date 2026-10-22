@@ -1225,6 +1225,56 @@
           }
         }
       }
+    },
+    "/api/v1/dashboard": {
+      "get": {
+        "tags": [
+          "pano"
+        ],
+        "summary": "Operasyon panosu (şube × liste)",
+        "operationId": "pano_api_v1_dashboard_get",
+        "parameters": [
+          {
+            "name": "business_day",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Business Day"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PanoYaniti"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1503,6 +1553,58 @@
         "title": "DavetYaniti",
         "description": "Davet sonucu.\n\n`invite_sent` bugün **her zaman false**: SMS sağlayıcısı bağlı değil\n(ST-044). Arayüz \"gönderildi\" demez, \"kuyruğa alındı\" der."
       },
+      "Gostergeler": {
+        "properties": {
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "submitted": {
+            "type": "integer",
+            "title": "Submitted"
+          },
+          "late": {
+            "type": "integer",
+            "title": "Late"
+          },
+          "missed": {
+            "type": "integer",
+            "title": "Missed"
+          },
+          "open_now": {
+            "type": "integer",
+            "title": "Open Now",
+            "description": "Henüz penceresi kapanmamış çalıştırma sayısı"
+          },
+          "completion_percent": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completion Percent"
+          },
+          "all_clear": {
+            "type": "boolean",
+            "title": "All Clear",
+            "description": "Kaçırılan ve geç yoksa true: 'her şey yolunda'"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total",
+          "submitted",
+          "late",
+          "missed",
+          "open_now",
+          "completion_percent",
+          "all_clear"
+        ],
+        "title": "Gostergeler"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -1554,6 +1656,99 @@
         ],
         "title": "HealthResponse",
         "description": "Canlılık yanıtı. Şema açıkça tanımlı: istemci tipleri bundan üretilir."
+      },
+      "Hucre": {
+        "properties": {
+          "plan_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Plan Id"
+          },
+          "run_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run Id"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "scheduled",
+                  "in_progress",
+                  "submitted",
+                  "missed",
+                  "cancelled"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          },
+          "late": {
+            "type": "boolean",
+            "title": "Late",
+            "default": false
+          },
+          "result": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "passed",
+                  "failed"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Result"
+          },
+          "window_start": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Window Start"
+          },
+          "window_end": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Window End"
+          },
+          "exception": {
+            "type": "boolean",
+            "title": "Exception",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "plan_id"
+        ],
+        "title": "Hucre"
       },
       "IstasyonOzet": {
         "properties": {
@@ -1963,6 +2158,46 @@
         "title": "OnizlemeYaniti",
         "description": "7 gün önizleme (FR-0511): kaydetmeden önce ne üretileceği."
       },
+      "PanoYaniti": {
+        "properties": {
+          "business_day": {
+            "type": "string",
+            "format": "date",
+            "title": "Business Day"
+          },
+          "plans": {
+            "items": {
+              "$ref": "#/components/schemas/PlanSutunu"
+            },
+            "type": "array",
+            "title": "Plans"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/Satir"
+            },
+            "type": "array",
+            "title": "Rows"
+          },
+          "exception_row_count": {
+            "type": "integer",
+            "title": "Exception Row Count"
+          },
+          "kpi": {
+            "$ref": "#/components/schemas/Gostergeler"
+          }
+        },
+        "type": "object",
+        "required": [
+          "business_day",
+          "plans",
+          "rows",
+          "exception_row_count",
+          "kpi"
+        ],
+        "title": "PanoYaniti",
+        "description": "Şube × liste ızgarası.\n\nİstisna süzgeci **istemcide** uygulanır: sunucu her satırı `exception`\nbayrağıyla gönderir, panel varsayılanda yalnızca bayraklıları gösterir\nve \"tümünü göster\" dediğinde ikinci istek atmaz (FR-1219)."
+      },
       "PlanGirdisi": {
         "properties": {
           "name": {
@@ -2074,6 +2309,25 @@
           "tolerance_minutes"
         ],
         "title": "PlanOzet"
+      },
+      "PlanSutunu": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "PlanSutunu"
       },
       "RolAtamasi": {
         "properties": {
@@ -2220,6 +2474,49 @@
           "versions"
         ],
         "title": "SablonOzet"
+      },
+      "Satir": {
+        "properties": {
+          "branch_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Branch Id"
+          },
+          "branch_name": {
+            "type": "string",
+            "title": "Branch Name"
+          },
+          "region_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Region Name"
+          },
+          "cells": {
+            "items": {
+              "$ref": "#/components/schemas/Hucre"
+            },
+            "type": "array",
+            "title": "Cells"
+          },
+          "exception": {
+            "type": "boolean",
+            "title": "Exception"
+          }
+        },
+        "type": "object",
+        "required": [
+          "branch_id",
+          "branch_name",
+          "cells",
+          "exception"
+        ],
+        "title": "Satir"
       },
       "SecenekGirdisi": {
         "properties": {

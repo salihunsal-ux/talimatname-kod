@@ -404,6 +404,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/dashboard': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Operasyon panosu (şube × liste) */
+    get: operations['pano_api_v1_dashboard_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -540,6 +557,29 @@ export interface components {
        */
       invite_note?: string;
     };
+    /** Gostergeler */
+    Gostergeler: {
+      /** Total */
+      total: number;
+      /** Submitted */
+      submitted: number;
+      /** Late */
+      late: number;
+      /** Missed */
+      missed: number;
+      /**
+       * Open Now
+       * @description Henüz penceresi kapanmamış çalıştırma sayısı
+       */
+      open_now: number;
+      /** Completion Percent */
+      completion_percent: number | null;
+      /**
+       * All Clear
+       * @description Kaçırılan ve geç yoksa true: 'her şey yolunda'
+       */
+      all_clear: boolean;
+    };
     /** HTTPValidationError */
     HTTPValidationError: {
       /** Detail */
@@ -576,6 +616,34 @@ export interface components {
        * @description Nesne depolama uç noktası tanımlı mı
        */
       object_store_configured: boolean;
+    };
+    /** Hucre */
+    Hucre: {
+      /**
+       * Plan Id
+       * Format: uuid
+       */
+      plan_id: string;
+      /** Run Id */
+      run_id?: string | null;
+      /** Status */
+      status?: ('scheduled' | 'in_progress' | 'submitted' | 'missed' | 'cancelled') | null;
+      /**
+       * Late
+       * @default false
+       */
+      late?: boolean;
+      /** Result */
+      result?: ('passed' | 'failed') | null;
+      /** Window Start */
+      window_start?: string | null;
+      /** Window End */
+      window_end?: string | null;
+      /**
+       * Exception
+       * @default false
+       */
+      exception?: boolean;
     };
     /** IstasyonOzet */
     IstasyonOzet: {
@@ -739,6 +807,28 @@ export interface components {
       /** Runs */
       runs: components['schemas']['CalistirmaOzet'][];
     };
+    /**
+     * PanoYaniti
+     * @description Şube × liste ızgarası.
+     *
+     *     İstisna süzgeci **istemcide** uygulanır: sunucu her satırı `exception`
+     *     bayrağıyla gönderir, panel varsayılanda yalnızca bayraklıları gösterir
+     *     ve "tümünü göster" dediğinde ikinci istek atmaz (FR-1219).
+     */
+    PanoYaniti: {
+      /**
+       * Business Day
+       * Format: date
+       */
+      business_day: string;
+      /** Plans */
+      plans: components['schemas']['PlanSutunu'][];
+      /** Rows */
+      rows: components['schemas']['Satir'][];
+      /** Exception Row Count */
+      exception_row_count: number;
+      kpi: components['schemas']['Gostergeler'];
+    };
     /** PlanGirdisi */
     PlanGirdisi: {
       /**
@@ -790,6 +880,16 @@ export interface components {
       duration_minutes: number;
       /** Tolerance Minutes */
       tolerance_minutes: number;
+    };
+    /** PlanSutunu */
+    PlanSutunu: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Name */
+      name: string;
     };
     /** RolAtamasi */
     RolAtamasi: {
@@ -847,6 +947,22 @@ export interface components {
       category?: string | null;
       /** Versions */
       versions: components['schemas']['SurumOzet'][];
+    };
+    /** Satir */
+    Satir: {
+      /**
+       * Branch Id
+       * Format: uuid
+       */
+      branch_id: string;
+      /** Branch Name */
+      branch_name: string;
+      /** Region Name */
+      region_name?: string | null;
+      /** Cells */
+      cells: components['schemas']['Hucre'][];
+      /** Exception */
+      exception: boolean;
     };
     /** SecenekGirdisi */
     SecenekGirdisi: {
@@ -1927,6 +2043,37 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['CalistirmaOzet'][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  pano_api_v1_dashboard_get: {
+    parameters: {
+      query?: {
+        business_day?: string | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['PanoYaniti'];
         };
       };
       /** @description Validation Error */

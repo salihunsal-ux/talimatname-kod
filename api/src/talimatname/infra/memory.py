@@ -12,7 +12,7 @@ zinciridir. Gerçek kişi ve müşteri verisi yoktur: adlar uydurmadır ve
 
 from __future__ import annotations
 
-from datetime import UTC, date, datetime, time
+from datetime import UTC, date, datetime, time, timedelta
 from uuid import UUID, uuid5
 
 from talimatname.domain.organization import Branch, Region, Station, uniform_hours
@@ -376,6 +376,42 @@ def _tohum_planlar() -> list[Plan]:
     ]
 
 
+def _dun_calistirmalari(plan: Plan, bugun: date) -> list[Run]:
+    """Geliştirme tohumu: dünkü çalıştırmalar sonuçlarıyla.
+
+    Panonun istisna görünümü boş veriyle anlatılamıyor; bu üç satır
+    **tohum veridir** (ADR-0003: gerçek kişi ya da müşteri verisi yok) ve
+    yalnızca bellek içi adaptörde durur.
+    """
+    dun = bugun - timedelta(days=1)
+    sonuclar: list[tuple[str, str, str | None, int | None, int]] = [
+        ("sube:KDK", "submitted", "passed", 100, -20),  # zamanında
+        ("sube:USK", "submitted", "failed", 86, 25),  # geç ve başarısız
+        ("sube:BSK", "scheduled", None, None, 0),  # kaçırıldı (tolerans geçti)
+    ]
+    runs: list[Run] = []
+    for kod, durum, sonuc, puan, dakika in sonuclar:
+        baslangic = datetime.combine(dun, time(19, 0), tzinfo=UTC)
+        bitis = baslangic + timedelta(minutes=210)
+        runs.append(
+            Run(
+                id=sabit_id(f"calistirma:{kod}:{dun.isoformat()}"),
+                plan_id=plan.id,
+                template_version_id=plan.template_version_id,
+                branch_id=sabit_id(kod),
+                business_day=dun,
+                window_start=baslangic,
+                window_end=bitis,
+                tolerance_end=bitis,
+                status=durum,  # type: ignore[arg-type]
+                result=sonuc,  # type: ignore[arg-type]
+                score_percent=puan,
+                submitted_at=(bitis + timedelta(minutes=dakika)) if sonuc else None,
+            )
+        )
+    return runs
+
+
 class MemoryPlanRepository:
     """`PlanRepository` portunun bellek içi karşılığı."""
 
@@ -385,6 +421,10 @@ class MemoryPlanRepository:
         if seed:
             for plan in _tohum_planlar():
                 self._plans[plan.id] = plan
+            for run in _dun_calistirmalari(
+                next(iter(self._plans.values())), datetime.now(UTC).date()
+            ):
+                self._runs[run.id] = run
 
     def plans(self) -> list[Plan]:
         return list(self._plans.values())

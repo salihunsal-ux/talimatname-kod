@@ -1,0 +1,123 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { panoGetir, type PanoYaniti } from '../../api/pano';
+import { PanoSayfasi } from './PanoSayfasi';
+
+vi.mock('../../api/pano');
+const getir = vi.mocked(panoGetir);
+
+const HUCRE = {
+  plan_id: 'p-1',
+  run_id: 'r-1',
+  window_start: '2026-11-02T19:00:00Z',
+  window_end: '2026-11-02T22:30:00Z',
+};
+
+const PANO: PanoYaniti = {
+  business_day: '2026-11-02',
+  plans: [{ id: 'p-1', name: 'Günlük kapanış' }],
+  rows: [
+    {
+      branch_id: 'b-1',
+      branch_name: 'Kadıköy',
+      region_name: 'Anadolu',
+      cells: [{ ...HUCRE, status: 'submitted', late: false, result: 'passed', exception: false }],
+      exception: false,
+    },
+    {
+      branch_id: 'b-2',
+      branch_name: 'Üsküdar',
+      region_name: 'Anadolu',
+      cells: [{ ...HUCRE, status: 'submitted', late: true, result: 'failed', exception: true }],
+      exception: true,
+    },
+  ],
+  exception_row_count: 1,
+  kpi: {
+    total: 2,
+    submitted: 2,
+    late: 1,
+    missed: 0,
+    open_now: 0,
+    completion_percent: 100,
+    all_clear: false,
+  },
+};
+
+function kur() {
+  const istemci = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  render(
+    <QueryClientProvider client={istemci}>
+      <PanoSayfasi />
+    </QueryClientProvider>,
+  );
+}
+
+beforeEach(() => {
+  vi.resetAllMocks();
+  getir.mockResolvedValue(PANO);
+});
+
+describe('Pano', () => {
+  it('varsayılan görünüm yalnızca sorunlu satırları gösterir', async () => {
+    kur();
+    expect(await screen.findByText(/Üsküdar/)).toBeInTheDocument();
+    expect(screen.queryByText(/Kadıköy/)).not.toBeInTheDocument();
+  });
+
+  it('tümünü göster sorunsuz satırları da açar ve ikinci istek atmaz', async () => {
+    kur();
+    await screen.findByText(/Üsküdar/);
+    expect(getir).toHaveBeenCalledTimes(1);
+
+    await userEvent.click(screen.getByRole('button', { name: /Tümünü göster/ }));
+
+    expect(screen.getByText(/Kadıköy/)).toBeInTheDocument();
+    expect(getir).toHaveBeenCalledTimes(1); // süzgeç istemcide
+  });
+
+  it('göstergeler sayılarla gelir', async () => {
+    kur();
+    expect(await screen.findByText('%100')).toBeInTheDocument();
+    expect(screen.getByText('Geç').nextSibling).toHaveTextContent('1');
+  });
+
+  it('sorun yoksa ve gün bittiyse "her şey yolunda" der', async () => {
+    getir.mockResolvedValue({
+      ...PANO,
+      rows: [{ ...PANO.rows[0] }],
+      exception_row_count: 0,
+      kpi: { ...PANO.kpi, late: 0, missed: 0, open_now: 0, all_clear: true },
+    });
+
+    kur();
+    expect(await screen.findByText('Her şey yolunda')).toBeInTheDocument();
+  });
+
+  it('pencereler hâlâ açıkken "her şey yolunda" demez', async () => {
+    getir.mockResolvedValue({
+      ...PANO,
+      rows: [{ ...PANO.rows[0] }],
+      exception_row_count: 0,
+      kpi: { ...PANO.kpi, late: 0, missed: 0, open_now: 3, all_clear: false },
+    });
+
+    kur();
+    expect(await screen.findByText('Şimdilik sorun yok')).toBeInTheDocument();
+    expect(screen.queryByText('Her şey yolunda')).not.toBeInTheDocument();
+    expect(screen.getByText(/3 liste penceresi/)).toBeInTheDocument();
+  });
+
+  it('iş günü değişince yeni veri istenir', async () => {
+    kur();
+    await screen.findByText(/Üsküdar/);
+
+    await userEvent.clear(screen.getByLabelText('İş günü'));
+    await userEvent.type(screen.getByLabelText('İş günü'), '2026-11-01');
+
+    expect(getir).toHaveBeenCalledWith('2026-11-01');
+  });
+});

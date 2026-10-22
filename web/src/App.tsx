@@ -4,19 +4,21 @@ import { useState } from 'react';
 import { sorguIstemcisi } from './api/sorguIstemcisi';
 import { Kabuk } from './bilesenler/Kabuk';
 import { SistemDurumu } from './features/sistem/SistemDurumu';
+import { PanoSayfasi } from './features/pano/PanoSayfasi';
 import { PersonelSayfasi } from './features/personel/PersonelSayfasi';
 import { PlanlarSayfasi } from './features/planlar/PlanlarSayfasi';
 import { SablonlarSayfasi } from './features/sablonlar/SablonlarSayfasi';
 import { SubelerSayfasi } from './features/subeler/SubelerSayfasi';
 
-export type Bolum = 'subeler' | 'personel' | 'sablonlar' | 'planlar' | 'sistem';
+export type Bolum = 'pano' | 'subeler' | 'personel' | 'sablonlar' | 'planlar' | 'sistem';
 
 export function App() {
-  const [bolum, setBolum] = useState<Bolum>('subeler');
+  const [bolum, setBolum] = useState<Bolum>('pano');
 
   return (
     <QueryClientProvider client={sorguIstemcisi}>
       <Kabuk bolum={bolum} onBolum={setBolum}>
+        {bolum === 'pano' && <PanoSayfasi />}
         {bolum === 'subeler' && <SubelerSayfasi />}
         {bolum === 'personel' && <PersonelSayfasi />}
         {bolum === 'sablonlar' && <SablonlarSayfasi />}

@@ -15,6 +15,7 @@ from talimatname.infra.memory import (
     MemoryTemplateRepository,
     MemoryUserRepository,
 )
+from talimatname.services.dashboard import DashboardService
 from talimatname.services.organization import OrganizationService
 from talimatname.services.plans import PlanService
 from talimatname.services.templates import TemplateService
@@ -82,6 +83,12 @@ def _ilk_uretim(servis: PlanService) -> None:
     if not _uretildi:
         servis.generate_all()
         _uretildi = True
+
+
+def pano_servisi() -> DashboardService:
+    _veritabani_kontrolu()
+    plan_servisi()  # tohum çalıştırmaların üretilmiş olmasını güvenceye alır
+    return DashboardService(_bellek_plan_deposu(), _bellek_deposu())
 
 
 def kullanici_servisi() -> UserService:
