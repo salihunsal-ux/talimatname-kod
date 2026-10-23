@@ -12,7 +12,14 @@ from pydantic import BaseModel, Field
 
 from talimatname import __version__
 from talimatname.api.errors import register_error_handlers
-from talimatname.api.routers import dashboard, organization, plans, templates, users
+from talimatname.api.routers import (
+    actions,
+    dashboard,
+    organization,
+    plans,
+    templates,
+    users,
+)
 from talimatname.settings import Settings, get_settings
 
 API_PREFIX = "/api/v1"
@@ -67,6 +74,7 @@ def build_router(settings: Settings) -> APIRouter:
     router.include_router(templates.router)
     router.include_router(plans.router)
     router.include_router(dashboard.router)
+    router.include_router(actions.router)
     return router
 
 

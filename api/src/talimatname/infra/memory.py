@@ -15,6 +15,7 @@ from __future__ import annotations
 from datetime import UTC, date, datetime, time, timedelta
 from uuid import UUID, uuid5
 
+from talimatname.domain.actions import Action
 from talimatname.domain.organization import Branch, Region, Station, uniform_hours
 from talimatname.domain.plans import Assignment, Plan, Run
 from talimatname.domain.templates import (
@@ -443,3 +444,23 @@ class MemoryPlanRepository:
 
     def delete_run(self, run_id: UUID) -> None:
         self._runs.pop(run_id, None)
+
+
+class MemoryActionRepository:
+    """`ActionRepository` portunun bellek içi karşılığı.
+
+    Tohum yok: aksiyonlar kaçırılan çalıştırmalardan doğar (zamanlayıcı
+    turu) ya da elle açılır.
+    """
+
+    def __init__(self) -> None:
+        self._actions: dict[UUID, Action] = {}
+
+    def actions(self) -> list[Action]:
+        return list(self._actions.values())
+
+    def action(self, action_id: UUID) -> Action | None:
+        return self._actions.get(action_id)
+
+    def save_action(self, action: Action) -> None:
+        self._actions[action.id] = action

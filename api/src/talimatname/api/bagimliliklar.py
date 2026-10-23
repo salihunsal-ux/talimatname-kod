@@ -10,11 +10,13 @@ from __future__ import annotations
 from functools import lru_cache
 
 from talimatname.infra.memory import (
+    MemoryActionRepository,
     MemoryOrganizationRepository,
     MemoryPlanRepository,
     MemoryTemplateRepository,
     MemoryUserRepository,
 )
+from talimatname.services.actions import ActionService
 from talimatname.services.dashboard import DashboardService
 from talimatname.services.organization import OrganizationService
 from talimatname.services.plans import PlanService
@@ -63,9 +65,24 @@ def _bellek_plan_deposu() -> MemoryPlanRepository:
     return MemoryPlanRepository()
 
 
+@lru_cache
+def _bellek_aksiyon_deposu() -> MemoryActionRepository:
+    return MemoryActionRepository()
+
+
+def aksiyon_servisi() -> ActionService:
+    _veritabani_kontrolu()
+    return ActionService(_bellek_aksiyon_deposu(), _bellek_deposu(), _bellek_plan_deposu())
+
+
 def zamanlayici_servisi() -> SchedulerService:
     _veritabani_kontrolu()
-    return SchedulerService(_bellek_plan_deposu(), _bellek_deposu(), _bellek_sablon_deposu())
+    return SchedulerService(
+        _bellek_plan_deposu(),
+        _bellek_deposu(),
+        _bellek_sablon_deposu(),
+        ActionService(_bellek_aksiyon_deposu(), _bellek_deposu(), _bellek_plan_deposu()),
+    )
 
 
 def plan_servisi() -> PlanService:

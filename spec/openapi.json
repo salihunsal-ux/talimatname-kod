@@ -1298,10 +1298,362 @@
           }
         }
       }
+    },
+    "/api/v1/actions": {
+      "get": {
+        "tags": [
+          "aksiyon"
+        ],
+        "summary": "Aksiyon listesi",
+        "description": "Varsayılan: açık aksiyonlar, **vadesi yakın olan önce**.",
+        "operationId": "aksiyon_listesi_api_v1_actions_get",
+        "parameters": [
+          {
+            "name": "branch_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Branch Id"
+            }
+          },
+          {
+            "name": "action_status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "open",
+                "closed",
+                "all"
+              ],
+              "type": "string",
+              "default": "open",
+              "title": "Action Status"
+            }
+          },
+          {
+            "name": "only_overdue",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Only Overdue"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AksiyonOzet"
+                  },
+                  "title": "Response Aksiyon Listesi Api V1 Actions Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "aksiyon"
+        ],
+        "summary": "Elle aksiyon aç",
+        "description": "FR-0908. Vade önceliğe göre sabittir (BR-10): kritik 4 sa, yüksek 24, normal 72.",
+        "operationId": "aksiyon_ac_api_v1_actions_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ElleAksiyonGirdisi"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AksiyonOzet"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/actions/counts": {
+      "get": {
+        "tags": [
+          "aksiyon"
+        ],
+        "summary": "Aksiyon sayaçları",
+        "operationId": "aksiyon_sayaclari_api_v1_actions_counts_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AksiyonSayaclari"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/actions/{action_id}/close": {
+      "post": {
+        "tags": [
+          "aksiyon"
+        ],
+        "summary": "Aksiyonu kapat",
+        "operationId": "aksiyon_kapat_api_v1_actions__action_id__close_post",
+        "parameters": [
+          {
+            "name": "action_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Action Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KapanisGirdisi"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AksiyonOzet"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
+      "AksiyonOzet": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "branch_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Branch Id"
+          },
+          "branch_name": {
+            "type": "string",
+            "title": "Branch Name"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "missed_run",
+              "critical_item",
+              "not_done",
+              "issue",
+              "manual"
+            ],
+            "title": "Source"
+          },
+          "source_label": {
+            "type": "string",
+            "title": "Source Label"
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "critical",
+              "high",
+              "normal"
+            ],
+            "title": "Priority"
+          },
+          "priority_label": {
+            "type": "string",
+            "title": "Priority Label"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "open",
+              "closed"
+            ],
+            "title": "Status"
+          },
+          "opened_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Opened At"
+          },
+          "due_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Due At"
+          },
+          "overdue": {
+            "type": "boolean",
+            "title": "Overdue",
+            "description": "Açık ve vadesi geçmiş mi"
+          },
+          "remaining_hours": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Remaining Hours",
+            "description": "Vadeye kalan saat; kapalı aksiyonda boş"
+          },
+          "closed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Closed At"
+          },
+          "close_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Close Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "branch_id",
+          "branch_name",
+          "title",
+          "source",
+          "source_label",
+          "priority",
+          "priority_label",
+          "status",
+          "opened_at",
+          "due_at",
+          "overdue"
+        ],
+        "title": "AksiyonOzet"
+      },
+      "AksiyonSayaclari": {
+        "properties": {
+          "open": {
+            "type": "integer",
+            "title": "Open"
+          },
+          "overdue": {
+            "type": "integer",
+            "title": "Overdue"
+          },
+          "critical": {
+            "type": "integer",
+            "title": "Critical"
+          }
+        },
+        "type": "object",
+        "required": [
+          "open",
+          "overdue",
+          "critical"
+        ],
+        "title": "AksiyonSayaclari"
+      },
       "AtamaGirdisi": {
         "properties": {
           "kind": {
@@ -1576,6 +1928,63 @@
         "title": "DavetYaniti",
         "description": "Davet sonucu.\n\n`invite_sent` bugün **her zaman false**: SMS sağlayıcısı bağlı değil\n(ST-044). Arayüz \"gönderildi\" demez, \"kuyruğa alındı\" der."
       },
+      "ElleAksiyonGirdisi": {
+        "properties": {
+          "branch_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Branch Id"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Title",
+            "examples": [
+              "Buzdolabı tamiri"
+            ]
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "critical",
+              "high",
+              "normal"
+            ],
+            "title": "Priority",
+            "default": "normal"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "assignee_user_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assignee User Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "branch_id",
+          "title"
+        ],
+        "title": "ElleAksiyonGirdisi"
+      },
       "Gostergeler": {
         "properties": {
           "total": {
@@ -1796,6 +2205,37 @@
           "kind"
         ],
         "title": "IstasyonOzet"
+      },
+      "KapanisGirdisi": {
+        "properties": {
+          "note": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 3,
+            "title": "Note",
+            "examples": [
+              "Teknisyen geldi, termostat değişti"
+            ]
+          },
+          "closed_by": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Closed By"
+          }
+        },
+        "type": "object",
+        "required": [
+          "note"
+        ],
+        "title": "KapanisGirdisi",
+        "description": "Kapanış notu zorunlu (FR-0904): ne yapıldığı yazılmadan kapanmaz."
       },
       "KullaniciGirdisi": {
         "properties": {

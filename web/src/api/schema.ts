@@ -4,2150 +4,2436 @@
  */
 
 export interface paths {
-    "/api/v1/health": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Canlılık ve yapılandırma özeti
-         * @description Sürüm, ortam ve bağımlılıkların yapılandırılmış olup olmadığı.
-         *
-         *     Veritabanına **bağlanmaz**: canlılık kontrolü bağımlılıkların
-         *     durumuna göre kırmızı olmamalı (hazırlık kontrolü ayrı gelecek).
-         */
-        get: operations["health_api_v1_health_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+  '/api/v1/health': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/branches": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Bölge → şube ağacı */
-        get: operations["sube_agaci_api_v1_branches_get"];
-        put?: never;
-        /** Şube ekle */
-        post: operations["sube_ekle_api_v1_branches_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /**
+     * Canlılık ve yapılandırma özeti
+     * @description Sürüm, ortam ve bağımlılıkların yapılandırılmış olup olmadığı.
+     *
+     *     Veritabanına **bağlanmaz**: canlılık kontrolü bağımlılıkların
+     *     durumuna göre kırmızı olmamalı (hazırlık kontrolü ayrı gelecek).
+     */
+    get: operations['health_api_v1_health_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/branches': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/branches/{branch_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Şube detayı */
-        get: operations["sube_detayi_api_v1_branches__branch_id__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** Şube güncelle */
-        patch: operations["sube_guncelle_api_v1_branches__branch_id__patch"];
-        trace?: never;
+    /** Bölge → şube ağacı */
+    get: operations['sube_agaci_api_v1_branches_get'];
+    put?: never;
+    /** Şube ekle */
+    post: operations['sube_ekle_api_v1_branches_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/branches/{branch_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/branches/{branch_id}/deactivate": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Şubeyi pasifleştir
-         * @description Silme değil: geçmiş kayıtlar ve kanıtlar durur (BR-22).
-         */
-        post: operations["sube_pasiflestir_api_v1_branches__branch_id__deactivate_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /** Şube detayı */
+    get: operations['sube_detayi_api_v1_branches__branch_id__get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /** Şube güncelle */
+    patch: operations['sube_guncelle_api_v1_branches__branch_id__patch'];
+    trace?: never;
+  };
+  '/api/v1/branches/{branch_id}/deactivate': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/branches/{branch_id}/activate": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Şubeyi yeniden aktif et */
-        post: operations["sube_aktif_et_api_v1_branches__branch_id__activate_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    /**
+     * Şubeyi pasifleştir
+     * @description Silme değil: geçmiş kayıtlar ve kanıtlar durur (BR-22).
+     */
+    post: operations['sube_pasiflestir_api_v1_branches__branch_id__deactivate_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/branches/{branch_id}/activate': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/users": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Personel listesi
-         * @description Şubeye ya da role göre süzülebilir; kapsam denetimi `can_access` ile.
-         */
-        get: operations["personel_listesi_api_v1_users_get"];
-        put?: never;
-        /** Personel davet et */
-        post: operations["personel_davet_api_v1_users_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    /** Şubeyi yeniden aktif et */
+    post: operations['sube_aktif_et_api_v1_branches__branch_id__activate_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/users': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/users/{user_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Personel detayı */
-        get: operations["personel_detayi_api_v1_users__user_id__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /**
+     * Personel listesi
+     * @description Şubeye ya da role göre süzülebilir; kapsam denetimi `can_access` ile.
+     */
+    get: operations['personel_listesi_api_v1_users_get'];
+    put?: never;
+    /** Personel davet et */
+    post: operations['personel_davet_api_v1_users_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/users/{user_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/users/{user_id}/roles": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** Rolleri değiştir */
-        patch: operations["roller_guncelle_api_v1_users__user_id__roles_patch"];
-        trace?: never;
+    /** Personel detayı */
+    get: operations['personel_detayi_api_v1_users__user_id__get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/users/{user_id}/roles': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/users/{user_id}/deactivate": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Personeli pasifleştir
-         * @description Giriş kapanır, gelecek atamalar düşer; geçmiş cevap ve kanıtlar kalır (BR-22).
-         */
-        post: operations["personel_pasiflestir_api_v1_users__user_id__deactivate_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /** Rolleri değiştir */
+    patch: operations['roller_guncelle_api_v1_users__user_id__roles_patch'];
+    trace?: never;
+  };
+  '/api/v1/users/{user_id}/deactivate': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/users/{user_id}/activate": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Personeli yeniden aktif et */
-        post: operations["personel_aktif_et_api_v1_users__user_id__activate_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    /**
+     * Personeli pasifleştir
+     * @description Giriş kapanır, gelecek atamalar düşer; geçmiş cevap ve kanıtlar kalır (BR-22).
+     */
+    post: operations['personel_pasiflestir_api_v1_users__user_id__deactivate_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/users/{user_id}/activate': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/users/{user_id}/mask": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * KVKK: kişi verisini maskele
-         * @description Silme talebi karşılığı (FR-1310): ad takma etikete döner, telefon
-         *     ve e-posta silinir; cevaplar ve kanıtlar iş kaydı olarak kalır.
-         */
-        post: operations["personel_maskele_api_v1_users__user_id__mask_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    /** Personeli yeniden aktif et */
+    post: operations['personel_aktif_et_api_v1_users__user_id__activate_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/users/{user_id}/mask': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/templates": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Şablon listesi (sürümleriyle) */
-        get: operations["sablon_listesi_api_v1_templates_get"];
-        put?: never;
-        /**
-         * Şablon oluştur
-         * @description Yeni şablon boş bir **taslak** sürümle açılır (FR-0301).
-         */
-        post: operations["sablon_olustur_api_v1_templates_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    /**
+     * KVKK: kişi verisini maskele
+     * @description Silme talebi karşılığı (FR-1310): ad takma etikete döner, telefon
+     *     ve e-posta silinir; cevaplar ve kanıtlar iş kaydı olarak kalır.
+     */
+    post: operations['personel_maskele_api_v1_users__user_id__mask_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/templates': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/template-versions/{version_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Sürüm detayı */
-        get: operations["surum_detayi_api_v1_template_versions__version_id__get"];
-        /** Taslağı kaydet */
-        put: operations["taslak_kaydet_api_v1_template_versions__version_id__put"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /** Şablon listesi (sürümleriyle) */
+    get: operations['sablon_listesi_api_v1_templates_get'];
+    put?: never;
+    /**
+     * Şablon oluştur
+     * @description Yeni şablon boş bir **taslak** sürümle açılır (FR-0301).
+     */
+    post: operations['sablon_olustur_api_v1_templates_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/template-versions/{version_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/templates/{template_id}/new-draft": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Yayından yeni taslak türet
-         * @description Yayınlanmış sürüm değişmez; düzenleme yeni taslakta sürer (FR-0301).
-         */
-        post: operations["yeni_taslak_api_v1_templates__template_id__new_draft_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /** Sürüm detayı */
+    get: operations['surum_detayi_api_v1_template_versions__version_id__get'];
+    /** Taslağı kaydet */
+    put: operations['taslak_kaydet_api_v1_template_versions__version_id__put'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/templates/{template_id}/new-draft': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/template-versions/{version_id}/publish": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Sürümü yayınla
-         * @description Doğrulama geçmezse 422 ve **tüm** sorunların listesi döner (FR-0312).
-         */
-        post: operations["surum_yayinla_api_v1_template_versions__version_id__publish_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    /**
+     * Yayından yeni taslak türet
+     * @description Yayınlanmış sürüm değişmez; düzenleme yeni taslakta sürer (FR-0301).
+     */
+    post: operations['yeni_taslak_api_v1_templates__template_id__new_draft_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/template-versions/{version_id}/publish': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/plans": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Plan listesi */
-        get: operations["plan_listesi_api_v1_plans_get"];
-        put?: never;
-        /**
-         * Plan oluştur
-         * @description Plan kaydedilir ve ufuk içindeki çalıştırmalar hemen üretilir.
-         */
-        post: operations["plan_olustur_api_v1_plans_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    /**
+     * Sürümü yayınla
+     * @description Doğrulama geçmezse 422 ve **tüm** sorunların listesi döner (FR-0312).
+     */
+    post: operations['surum_yayinla_api_v1_template_versions__version_id__publish_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/plans': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/plans/preview": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Kaydetmeden 7 gün önizleme */
-        post: operations["plan_onizleme_api_v1_plans_preview_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /** Plan listesi */
+    get: operations['plan_listesi_api_v1_plans_get'];
+    put?: never;
+    /**
+     * Plan oluştur
+     * @description Plan kaydedilir ve ufuk içindeki çalıştırmalar hemen üretilir.
+     */
+    post: operations['plan_olustur_api_v1_plans_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/plans/preview': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/plans/{plan_id}/deactivate": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Planı durdur
-         * @description Durdurulan plandan yeni çalıştırma üretilmez; başlanmamışlar silinir.
-         */
-        post: operations["plan_durdur_api_v1_plans__plan_id__deactivate_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    /** Kaydetmeden 7 gün önizleme */
+    post: operations['plan_onizleme_api_v1_plans_preview_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/plans/{plan_id}/deactivate': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/plans/{plan_id}/activate": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Planı yeniden başlat */
-        post: operations["plan_baslat_api_v1_plans__plan_id__activate_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    /**
+     * Planı durdur
+     * @description Durdurulan plandan yeni çalıştırma üretilmez; başlanmamışlar silinir.
+     */
+    post: operations['plan_durdur_api_v1_plans__plan_id__deactivate_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/plans/{plan_id}/activate': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/plans/{plan_id}/generate": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Çalıştırmaları şimdi üret
-         * @description Zamanlayıcının (ST-027) yapacağı işin elle tetiklenmesi; idempotenttir.
-         */
-        post: operations["plan_uret_api_v1_plans__plan_id__generate_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    /** Planı yeniden başlat */
+    post: operations['plan_baslat_api_v1_plans__plan_id__activate_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/plans/{plan_id}/generate': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/scheduler/tick": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Zamanlayıcı turunu şimdi koş
-         * @description Ayrı süreçte koşan zamanlayıcının (ST-027) elle tetiklenmesi.
-         *
-         *     Aynı iş mantığı; idempotent olduğu için zamanlayıcı çalışırken de
-         *     güvenle çağrılabilir.
-         */
-        post: operations["zamanlayici_turu_api_v1_scheduler_tick_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    /**
+     * Çalıştırmaları şimdi üret
+     * @description Zamanlayıcının (ST-027) yapacağı işin elle tetiklenmesi; idempotenttir.
+     */
+    post: operations['plan_uret_api_v1_plans__plan_id__generate_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/scheduler/tick': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/runs": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Bir iş gününün çalıştırmaları */
-        get: operations["calistirmalar_api_v1_runs_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    /**
+     * Zamanlayıcı turunu şimdi koş
+     * @description Ayrı süreçte koşan zamanlayıcının (ST-027) elle tetiklenmesi.
+     *
+     *     Aynı iş mantığı; idempotent olduğu için zamanlayıcı çalışırken de
+     *     güvenle çağrılabilir.
+     */
+    post: operations['zamanlayici_turu_api_v1_scheduler_tick_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/runs': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/dashboard": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Operasyon panosu (şube × liste) */
-        get: operations["pano_api_v1_dashboard_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /** Bir iş gününün çalıştırmaları */
+    get: operations['calistirmalar_api_v1_runs_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/dashboard': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
+    /** Operasyon panosu (şube × liste) */
+    get: operations['pano_api_v1_dashboard_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/actions': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Aksiyon listesi
+     * @description Varsayılan: açık aksiyonlar, **vadesi yakın olan önce**.
+     */
+    get: operations['aksiyon_listesi_api_v1_actions_get'];
+    put?: never;
+    /**
+     * Elle aksiyon aç
+     * @description FR-0908. Vade önceliğe göre sabittir (BR-10): kritik 4 sa, yüksek 24, normal 72.
+     */
+    post: operations['aksiyon_ac_api_v1_actions_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/actions/counts': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Aksiyon sayaçları */
+    get: operations['aksiyon_sayaclari_api_v1_actions_counts_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/actions/{action_id}/close': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Aksiyonu kapat */
+    post: operations['aksiyon_kapat_api_v1_actions__action_id__close_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
-    schemas: {
-        /** AtamaGirdisi */
-        AtamaGirdisi: {
-            /**
-             * Kind
-             * @default anyone
-             * @enum {string}
-             */
-            kind?: "anyone" | "role" | "user";
-            /** Role */
-            role?: string | null;
-            /** User Id */
-            user_id?: string | null;
-        };
-        /** BolgeDugumu */
-        BolgeDugumu: {
-            /** Id */
-            id: string | null;
-            /** Name */
-            name: string;
-            /** Branches */
-            branches: components["schemas"]["SubeOzet"][];
-        };
-        /** BolumCiktisi */
-        BolumCiktisi: {
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
-            /** Order */
-            order: number;
-            /** Title */
-            title: string;
-            /** Items */
-            items: components["schemas"]["MaddeCiktisi"][];
-        };
-        /** BolumGirdisi */
-        BolumGirdisi: {
-            /** Id */
-            id?: string | null;
-            /** Title */
-            title: string;
-            /**
-             * Items
-             * @default []
-             */
-            items?: components["schemas"]["MaddeGirdisi"][];
-        };
-        /**
-         * CalismaSaati
-         * @description Bir günün açılış/kapanışı. `null` gün = kapalı.
-         */
-        CalismaSaati: {
-            /**
-             * Weekday
-             * @description 0 = Pazartesi
-             */
-            weekday: number;
-            /** Weekday Name */
-            weekday_name: string;
-            /** Open Time */
-            open_time?: string | null;
-            /** Close Time */
-            close_time?: string | null;
-        };
-        /** CalistirmaOzet */
-        CalistirmaOzet: {
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
-            /**
-             * Plan Id
-             * Format: uuid
-             */
-            plan_id: string;
-            /**
-             * Branch Id
-             * Format: uuid
-             */
-            branch_id: string;
-            /** Branch Name */
-            branch_name: string;
-            /**
-             * Business Day
-             * Format: date
-             */
-            business_day: string;
-            /**
-             * Window Start
-             * Format: date-time
-             */
-            window_start: string;
-            /**
-             * Window End
-             * Format: date-time
-             */
-            window_end: string;
-            /**
-             * Tolerance End
-             * Format: date-time
-             */
-            tolerance_end: string;
-            /** Status */
-            status: string;
-            /**
-             * Late
-             * @default false
-             */
-            late?: boolean;
-        };
-        /**
-         * DavetYaniti
-         * @description Davet sonucu.
-         *
-         *     `invite_sent` bugün **her zaman false**: SMS sağlayıcısı bağlı değil
-         *     (ST-044). Arayüz "gönderildi" demez, "kuyruğa alındı" der.
-         */
-        DavetYaniti: {
-            user: components["schemas"]["KullaniciOzet"];
-            /**
-             * Invite Sent
-             * @default false
-             */
-            invite_sent?: boolean;
-            /**
-             * Invite Note
-             * @default SMS sağlayıcısı bağlanınca davet gönderilecek (ST-044).
-             */
-            invite_note?: string;
-        };
-        /** Gostergeler */
-        Gostergeler: {
-            /** Total */
-            total: number;
-            /** Submitted */
-            submitted: number;
-            /** Late */
-            late: number;
-            /** Missed */
-            missed: number;
-            /**
-             * Open Now
-             * @description Henüz penceresi kapanmamış çalıştırma sayısı
-             */
-            open_now: number;
-            /** Completion Percent */
-            completion_percent: number | null;
-            /**
-             * All Clear
-             * @description Kaçırılan ve geç yoksa true: 'her şey yolunda'
-             */
-            all_clear: boolean;
-        };
-        /** HTTPValidationError */
-        HTTPValidationError: {
-            /** Detail */
-            detail?: components["schemas"]["ValidationError"][];
-        };
-        /**
-         * HealthResponse
-         * @description Canlılık yanıtı. Şema açıkça tanımlı: istemci tipleri bundan üretilir.
-         */
-        HealthResponse: {
-            /**
-             * Status
-             * @default ok
-             * @constant
-             */
-            status?: "ok";
-            /**
-             * Version
-             * @description API sürümü
-             */
-            version: string;
-            /**
-             * Environment
-             * @description dev | test | staging | prod
-             */
-            environment: string;
-            /**
-             * Database Configured
-             * @description DATABASE_URL tanımlı mı
-             */
-            database_configured: boolean;
-            /**
-             * Object Store Configured
-             * @description Nesne depolama uç noktası tanımlı mı
-             */
-            object_store_configured: boolean;
-        };
-        /** Hucre */
-        Hucre: {
-            /**
-             * Plan Id
-             * Format: uuid
-             */
-            plan_id: string;
-            /** Run Id */
-            run_id?: string | null;
-            /** Status */
-            status?: ("scheduled" | "in_progress" | "submitted" | "missed" | "cancelled") | null;
-            /**
-             * Late
-             * @default false
-             */
-            late?: boolean;
-            /** Result */
-            result?: ("passed" | "failed") | null;
-            /** Window Start */
-            window_start?: string | null;
-            /** Window End */
-            window_end?: string | null;
-            /**
-             * Exception
-             * @default false
-             */
-            exception?: boolean;
-        };
-        /** IstasyonOzet */
-        IstasyonOzet: {
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
-            /** Name */
-            name: string;
-            /** Kind */
-            kind: string;
-        };
-        /** KullaniciGirdisi */
-        KullaniciGirdisi: {
-            /**
-             * Full Name
-             * @example Ayşe Yılmaz
-             */
-            full_name: string;
-            /**
-             * Phone
-             * @description E.164'e çevrilir
-             * @example 0532 111 00 08
-             */
-            phone: string;
-            /** Email */
-            email?: string | null;
-            /** Assignments */
-            assignments: components["schemas"]["RolGirdisi"][];
-        };
-        /** KullaniciOzet */
-        KullaniciOzet: {
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
-            /** Full Name */
-            full_name: string;
-            /** Phone */
-            phone: string | null;
-            /** Email */
-            email?: string | null;
-            /**
-             * Status
-             * @enum {string}
-             */
-            status: "active" | "inactive" | "masked";
-            /** Assignments */
-            assignments: components["schemas"]["RolAtamasi"][];
-            /** Invited At */
-            invited_at?: string | null;
-            /** Masked At */
-            masked_at?: string | null;
-            /**
-             * Pin Set
-             * @default false
-             */
-            pin_set?: boolean;
-        };
-        /** MaddeCiktisi */
-        MaddeCiktisi: {
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
-            /**
-             * Type
-             * @enum {string}
-             */
-            type: "confirm" | "choice" | "number" | "temperature" | "text" | "photo" | "instruction";
-            /** Title */
-            title: string;
-            /** Hint */
-            hint?: string | null;
-            /**
-             * Required
-             * @default true
-             */
-            required?: boolean;
-            /**
-             * Photo Required
-             * @default false
-             */
-            photo_required?: boolean;
-            /**
-             * Critical
-             * @default false
-             */
-            critical?: boolean;
-            /**
-             * Options
-             * @default []
-             */
-            options?: components["schemas"]["SecenekGirdisi"][];
-            /** Min Value */
-            min_value?: number | null;
-            /** Max Value */
-            max_value?: number | null;
-            /** Unit */
-            unit?: string | null;
-            /** Type Label */
-            type_label: string;
-            /** Scored */
-            scored: boolean;
-        };
-        /** MaddeGirdisi */
-        MaddeGirdisi: {
-            /**
-             * Id
-             * @description Yoksa yeni madde üretilir
-             */
-            id?: string | null;
-            /**
-             * Type
-             * @enum {string}
-             */
-            type: "confirm" | "choice" | "number" | "temperature" | "text" | "photo" | "instruction";
-            /** Title */
-            title: string;
-            /** Hint */
-            hint?: string | null;
-            /**
-             * Required
-             * @default true
-             */
-            required?: boolean;
-            /**
-             * Photo Required
-             * @default false
-             */
-            photo_required?: boolean;
-            /**
-             * Critical
-             * @default false
-             */
-            critical?: boolean;
-            /**
-             * Options
-             * @default []
-             */
-            options?: components["schemas"]["SecenekGirdisi"][];
-            /** Min Value */
-            min_value?: number | null;
-            /** Max Value */
-            max_value?: number | null;
-            /** Unit */
-            unit?: string | null;
-        };
-        /**
-         * OnizlemeYaniti
-         * @description 7 gün önizleme (FR-0511): kaydetmeden önce ne üretileceği.
-         */
-        OnizlemeYaniti: {
-            /** Days */
-            days: number;
-            /** Run Count */
-            run_count: number;
-            /** Runs */
-            runs: components["schemas"]["CalistirmaOzet"][];
-        };
-        /**
-         * PanoYaniti
-         * @description Şube × liste ızgarası.
-         *
-         *     İstisna süzgeci **istemcide** uygulanır: sunucu her satırı `exception`
-         *     bayrağıyla gönderir, panel varsayılanda yalnızca bayraklıları gösterir
-         *     ve "tümünü göster" dediğinde ikinci istek atmaz (FR-1219).
-         */
-        PanoYaniti: {
-            /**
-             * Business Day
-             * Format: date
-             */
-            business_day: string;
-            /** Plans */
-            plans: components["schemas"]["PlanSutunu"][];
-            /** Rows */
-            rows: components["schemas"]["Satir"][];
-            /** Exception Row Count */
-            exception_row_count: number;
-            kpi: components["schemas"]["Gostergeler"];
-        };
-        /** PlanGirdisi */
-        PlanGirdisi: {
-            /**
-             * Name
-             * @example Günlük kapanış
-             */
-            name: string;
-            /**
-             * Template Version Id
-             * Format: uuid
-             */
-            template_version_id: string;
-            /** Branch Ids */
-            branch_ids: string[];
-            schedule: components["schemas"]["Zamanlama"];
-            /**
-             * @default {
-             *       "kind": "anyone"
-             *     }
-             */
-            assignment?: components["schemas"]["AtamaGirdisi"];
-        };
-        /** PlanOzet */
-        PlanOzet: {
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
-            /** Name */
-            name: string;
-            /**
-             * Template Version Id
-             * Format: uuid
-             */
-            template_version_id: string;
-            /** Template Name */
-            template_name: string;
-            /** Branch Ids */
-            branch_ids: string[];
-            /** Branch Count */
-            branch_count: number;
-            /** Active */
-            active: boolean;
-            assignment: components["schemas"]["AtamaGirdisi"];
-            /** Recurrence */
-            recurrence: string;
-            /** Duration Minutes */
-            duration_minutes: number;
-            /** Tolerance Minutes */
-            tolerance_minutes: number;
-        };
-        /** PlanSutunu */
-        PlanSutunu: {
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
-            /** Name */
-            name: string;
-        };
-        /** RolAtamasi */
-        RolAtamasi: {
-            /**
-             * Role
-             * @enum {string}
-             */
-            role: "admin" | "region_manager" | "branch_manager" | "staff";
-            /**
-             * Role Label
-             * @description Rolün Türkçe adı; arayüz bunu gösterir
-             */
-            role_label: string;
-            /**
-             * Scope Type
-             * @enum {string}
-             */
-            scope_type: "tenant" | "region" | "branch";
-            /** Scope Id */
-            scope_id?: string | null;
-        };
-        /**
-         * RolGirdisi
-         * @description Rol atama gövdesi. Kapsam türü rolden belirlenir, ayrıca gönderilmez.
-         */
-        RolGirdisi: {
-            /**
-             * Role
-             * @enum {string}
-             */
-            role: "admin" | "region_manager" | "branch_manager" | "staff";
-            /** Scope Id */
-            scope_id?: string | null;
-        };
-        /** SablonGirdisi */
-        SablonGirdisi: {
-            /**
-             * Name
-             * @example Kapanış (kafe)
-             */
-            name: string;
-            /** Category */
-            category?: string | null;
-        };
-        /** SablonOzet */
-        SablonOzet: {
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
-            /** Name */
-            name: string;
-            /** Category */
-            category?: string | null;
-            /** Versions */
-            versions: components["schemas"]["SurumOzet"][];
-        };
-        /** Satir */
-        Satir: {
-            /**
-             * Branch Id
-             * Format: uuid
-             */
-            branch_id: string;
-            /** Branch Name */
-            branch_name: string;
-            /** Region Name */
-            region_name?: string | null;
-            /** Cells */
-            cells: components["schemas"]["Hucre"][];
-            /** Exception */
-            exception: boolean;
-        };
-        /** SecenekGirdisi */
-        SecenekGirdisi: {
-            /** Label */
-            label: string;
-            /**
-             * Passing
-             * @default true
-             */
-            passing?: boolean;
-        };
-        /** SubeDetay */
-        SubeDetay: {
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
-            /** Code */
-            code: string;
-            /** Name */
-            name: string;
-            /**
-             * Status
-             * @enum {string}
-             */
-            status: "active" | "inactive";
-            /** Region Id */
-            region_id?: string | null;
-            /** Timezone */
-            timezone: string;
-            /**
-             * Open Days
-             * @description Haftada açık gün sayısı
-             */
-            open_days: number;
-            /** Address */
-            address?: string | null;
-            /** Business Hours */
-            business_hours: components["schemas"]["CalismaSaati"][];
-            /** Stations */
-            stations: components["schemas"]["IstasyonOzet"][];
-        };
-        /**
-         * SubeGirdisi
-         * @description Şube oluşturma/güncelleme gövdesi.
-         *
-         *     Çalışma saatleri verilmezse 08:00–23:00 her gün uygulanır: kurulum
-         *     sihirbazının varsayılanı (FR-1401); şube sonradan düzeltir.
-         */
-        SubeGirdisi: {
-            /**
-             * Code
-             * @example KDK
-             */
-            code: string;
-            /**
-             * Name
-             * @example Kadıköy
-             */
-            name: string;
-            /**
-             * Timezone
-             * @default Europe/Istanbul
-             */
-            timezone?: string;
-            /** Region Id */
-            region_id?: string | null;
-            /** Address */
-            address?: string | null;
-            /** Business Hours */
-            business_hours?: components["schemas"]["CalismaSaati"][] | null;
-        };
-        /** SubeOzet */
-        SubeOzet: {
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
-            /** Code */
-            code: string;
-            /** Name */
-            name: string;
-            /**
-             * Status
-             * @enum {string}
-             */
-            status: "active" | "inactive";
-            /** Region Id */
-            region_id?: string | null;
-            /** Timezone */
-            timezone: string;
-            /**
-             * Open Days
-             * @description Haftada açık gün sayısı
-             */
-            open_days: number;
-        };
-        /** SurumDetay */
-        SurumDetay: {
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
-            /** Version No */
-            version_no: number;
-            /**
-             * Status
-             * @enum {string}
-             */
-            status: "draft" | "published" | "archived";
-            /** Published At */
-            published_at?: string | null;
-            /** Scored Item Count */
-            scored_item_count: number;
-            /** Critical Item Count */
-            critical_item_count: number;
-            /** Photo Item Count */
-            photo_item_count: number;
-            /**
-             * Template Id
-             * Format: uuid
-             */
-            template_id: string;
-            /** Template Name */
-            template_name: string;
-            /** Camera Only */
-            camera_only: boolean;
-            /** Sections */
-            sections: components["schemas"]["BolumCiktisi"][];
-            /** Publish Issues */
-            publish_issues: components["schemas"]["YayinSorunu"][];
-        };
-        /** SurumOzet */
-        SurumOzet: {
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
-            /** Version No */
-            version_no: number;
-            /**
-             * Status
-             * @enum {string}
-             */
-            status: "draft" | "published" | "archived";
-            /** Published At */
-            published_at?: string | null;
-            /** Scored Item Count */
-            scored_item_count: number;
-            /** Critical Item Count */
-            critical_item_count: number;
-            /** Photo Item Count */
-            photo_item_count: number;
-        };
-        /** TaslakGirdisi */
-        TaslakGirdisi: {
-            /** Sections */
-            sections: components["schemas"]["BolumGirdisi"][];
-            /**
-             * Camera Only
-             * @default true
-             */
-            camera_only?: boolean;
-        };
-        /**
-         * TurYaniti
-         * @description Zamanlayıcı turunun özeti (ST-027).
-         */
-        TurYaniti: {
-            /**
-             * At
-             * Format: date-time
-             */
-            at: string;
-            /** Created */
-            created: number;
-            /** Deleted */
-            deleted: number;
-            /**
-             * Missed
-             * @description Toleransı dolduğu için kaçırıldı yazılan çalıştırma sayısı
-             */
-            missed: number;
-        };
-        /** UretimYaniti */
-        UretimYaniti: {
-            /** Created */
-            created: number;
-            /** Deleted */
-            deleted: number;
-        };
-        /** ValidationError */
-        ValidationError: {
-            /** Location */
-            loc: (string | number)[];
-            /** Message */
-            msg: string;
-            /** Error Type */
-            type: string;
-            /** Input */
-            input?: unknown;
-            /** Context */
-            ctx?: Record<string, never>;
-        };
-        /** YayinSorunu */
-        YayinSorunu: {
-            /** Where */
-            where: string;
-            /** Message */
-            message: string;
-        };
-        /**
-         * Zamanlama
-         * @description Plan editörünün zaman kuralı (FR-0502…0507).
-         *
-         *     RRULE metni burada kurulur: arayüz "her gün / haftanın günleri / tek
-         *     seferlik" der, motor RFC 5545 alır. Başlangıç ya sabit saattir ya da
-         *     şubenin çalışma saatinden türetilir ("kapanıştan 60 dk önce").
-         */
-        Zamanlama: {
-            /**
-             * Repeat
-             * @default daily
-             * @enum {string}
-             */
-            repeat?: "daily" | "weekly" | "once";
-            /**
-             * Weekdays
-             * @description 0 = Pazartesi (haftalıkta)
-             */
-            weekdays?: number[];
-            /**
-             * Starts On
-             * Format: date
-             */
-            starts_on: string;
-            /**
-             * Start Mode
-             * @default fixed
-             * @enum {string}
-             */
-            start_mode?: "fixed" | "anchor";
-            /** Start Time */
-            start_time?: string | null;
-            /** Anchor Reference */
-            anchor_reference?: ("open" | "close") | null;
-            /**
-             * Anchor Offset Minutes
-             * @default 0
-             */
-            anchor_offset_minutes?: number;
-            /** Duration Minutes */
-            duration_minutes: number;
-            /**
-             * Tolerance Minutes
-             * @default 0
-             */
-            tolerance_minutes?: number;
-        };
+  schemas: {
+    /** AksiyonOzet */
+    AksiyonOzet: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /**
+       * Branch Id
+       * Format: uuid
+       */
+      branch_id: string;
+      /** Branch Name */
+      branch_name: string;
+      /** Title */
+      title: string;
+      /** Description */
+      description?: string | null;
+      /**
+       * Source
+       * @enum {string}
+       */
+      source: 'missed_run' | 'critical_item' | 'not_done' | 'issue' | 'manual';
+      /** Source Label */
+      source_label: string;
+      /**
+       * Priority
+       * @enum {string}
+       */
+      priority: 'critical' | 'high' | 'normal';
+      /** Priority Label */
+      priority_label: string;
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: 'open' | 'closed';
+      /**
+       * Opened At
+       * Format: date-time
+       */
+      opened_at: string;
+      /**
+       * Due At
+       * Format: date-time
+       */
+      due_at: string;
+      /**
+       * Overdue
+       * @description Açık ve vadesi geçmiş mi
+       */
+      overdue: boolean;
+      /**
+       * Remaining Hours
+       * @description Vadeye kalan saat; kapalı aksiyonda boş
+       */
+      remaining_hours?: number | null;
+      /** Closed At */
+      closed_at?: string | null;
+      /** Close Note */
+      close_note?: string | null;
     };
-    responses: never;
-    parameters: never;
-    requestBodies: never;
-    headers: never;
-    pathItems: never;
+    /** AksiyonSayaclari */
+    AksiyonSayaclari: {
+      /** Open */
+      open: number;
+      /** Overdue */
+      overdue: number;
+      /** Critical */
+      critical: number;
+    };
+    /** AtamaGirdisi */
+    AtamaGirdisi: {
+      /**
+       * Kind
+       * @default anyone
+       * @enum {string}
+       */
+      kind?: 'anyone' | 'role' | 'user';
+      /** Role */
+      role?: string | null;
+      /** User Id */
+      user_id?: string | null;
+    };
+    /** BolgeDugumu */
+    BolgeDugumu: {
+      /** Id */
+      id: string | null;
+      /** Name */
+      name: string;
+      /** Branches */
+      branches: components['schemas']['SubeOzet'][];
+    };
+    /** BolumCiktisi */
+    BolumCiktisi: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Order */
+      order: number;
+      /** Title */
+      title: string;
+      /** Items */
+      items: components['schemas']['MaddeCiktisi'][];
+    };
+    /** BolumGirdisi */
+    BolumGirdisi: {
+      /** Id */
+      id?: string | null;
+      /** Title */
+      title: string;
+      /**
+       * Items
+       * @default []
+       */
+      items?: components['schemas']['MaddeGirdisi'][];
+    };
+    /**
+     * CalismaSaati
+     * @description Bir günün açılış/kapanışı. `null` gün = kapalı.
+     */
+    CalismaSaati: {
+      /**
+       * Weekday
+       * @description 0 = Pazartesi
+       */
+      weekday: number;
+      /** Weekday Name */
+      weekday_name: string;
+      /** Open Time */
+      open_time?: string | null;
+      /** Close Time */
+      close_time?: string | null;
+    };
+    /** CalistirmaOzet */
+    CalistirmaOzet: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /**
+       * Plan Id
+       * Format: uuid
+       */
+      plan_id: string;
+      /**
+       * Branch Id
+       * Format: uuid
+       */
+      branch_id: string;
+      /** Branch Name */
+      branch_name: string;
+      /**
+       * Business Day
+       * Format: date
+       */
+      business_day: string;
+      /**
+       * Window Start
+       * Format: date-time
+       */
+      window_start: string;
+      /**
+       * Window End
+       * Format: date-time
+       */
+      window_end: string;
+      /**
+       * Tolerance End
+       * Format: date-time
+       */
+      tolerance_end: string;
+      /** Status */
+      status: string;
+      /**
+       * Late
+       * @default false
+       */
+      late?: boolean;
+    };
+    /**
+     * DavetYaniti
+     * @description Davet sonucu.
+     *
+     *     `invite_sent` bugün **her zaman false**: SMS sağlayıcısı bağlı değil
+     *     (ST-044). Arayüz "gönderildi" demez, "kuyruğa alındı" der.
+     */
+    DavetYaniti: {
+      user: components['schemas']['KullaniciOzet'];
+      /**
+       * Invite Sent
+       * @default false
+       */
+      invite_sent?: boolean;
+      /**
+       * Invite Note
+       * @default SMS sağlayıcısı bağlanınca davet gönderilecek (ST-044).
+       */
+      invite_note?: string;
+    };
+    /** ElleAksiyonGirdisi */
+    ElleAksiyonGirdisi: {
+      /**
+       * Branch Id
+       * Format: uuid
+       */
+      branch_id: string;
+      /**
+       * Title
+       * @example Buzdolabı tamiri
+       */
+      title: string;
+      /**
+       * Priority
+       * @default normal
+       * @enum {string}
+       */
+      priority?: 'critical' | 'high' | 'normal';
+      /** Description */
+      description?: string | null;
+      /** Assignee User Id */
+      assignee_user_id?: string | null;
+    };
+    /** Gostergeler */
+    Gostergeler: {
+      /** Total */
+      total: number;
+      /** Submitted */
+      submitted: number;
+      /** Late */
+      late: number;
+      /** Missed */
+      missed: number;
+      /**
+       * Open Now
+       * @description Henüz penceresi kapanmamış çalıştırma sayısı
+       */
+      open_now: number;
+      /** Completion Percent */
+      completion_percent: number | null;
+      /**
+       * All Clear
+       * @description Kaçırılan ve geç yoksa true: 'her şey yolunda'
+       */
+      all_clear: boolean;
+    };
+    /** HTTPValidationError */
+    HTTPValidationError: {
+      /** Detail */
+      detail?: components['schemas']['ValidationError'][];
+    };
+    /**
+     * HealthResponse
+     * @description Canlılık yanıtı. Şema açıkça tanımlı: istemci tipleri bundan üretilir.
+     */
+    HealthResponse: {
+      /**
+       * Status
+       * @default ok
+       * @constant
+       */
+      status?: 'ok';
+      /**
+       * Version
+       * @description API sürümü
+       */
+      version: string;
+      /**
+       * Environment
+       * @description dev | test | staging | prod
+       */
+      environment: string;
+      /**
+       * Database Configured
+       * @description DATABASE_URL tanımlı mı
+       */
+      database_configured: boolean;
+      /**
+       * Object Store Configured
+       * @description Nesne depolama uç noktası tanımlı mı
+       */
+      object_store_configured: boolean;
+    };
+    /** Hucre */
+    Hucre: {
+      /**
+       * Plan Id
+       * Format: uuid
+       */
+      plan_id: string;
+      /** Run Id */
+      run_id?: string | null;
+      /** Status */
+      status?: ('scheduled' | 'in_progress' | 'submitted' | 'missed' | 'cancelled') | null;
+      /**
+       * Late
+       * @default false
+       */
+      late?: boolean;
+      /** Result */
+      result?: ('passed' | 'failed') | null;
+      /** Window Start */
+      window_start?: string | null;
+      /** Window End */
+      window_end?: string | null;
+      /**
+       * Exception
+       * @default false
+       */
+      exception?: boolean;
+    };
+    /** IstasyonOzet */
+    IstasyonOzet: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Name */
+      name: string;
+      /** Kind */
+      kind: string;
+    };
+    /**
+     * KapanisGirdisi
+     * @description Kapanış notu zorunlu (FR-0904): ne yapıldığı yazılmadan kapanmaz.
+     */
+    KapanisGirdisi: {
+      /**
+       * Note
+       * @example Teknisyen geldi, termostat değişti
+       */
+      note: string;
+      /** Closed By */
+      closed_by?: string | null;
+    };
+    /** KullaniciGirdisi */
+    KullaniciGirdisi: {
+      /**
+       * Full Name
+       * @example Ayşe Yılmaz
+       */
+      full_name: string;
+      /**
+       * Phone
+       * @description E.164'e çevrilir
+       * @example 0532 111 00 08
+       */
+      phone: string;
+      /** Email */
+      email?: string | null;
+      /** Assignments */
+      assignments: components['schemas']['RolGirdisi'][];
+    };
+    /** KullaniciOzet */
+    KullaniciOzet: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Full Name */
+      full_name: string;
+      /** Phone */
+      phone: string | null;
+      /** Email */
+      email?: string | null;
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: 'active' | 'inactive' | 'masked';
+      /** Assignments */
+      assignments: components['schemas']['RolAtamasi'][];
+      /** Invited At */
+      invited_at?: string | null;
+      /** Masked At */
+      masked_at?: string | null;
+      /**
+       * Pin Set
+       * @default false
+       */
+      pin_set?: boolean;
+    };
+    /** MaddeCiktisi */
+    MaddeCiktisi: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /**
+       * Type
+       * @enum {string}
+       */
+      type: 'confirm' | 'choice' | 'number' | 'temperature' | 'text' | 'photo' | 'instruction';
+      /** Title */
+      title: string;
+      /** Hint */
+      hint?: string | null;
+      /**
+       * Required
+       * @default true
+       */
+      required?: boolean;
+      /**
+       * Photo Required
+       * @default false
+       */
+      photo_required?: boolean;
+      /**
+       * Critical
+       * @default false
+       */
+      critical?: boolean;
+      /**
+       * Options
+       * @default []
+       */
+      options?: components['schemas']['SecenekGirdisi'][];
+      /** Min Value */
+      min_value?: number | null;
+      /** Max Value */
+      max_value?: number | null;
+      /** Unit */
+      unit?: string | null;
+      /** Type Label */
+      type_label: string;
+      /** Scored */
+      scored: boolean;
+    };
+    /** MaddeGirdisi */
+    MaddeGirdisi: {
+      /**
+       * Id
+       * @description Yoksa yeni madde üretilir
+       */
+      id?: string | null;
+      /**
+       * Type
+       * @enum {string}
+       */
+      type: 'confirm' | 'choice' | 'number' | 'temperature' | 'text' | 'photo' | 'instruction';
+      /** Title */
+      title: string;
+      /** Hint */
+      hint?: string | null;
+      /**
+       * Required
+       * @default true
+       */
+      required?: boolean;
+      /**
+       * Photo Required
+       * @default false
+       */
+      photo_required?: boolean;
+      /**
+       * Critical
+       * @default false
+       */
+      critical?: boolean;
+      /**
+       * Options
+       * @default []
+       */
+      options?: components['schemas']['SecenekGirdisi'][];
+      /** Min Value */
+      min_value?: number | null;
+      /** Max Value */
+      max_value?: number | null;
+      /** Unit */
+      unit?: string | null;
+    };
+    /**
+     * OnizlemeYaniti
+     * @description 7 gün önizleme (FR-0511): kaydetmeden önce ne üretileceği.
+     */
+    OnizlemeYaniti: {
+      /** Days */
+      days: number;
+      /** Run Count */
+      run_count: number;
+      /** Runs */
+      runs: components['schemas']['CalistirmaOzet'][];
+    };
+    /**
+     * PanoYaniti
+     * @description Şube × liste ızgarası.
+     *
+     *     İstisna süzgeci **istemcide** uygulanır: sunucu her satırı `exception`
+     *     bayrağıyla gönderir, panel varsayılanda yalnızca bayraklıları gösterir
+     *     ve "tümünü göster" dediğinde ikinci istek atmaz (FR-1219).
+     */
+    PanoYaniti: {
+      /**
+       * Business Day
+       * Format: date
+       */
+      business_day: string;
+      /** Plans */
+      plans: components['schemas']['PlanSutunu'][];
+      /** Rows */
+      rows: components['schemas']['Satir'][];
+      /** Exception Row Count */
+      exception_row_count: number;
+      kpi: components['schemas']['Gostergeler'];
+    };
+    /** PlanGirdisi */
+    PlanGirdisi: {
+      /**
+       * Name
+       * @example Günlük kapanış
+       */
+      name: string;
+      /**
+       * Template Version Id
+       * Format: uuid
+       */
+      template_version_id: string;
+      /** Branch Ids */
+      branch_ids: string[];
+      schedule: components['schemas']['Zamanlama'];
+      /**
+       * @default {
+       *       "kind": "anyone"
+       *     }
+       */
+      assignment?: components['schemas']['AtamaGirdisi'];
+    };
+    /** PlanOzet */
+    PlanOzet: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Name */
+      name: string;
+      /**
+       * Template Version Id
+       * Format: uuid
+       */
+      template_version_id: string;
+      /** Template Name */
+      template_name: string;
+      /** Branch Ids */
+      branch_ids: string[];
+      /** Branch Count */
+      branch_count: number;
+      /** Active */
+      active: boolean;
+      assignment: components['schemas']['AtamaGirdisi'];
+      /** Recurrence */
+      recurrence: string;
+      /** Duration Minutes */
+      duration_minutes: number;
+      /** Tolerance Minutes */
+      tolerance_minutes: number;
+    };
+    /** PlanSutunu */
+    PlanSutunu: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Name */
+      name: string;
+    };
+    /** RolAtamasi */
+    RolAtamasi: {
+      /**
+       * Role
+       * @enum {string}
+       */
+      role: 'admin' | 'region_manager' | 'branch_manager' | 'staff';
+      /**
+       * Role Label
+       * @description Rolün Türkçe adı; arayüz bunu gösterir
+       */
+      role_label: string;
+      /**
+       * Scope Type
+       * @enum {string}
+       */
+      scope_type: 'tenant' | 'region' | 'branch';
+      /** Scope Id */
+      scope_id?: string | null;
+    };
+    /**
+     * RolGirdisi
+     * @description Rol atama gövdesi. Kapsam türü rolden belirlenir, ayrıca gönderilmez.
+     */
+    RolGirdisi: {
+      /**
+       * Role
+       * @enum {string}
+       */
+      role: 'admin' | 'region_manager' | 'branch_manager' | 'staff';
+      /** Scope Id */
+      scope_id?: string | null;
+    };
+    /** SablonGirdisi */
+    SablonGirdisi: {
+      /**
+       * Name
+       * @example Kapanış (kafe)
+       */
+      name: string;
+      /** Category */
+      category?: string | null;
+    };
+    /** SablonOzet */
+    SablonOzet: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Name */
+      name: string;
+      /** Category */
+      category?: string | null;
+      /** Versions */
+      versions: components['schemas']['SurumOzet'][];
+    };
+    /** Satir */
+    Satir: {
+      /**
+       * Branch Id
+       * Format: uuid
+       */
+      branch_id: string;
+      /** Branch Name */
+      branch_name: string;
+      /** Region Name */
+      region_name?: string | null;
+      /** Cells */
+      cells: components['schemas']['Hucre'][];
+      /** Exception */
+      exception: boolean;
+    };
+    /** SecenekGirdisi */
+    SecenekGirdisi: {
+      /** Label */
+      label: string;
+      /**
+       * Passing
+       * @default true
+       */
+      passing?: boolean;
+    };
+    /** SubeDetay */
+    SubeDetay: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Code */
+      code: string;
+      /** Name */
+      name: string;
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: 'active' | 'inactive';
+      /** Region Id */
+      region_id?: string | null;
+      /** Timezone */
+      timezone: string;
+      /**
+       * Open Days
+       * @description Haftada açık gün sayısı
+       */
+      open_days: number;
+      /** Address */
+      address?: string | null;
+      /** Business Hours */
+      business_hours: components['schemas']['CalismaSaati'][];
+      /** Stations */
+      stations: components['schemas']['IstasyonOzet'][];
+    };
+    /**
+     * SubeGirdisi
+     * @description Şube oluşturma/güncelleme gövdesi.
+     *
+     *     Çalışma saatleri verilmezse 08:00–23:00 her gün uygulanır: kurulum
+     *     sihirbazının varsayılanı (FR-1401); şube sonradan düzeltir.
+     */
+    SubeGirdisi: {
+      /**
+       * Code
+       * @example KDK
+       */
+      code: string;
+      /**
+       * Name
+       * @example Kadıköy
+       */
+      name: string;
+      /**
+       * Timezone
+       * @default Europe/Istanbul
+       */
+      timezone?: string;
+      /** Region Id */
+      region_id?: string | null;
+      /** Address */
+      address?: string | null;
+      /** Business Hours */
+      business_hours?: components['schemas']['CalismaSaati'][] | null;
+    };
+    /** SubeOzet */
+    SubeOzet: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Code */
+      code: string;
+      /** Name */
+      name: string;
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: 'active' | 'inactive';
+      /** Region Id */
+      region_id?: string | null;
+      /** Timezone */
+      timezone: string;
+      /**
+       * Open Days
+       * @description Haftada açık gün sayısı
+       */
+      open_days: number;
+    };
+    /** SurumDetay */
+    SurumDetay: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Version No */
+      version_no: number;
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: 'draft' | 'published' | 'archived';
+      /** Published At */
+      published_at?: string | null;
+      /** Scored Item Count */
+      scored_item_count: number;
+      /** Critical Item Count */
+      critical_item_count: number;
+      /** Photo Item Count */
+      photo_item_count: number;
+      /**
+       * Template Id
+       * Format: uuid
+       */
+      template_id: string;
+      /** Template Name */
+      template_name: string;
+      /** Camera Only */
+      camera_only: boolean;
+      /** Sections */
+      sections: components['schemas']['BolumCiktisi'][];
+      /** Publish Issues */
+      publish_issues: components['schemas']['YayinSorunu'][];
+    };
+    /** SurumOzet */
+    SurumOzet: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Version No */
+      version_no: number;
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: 'draft' | 'published' | 'archived';
+      /** Published At */
+      published_at?: string | null;
+      /** Scored Item Count */
+      scored_item_count: number;
+      /** Critical Item Count */
+      critical_item_count: number;
+      /** Photo Item Count */
+      photo_item_count: number;
+    };
+    /** TaslakGirdisi */
+    TaslakGirdisi: {
+      /** Sections */
+      sections: components['schemas']['BolumGirdisi'][];
+      /**
+       * Camera Only
+       * @default true
+       */
+      camera_only?: boolean;
+    };
+    /**
+     * TurYaniti
+     * @description Zamanlayıcı turunun özeti (ST-027).
+     */
+    TurYaniti: {
+      /**
+       * At
+       * Format: date-time
+       */
+      at: string;
+      /** Created */
+      created: number;
+      /** Deleted */
+      deleted: number;
+      /**
+       * Missed
+       * @description Toleransı dolduğu için kaçırıldı yazılan çalıştırma sayısı
+       */
+      missed: number;
+    };
+    /** UretimYaniti */
+    UretimYaniti: {
+      /** Created */
+      created: number;
+      /** Deleted */
+      deleted: number;
+    };
+    /** ValidationError */
+    ValidationError: {
+      /** Location */
+      loc: (string | number)[];
+      /** Message */
+      msg: string;
+      /** Error Type */
+      type: string;
+      /** Input */
+      input?: unknown;
+      /** Context */
+      ctx?: Record<string, never>;
+    };
+    /** YayinSorunu */
+    YayinSorunu: {
+      /** Where */
+      where: string;
+      /** Message */
+      message: string;
+    };
+    /**
+     * Zamanlama
+     * @description Plan editörünün zaman kuralı (FR-0502…0507).
+     *
+     *     RRULE metni burada kurulur: arayüz "her gün / haftanın günleri / tek
+     *     seferlik" der, motor RFC 5545 alır. Başlangıç ya sabit saattir ya da
+     *     şubenin çalışma saatinden türetilir ("kapanıştan 60 dk önce").
+     */
+    Zamanlama: {
+      /**
+       * Repeat
+       * @default daily
+       * @enum {string}
+       */
+      repeat?: 'daily' | 'weekly' | 'once';
+      /**
+       * Weekdays
+       * @description 0 = Pazartesi (haftalıkta)
+       */
+      weekdays?: number[];
+      /**
+       * Starts On
+       * Format: date
+       */
+      starts_on: string;
+      /**
+       * Start Mode
+       * @default fixed
+       * @enum {string}
+       */
+      start_mode?: 'fixed' | 'anchor';
+      /** Start Time */
+      start_time?: string | null;
+      /** Anchor Reference */
+      anchor_reference?: ('open' | 'close') | null;
+      /**
+       * Anchor Offset Minutes
+       * @default 0
+       */
+      anchor_offset_minutes?: number;
+      /** Duration Minutes */
+      duration_minutes: number;
+      /**
+       * Tolerance Minutes
+       * @default 0
+       */
+      tolerance_minutes?: number;
+    };
+  };
+  responses: never;
+  parameters: never;
+  requestBodies: never;
+  headers: never;
+  pathItems: never;
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    health_api_v1_health_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HealthResponse"];
-                };
-            };
-        };
+  health_api_v1_health_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    sube_agaci_api_v1_branches_get: {
-        parameters: {
-            query?: {
-                include_inactive?: boolean;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BolgeDugumu"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+        content: {
+          'application/json': components['schemas']['HealthResponse'];
         };
+      };
     };
-    sube_ekle_api_v1_branches_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["SubeGirdisi"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SubeOzet"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
+  };
+  sube_agaci_api_v1_branches_get: {
+    parameters: {
+      query?: {
+        include_inactive?: boolean;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    sube_detayi_api_v1_branches__branch_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                branch_id: string;
-            };
-            cookie?: never;
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SubeDetay"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+        content: {
+          'application/json': components['schemas']['BolgeDugumu'][];
         };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
     };
-    sube_guncelle_api_v1_branches__branch_id__patch: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                branch_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["SubeGirdisi"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SubeOzet"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
+  };
+  sube_ekle_api_v1_branches_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    sube_pasiflestir_api_v1_branches__branch_id__deactivate_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                branch_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SubeOzet"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['SubeGirdisi'];
+      };
     };
-    sube_aktif_et_api_v1_branches__branch_id__activate_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                branch_id: string;
-            };
-            cookie?: never;
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SubeOzet"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+        content: {
+          'application/json': components['schemas']['SubeOzet'];
         };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
     };
-    personel_listesi_api_v1_users_get: {
-        parameters: {
-            query?: {
-                branch_id?: string | null;
-                role?: ("admin" | "region_manager" | "branch_manager" | "staff") | null;
-                include_inactive?: boolean;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["KullaniciOzet"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
+  };
+  sube_detayi_api_v1_branches__branch_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        branch_id: string;
+      };
+      cookie?: never;
     };
-    personel_davet_api_v1_users_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["KullaniciGirdisi"];
-            };
+        content: {
+          'application/json': components['schemas']['SubeDetay'];
         };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DavetYaniti"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
         };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
     };
-    personel_detayi_api_v1_users__user_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                user_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["KullaniciOzet"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
+  };
+  sube_guncelle_api_v1_branches__branch_id__patch: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        branch_id: string;
+      };
+      cookie?: never;
     };
-    roller_guncelle_api_v1_users__user_id__roles_patch: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                user_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["RolGirdisi"][];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["KullaniciOzet"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['SubeGirdisi'];
+      };
     };
-    personel_pasiflestir_api_v1_users__user_id__deactivate_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                user_id: string;
-            };
-            cookie?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["KullaniciOzet"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+        content: {
+          'application/json': components['schemas']['SubeOzet'];
         };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
     };
-    personel_aktif_et_api_v1_users__user_id__activate_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                user_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["KullaniciOzet"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
+  };
+  sube_pasiflestir_api_v1_branches__branch_id__deactivate_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        branch_id: string;
+      };
+      cookie?: never;
     };
-    personel_maskele_api_v1_users__user_id__mask_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                user_id: string;
-            };
-            cookie?: never;
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["KullaniciOzet"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+        content: {
+          'application/json': components['schemas']['SubeOzet'];
         };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
     };
-    sablon_listesi_api_v1_templates_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SablonOzet"][];
-                };
-            };
-        };
+  };
+  sube_aktif_et_api_v1_branches__branch_id__activate_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        branch_id: string;
+      };
+      cookie?: never;
     };
-    sablon_olustur_api_v1_templates_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["SablonGirdisi"];
-            };
+        content: {
+          'application/json': components['schemas']['SubeOzet'];
         };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SurumDetay"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
         };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
     };
-    surum_detayi_api_v1_template_versions__version_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                version_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SurumDetay"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
+  };
+  personel_listesi_api_v1_users_get: {
+    parameters: {
+      query?: {
+        branch_id?: string | null;
+        role?: ('admin' | 'region_manager' | 'branch_manager' | 'staff') | null;
+        include_inactive?: boolean;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    taslak_kaydet_api_v1_template_versions__version_id__put: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                version_id: string;
-            };
-            cookie?: never;
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["TaslakGirdisi"];
-            };
+        content: {
+          'application/json': components['schemas']['KullaniciOzet'][];
         };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SurumDetay"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
         };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
     };
-    yeni_taslak_api_v1_templates__template_id__new_draft_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                template_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SurumDetay"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
+  };
+  personel_davet_api_v1_users_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    surum_yayinla_api_v1_template_versions__version_id__publish_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                version_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SurumDetay"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['KullaniciGirdisi'];
+      };
     };
-    plan_listesi_api_v1_plans_get: {
-        parameters: {
-            query?: {
-                include_inactive?: boolean;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PlanOzet"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+        content: {
+          'application/json': components['schemas']['DavetYaniti'];
         };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
     };
-    plan_olustur_api_v1_plans_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PlanGirdisi"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PlanOzet"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
+  };
+  personel_detayi_api_v1_users__user_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        user_id: string;
+      };
+      cookie?: never;
     };
-    plan_onizleme_api_v1_plans_preview_post: {
-        parameters: {
-            query?: {
-                days?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PlanGirdisi"];
-            };
+        content: {
+          'application/json': components['schemas']['KullaniciOzet'];
         };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["OnizlemeYaniti"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
         };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
     };
-    plan_durdur_api_v1_plans__plan_id__deactivate_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                plan_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PlanOzet"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
+  };
+  roller_guncelle_api_v1_users__user_id__roles_patch: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        user_id: string;
+      };
+      cookie?: never;
     };
-    plan_baslat_api_v1_plans__plan_id__activate_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                plan_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PlanOzet"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['RolGirdisi'][];
+      };
     };
-    plan_uret_api_v1_plans__plan_id__generate_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                plan_id: string;
-            };
-            cookie?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["UretimYaniti"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+        content: {
+          'application/json': components['schemas']['KullaniciOzet'];
         };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
     };
-    zamanlayici_turu_api_v1_scheduler_tick_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TurYaniti"];
-                };
-            };
-        };
+  };
+  personel_pasiflestir_api_v1_users__user_id__deactivate_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        user_id: string;
+      };
+      cookie?: never;
     };
-    calistirmalar_api_v1_runs_get: {
-        parameters: {
-            query?: {
-                business_day?: string | null;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CalistirmaOzet"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+        content: {
+          'application/json': components['schemas']['KullaniciOzet'];
         };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
     };
-    pano_api_v1_dashboard_get: {
-        parameters: {
-            query?: {
-                business_day?: string | null;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PanoYaniti"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
+  };
+  personel_aktif_et_api_v1_users__user_id__activate_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        user_id: string;
+      };
+      cookie?: never;
     };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['KullaniciOzet'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  personel_maskele_api_v1_users__user_id__mask_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        user_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['KullaniciOzet'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  sablon_listesi_api_v1_templates_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SablonOzet'][];
+        };
+      };
+    };
+  };
+  sablon_olustur_api_v1_templates_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['SablonGirdisi'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SurumDetay'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  surum_detayi_api_v1_template_versions__version_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        version_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SurumDetay'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  taslak_kaydet_api_v1_template_versions__version_id__put: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        version_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['TaslakGirdisi'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SurumDetay'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  yeni_taslak_api_v1_templates__template_id__new_draft_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        template_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SurumDetay'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  surum_yayinla_api_v1_template_versions__version_id__publish_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        version_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SurumDetay'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  plan_listesi_api_v1_plans_get: {
+    parameters: {
+      query?: {
+        include_inactive?: boolean;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['PlanOzet'][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  plan_olustur_api_v1_plans_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['PlanGirdisi'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['PlanOzet'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  plan_onizleme_api_v1_plans_preview_post: {
+    parameters: {
+      query?: {
+        days?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['PlanGirdisi'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['OnizlemeYaniti'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  plan_durdur_api_v1_plans__plan_id__deactivate_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        plan_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['PlanOzet'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  plan_baslat_api_v1_plans__plan_id__activate_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        plan_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['PlanOzet'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  plan_uret_api_v1_plans__plan_id__generate_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        plan_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['UretimYaniti'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  zamanlayici_turu_api_v1_scheduler_tick_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['TurYaniti'];
+        };
+      };
+    };
+  };
+  calistirmalar_api_v1_runs_get: {
+    parameters: {
+      query?: {
+        business_day?: string | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['CalistirmaOzet'][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  pano_api_v1_dashboard_get: {
+    parameters: {
+      query?: {
+        business_day?: string | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['PanoYaniti'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  aksiyon_listesi_api_v1_actions_get: {
+    parameters: {
+      query?: {
+        branch_id?: string | null;
+        action_status?: 'open' | 'closed' | 'all';
+        only_overdue?: boolean;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AksiyonOzet'][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  aksiyon_ac_api_v1_actions_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ElleAksiyonGirdisi'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AksiyonOzet'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  aksiyon_sayaclari_api_v1_actions_counts_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AksiyonSayaclari'];
+        };
+      };
+    };
+  };
+  aksiyon_kapat_api_v1_actions__action_id__close_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        action_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['KapanisGirdisi'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AksiyonOzet'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
 }

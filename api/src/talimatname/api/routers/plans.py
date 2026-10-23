@@ -256,6 +256,7 @@ class TurYaniti(BaseModel):
     created: int
     deleted: int
     missed: int = Field(description="Toleransı dolduğu için kaçırıldı yazılan çalıştırma sayısı")
+    actions_opened: int = Field(default=0, description="Kaçırmadan doğan yeni aksiyon sayısı")
 
 
 @router.post("/plans/{plan_id}/generate", summary="Çalıştırmaları şimdi üret")
