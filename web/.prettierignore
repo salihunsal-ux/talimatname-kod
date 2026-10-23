@@ -1,0 +1,7 @@
+# Üretilmiş dosya: biçimini üretici belirler. Prettier'a bırakırsak
+# her üretimde fark çıkar ve CI'daki "sözleşme güncel mi" kontrolü
+# sürekli kırmızı yanar.
+src/api/schema.ts
+
+dist/
+node_modules/

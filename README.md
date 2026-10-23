@@ -95,6 +95,26 @@ Doğrulaması `tests/test_db.py` (TC-011): iki kiracı açılır, biri diğerini
 
 Kurulum adımları: [infra/veritabani-kurulum.md](infra/veritabani-kurulum.md).
 
+## Sürekli tümleştirme
+
+`.github/workflows/kontrol.yml` üç iş koşuyor; üçü bağımsız, böylece tek koşuda bütün sorunlar görülüyor:
+
+| İş | Ne yapıyor |
+|---|---|
+| **api** | ruff (biçim + lint) · mypy --strict · **göç ileri → geri → ileri** · tohum iki kez (idempotent olmalı) · pytest (veritabanı testleri dahil) · OpenAPI sözleşmesi güncel mi |
+| **web** | prettier · eslint · tsc · vitest · build · üretilmiş istemci tipleri güncel mi |
+| **fikstur** | `spec/*.json` geçerli JSON mu (iki istemcinin ortak sözleşmesi) |
+
+Veritabanı testleri CI'da **sade bir `postgres:17` konteynerinde** koşuyor, sağlayıcıda değil. Bu bir kolaylık değil, bilinçli bir sınama: kod sağlayıcıya özel bir şey kullanmıyorsa herhangi bir PostgreSQL'de çalışmalı (ADR-0012 md.4). Çalışmadığı gün CI kırmızı yanar.
+
+İki "güncel mi" adımı ADR-0014 md.10'un karşılığı: üretilmiş dosyalar (OpenAPI sözleşmesi, istemci tipleri) depoda duruyor ve CI bunları yeniden üretip karşılaştırıyor — **sözleşme kayması derleme hatasıdır**. `web/src/api/schema.ts` bu yüzden `.prettierignore` içinde: biçimini üretici belirler.
+
+Aynı kontrolleri yerelde koşmak için:
+
+```bash
+bash scripts/kontrol.sh
+```
+
 ## Kural motoru ve ortak fikstürler
 
 `spec/fikstur/*.json` iki istemcinin ortak sözleşmesidir. `window.json` bugün 10 durum içeriyor (gece yarısını aşan pencere, kapalı gün, tatil, iki haftada bir, yaz saati ileri/geri alınan geceler, plan başlangıcından önce). Kural değişikliği fikstür değişikliği olmadan birleştirilmez.

@@ -1,0 +1,164 @@
+name: kontrol
+
+# Her itme ve her PR'da koşar. Üç iş bağımsız: biri düşünce diğerleri
+# yine de sonuç verir, böylece tek koşuda tüm sorunları görürüz.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.12"
+  NODE_VERSION: "22"
+
+jobs:
+  api:
+    name: API (ruff · mypy · pytest + PostgreSQL)
+    runs-on: ubuntu-latest
+
+    # Veritabanı testleri gerçek PostgreSQL ister. Sağlayıcıya özel bir
+    # şey kullanmadığımız için sade bir postgres imajı yetiyor — bu aynı
+    # zamanda ADR-0012 md.4'ün (taşınabilirlik) sürekli sınanmasıdır.
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: talimatname_owner
+          POSTGRES_PASSWORD: ci_parolasi
+          POSTGRES_DB: talimatname
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U talimatname_owner -d talimatname"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://talimatname_owner:ci_parolasi@localhost:5432/talimatname
+      ENVIRONMENT: test
+
+    defaults:
+      run:
+        working-directory: api
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Bağımlılıklar
+        run: pip install -e ".[dev]"
+
+      - name: Biçim ve lint
+        run: |
+          python -m ruff format --check .
+          python -m ruff check .
+
+      - name: Tip denetimi
+        run: python -m mypy
+
+      - name: Göç ileri → geri → ileri
+        # ADR-0014 md.11: göç geriye de çalışmalı. Boş veritabanında
+        # bunu ölçmek ucuz; üretimde geri dönüş gerektiğinde pahalı.
+        run: |
+          python -m alembic upgrade head
+          python -m alembic downgrade base
+          python -m alembic upgrade head
+
+      - name: Tohum (idempotent olmalı)
+        run: |
+          python -m talimatname.seed
+          python -m talimatname.seed
+
+      - name: Testler (veritabanı testleri dahil)
+        run: python -m pytest -q --cov=talimatname.domain --cov-report=term-missing
+
+      - name: OpenAPI sözleşmesi güncel mi
+        # Üretilmiş sözleşme depoda duruyor; koddan yeniden üretip
+        # karşılaştırıyoruz. Fark varsa sözleşme kaymış demektir.
+        run: |
+          python - <<'PY'
+          import json
+          from talimatname.api.app import create_app
+          from talimatname.settings import Settings
+          app = create_app(Settings(database_url=None))
+          with open("../spec/openapi.json", "w", encoding="utf-8") as f:
+              json.dump(app.openapi(), f, ensure_ascii=False, indent=2)
+          PY
+          git diff --exit-code ../spec/openapi.json \
+            || (echo "::error::spec/openapi.json güncel değil: api içinde yeniden üretip commit edin" && exit 1)
+
+  web:
+    name: Panel (tsc · eslint · vitest · build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Bağımlılıklar
+        run: npm ci
+
+      - name: Biçim
+        run: npx prettier --check src
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Tip denetimi
+        run: npx tsc -b
+
+      - name: Testler
+        run: npm test
+
+      - name: Derleme
+        run: npm run build
+
+      - name: Üretilmiş istemci tipleri güncel mi
+        # ADR-0014 md.10: istemci OpenAPI'den üretilir, elle yazılmaz.
+        run: |
+          npm run api:tipler
+          git diff --exit-code src/api/schema.ts \
+            || (echo "::error::src/api/schema.ts güncel değil: npm run api:tipler çalıştırıp commit edin" && exit 1)
+
+  fikstur:
+    name: Ortak fikstürler (kural motoru sözleşmesi)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Fikstür dosyaları geçerli JSON mu
+        # spec/ iki istemcinin ortak sözleşmesi (ADR-0014 md.3).
+        # Flutter tarafı Faz B'de aynı dosyaları okuyacak; bozuk JSON
+        # buraya hiç girmesin.
+        run: |
+          python - <<'PY'
+          import json, pathlib, sys
+          hata = 0
+          for yol in sorted(pathlib.Path("spec").rglob("*.json")):
+              try:
+                  json.loads(yol.read_text(encoding="utf-8"))
+                  print("ok", yol)
+              except Exception as e:
+                  print("BOZUK", yol, e); hata = 1
+          sys.exit(hata)
+          PY
