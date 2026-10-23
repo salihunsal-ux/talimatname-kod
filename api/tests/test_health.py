@@ -16,7 +16,12 @@ def _istemci(**ayar: object) -> TestClient:
 
 
 def test_health_veritabani_olmadan_calisir() -> None:
-    yanit = _istemci().get("/api/v1/health")
+    """Ortam adı **açıkça** verilir: test, ortam değişkenine bağlı olmamalı.
+
+    (CI `ENVIRONMENT=test` ile koşuyor; varsayılanı sabit sanmak testi
+    makineye bağlar.)
+    """
+    yanit = _istemci(environment="dev").get("/api/v1/health")
     assert yanit.status_code == 200
     govde = yanit.json()
     assert govde["status"] == "ok"
