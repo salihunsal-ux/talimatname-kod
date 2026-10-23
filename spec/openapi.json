@@ -1602,6 +1602,92 @@
         }
       }
     },
+    "/api/v1/notifications": {
+      "get": {
+        "tags": [
+          "bildirim"
+        ],
+        "summary": "Teslimat izi",
+        "operationId": "bildirim_listesi_api_v1_notifications_get",
+        "parameters": [
+          {
+            "name": "delivery_status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "queued",
+                "sent",
+                "delivered",
+                "failed",
+                "suppressed",
+                "all"
+              ],
+              "type": "string",
+              "default": "all",
+              "title": "Delivery Status"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 200,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/BildirimOzet"
+                  },
+                  "title": "Response Bildirim Listesi Api V1 Notifications Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/notifications/counts": {
+      "get": {
+        "tags": [
+          "bildirim"
+        ],
+        "summary": "Kuyruk sayaçları",
+        "operationId": "bildirim_sayaclari_api_v1_notifications_counts_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BildirimSayaclari"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/runs/{run_id}": {
       "get": {
         "tags": [
@@ -2001,6 +2087,173 @@
           "roles"
         ],
         "title": "BenYaniti"
+      },
+      "BildirimOzet": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "kind": {
+            "type": "string",
+            "title": "Kind"
+          },
+          "kind_label": {
+            "type": "string",
+            "title": "Kind Label"
+          },
+          "channel": {
+            "type": "string",
+            "enum": [
+              "push",
+              "sms",
+              "email"
+            ],
+            "title": "Channel"
+          },
+          "user_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "User Id"
+          },
+          "user_name": {
+            "type": "string",
+            "title": "User Name"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "body": {
+            "type": "string",
+            "title": "Body"
+          },
+          "send_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Send At"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "sent",
+              "delivered",
+              "failed",
+              "suppressed"
+            ],
+            "title": "Status"
+          },
+          "status_label": {
+            "type": "string",
+            "title": "Status Label"
+          },
+          "attempts": {
+            "type": "integer",
+            "title": "Attempts"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code",
+            "description": "Örn. surucu-yok: kanal henüz bağlanmadı"
+          },
+          "error_detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Detail"
+          },
+          "run_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run Id"
+          },
+          "branch_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Branch Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "kind_label",
+          "channel",
+          "user_id",
+          "user_name",
+          "title",
+          "body",
+          "send_at",
+          "status",
+          "status_label",
+          "attempts"
+        ],
+        "title": "BildirimOzet"
+      },
+      "BildirimSayaclari": {
+        "properties": {
+          "queued": {
+            "type": "integer",
+            "title": "Queued"
+          },
+          "sent": {
+            "type": "integer",
+            "title": "Sent"
+          },
+          "failed": {
+            "type": "integer",
+            "title": "Failed"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "drivers_connected": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Drivers Connected",
+            "description": "Bağlı kanal sürücüleri; boşsa hiçbiri"
+          }
+        },
+        "type": "object",
+        "required": [
+          "queued",
+          "sent",
+          "failed",
+          "total"
+        ],
+        "title": "BildirimSayaclari",
+        "description": "Kuyruğun özeti. `failed` sıfırdan büyükse bir şey eksik demektir."
       },
       "BolgeDugumu": {
         "properties": {
@@ -4276,6 +4529,24 @@
             "type": "integer",
             "title": "Actions Opened",
             "description": "Kaçırmadan doğan yeni aksiyon sayısı",
+            "default": 0
+          },
+          "reminders_queued": {
+            "type": "integer",
+            "title": "Reminders Queued",
+            "description": "Kuyruğa konan hatırlatma sayısı",
+            "default": 0
+          },
+          "sent": {
+            "type": "integer",
+            "title": "Sent",
+            "description": "Kanala verilen bildirim sayısı",
+            "default": 0
+          },
+          "failed": {
+            "type": "integer",
+            "title": "Failed",
+            "description": "Gönderilemeyen bildirim: sürücü yoksa hepsi buraya düşer",
             "default": 0
           }
         },

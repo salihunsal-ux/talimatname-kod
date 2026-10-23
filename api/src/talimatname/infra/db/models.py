@@ -49,6 +49,7 @@ TENANT_TABLES: tuple[str, ...] = (
     "run",
     "answer",
     "action",
+    "notification",
 )
 
 
@@ -277,3 +278,35 @@ class Action(Base):
     closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     closed_by: Mapped[UUID | None] = mapped_column(Uuid)
     close_note: Mapped[str | None] = mapped_column(Text)
+
+
+class Notification(Base):
+    """Bildirim kuyruğu ve teslimat izi (FR-1005).
+
+    Kuyruk ve iz **aynı satır**: ayrı tablo tutmak, "ne gönderilecekti"
+    ile "ne oldu" sorularını ayırır ve ikisini birleştirmek için her
+    seferinde birleştirme gerektirirdi. Satır gönderildikçe güncellenir.
+    """
+
+    __tablename__ = "notification"
+    __table_args__ = (Index("ix_notification_due", "tenant_id", "status", "send_at"),)
+
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True)
+    tenant_id: Mapped[UUID] = _tenant_column()
+    kind: Mapped[str] = mapped_column(String(24))
+    channel: Mapped[str] = mapped_column(String(10))
+    user_id: Mapped[UUID] = mapped_column(Uuid, ForeignKey("app_user.id", ondelete="CASCADE"))
+    title: Mapped[str] = mapped_column(String(160))
+    body: Mapped[str] = mapped_column(Text, default="")
+    send_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    branch_id: Mapped[UUID | None] = mapped_column(Uuid)
+    run_id: Mapped[UUID | None] = mapped_column(Uuid)
+    action_id: Mapped[UUID | None] = mapped_column(Uuid)
+    deep_link: Mapped[str | None] = mapped_column(String(200))
+    status: Mapped[str] = mapped_column(String(12), default="queued")
+    attempts: Mapped[int] = mapped_column(Integer, default=0)
+    sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    delivered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    error_code: Mapped[str | None] = mapped_column(String(40))
+    error_detail: Mapped[str | None] = mapped_column(Text)

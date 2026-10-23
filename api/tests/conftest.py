@@ -15,22 +15,12 @@ from fastapi.testclient import TestClient
 from talimatname.api import bagimliliklar
 from talimatname.settings import get_settings
 
-_DEPOLAR = (
-    bagimliliklar._org_deposu,
-    bagimliliklar._kullanici_deposu,
-    bagimliliklar._sablon_deposu,
-    bagimliliklar._plan_deposu,
-    bagimliliklar._cevap_deposu,
-    bagimliliklar._aksiyon_deposu,
-    bagimliliklar._kimlik_servisi,
-)
-
 
 def _temizle() -> None:
+    """Ayar bağını ve süreç başına tek örnekleri bırakır."""
     get_settings.cache_clear()
-    for depo in _DEPOLAR:
-        depo.cache_clear()
-    bagimliliklar._ilk_tur_kosuldu = False
+    bagimliliklar._ayarlar = None
+    bagimliliklar.sifirla()
 
 
 @pytest.fixture(autouse=True)

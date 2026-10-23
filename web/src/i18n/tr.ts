@@ -14,6 +14,7 @@ export const tr = {
     sablonlar: 'Şablonlar',
     planlar: 'Planlar',
     aksiyonlar: 'Aksiyonlar',
+    bildirimler: 'Bildirimler',
     raporlar: 'Raporlar',
     henuzYok: 'Bu bölüm henüz geliştirilmedi',
   },
@@ -220,6 +221,24 @@ export const tr = {
     gec: 'Geç tamamlandı',
     kacirildi: 'Kaçırıldı',
     yapilmayacak: 'Yapılmayacak',
+  },
+  bildirim: {
+    baslik: 'Bildirimler',
+    hepsi: 'Hepsi',
+    kuyrukta: 'Kuyrukta',
+    kanalaVerildi: 'Kanala verildi',
+    gonderilemedi: 'Gönderilemedi',
+    toplam: 'Toplam',
+    ne: 'Bildirim',
+    kime: 'Kime',
+    neZaman: 'Gönderim zamanı',
+    durum: 'Durum',
+    bos: 'Bu süzgeçte kayıt yok.',
+    surucuYok: 'Hiçbir bildirim kanalı bağlı değil.',
+    surucuYokAciklama:
+      'Hatırlatmalar kuyruğa giriyor ama kimseye ulaşmıyor; ' +
+      'push (ST-046) ve SMS (ST-067) bağlanana kadar bu liste eksiklerin kaydıdır.',
+    bagliKanallar: 'Bağlı kanallar:',
   },
   hata: {
     genel: 'Bir şey ters gitti',

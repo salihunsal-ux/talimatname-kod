@@ -16,6 +16,7 @@ from functools import lru_cache
 from talimatname.infra.memory import (
     MemoryActionRepository,
     MemoryAnswerRepository,
+    MemoryNotificationRepository,
     MemoryOrganizationRepository,
     MemoryPlanRepository,
     MemoryTemplateRepository,
@@ -25,17 +26,44 @@ from talimatname.services.actions import ActionRepository, ActionService
 from talimatname.services.auth import AuthService
 from talimatname.services.dashboard import DashboardService
 from talimatname.services.execution import AnswerRepository, ExecutionService
+from talimatname.services.notifications import (
+    NotificationRepository,
+    NotificationService,
+)
 from talimatname.services.organization import OrganizationRepository, OrganizationService
 from talimatname.services.plans import PlanRepository, PlanService
+from talimatname.services.reminders import ReminderService
 from talimatname.services.scheduler import SchedulerService
 from talimatname.services.templates import TemplateRepository, TemplateService
 from talimatname.services.users import UserRepository, UserService
-from talimatname.settings import get_settings
+from talimatname.settings import Settings, get_settings
+
+# --- ayarlar ----------------------------------------------------------
+
+_ayarlar: Settings | None = None
+
+
+def ayarlari_kullan(yeni: Settings) -> None:
+    """`create_app`in aldığı ayarları süreç geneline bağlar.
+
+    Buradaki depolar ve servisler süreç başına tek örnek olduğundan
+    ayarın da tek kaynağı olmalı. Bunsuz `create_app(Settings(...))`
+    yalnızca uç noktaları etkiliyor, servisler ortam değişkenlerini
+    okumaya devam ediyordu — testte bir kez ısırdı.
+    """
+    global _ayarlar
+    _ayarlar = yeni
+    sifirla()
+
+
+def ayarlar() -> Settings:
+    """Bağlanmış ayar yoksa ortamdan okunan ayar."""
+    return _ayarlar if _ayarlar is not None else get_settings()
 
 
 def sql_modu() -> bool:
     """Kalıcı mod mu? Tek karar noktası."""
-    return get_settings().database_url is not None
+    return ayarlar().database_url is not None
 
 
 def _kiraci() -> object:
@@ -101,13 +129,22 @@ def _aksiyon_deposu() -> ActionRepository:
     return MemoryActionRepository()
 
 
+@lru_cache
+def _bildirim_deposu() -> NotificationRepository:
+    if sql_modu():
+        from talimatname.infra.db.adapters import SqlNotificationRepository
+
+        return SqlNotificationRepository(_kiraci())  # type: ignore[arg-type]
+    return MemoryNotificationRepository()
+
+
 # --- servisler --------------------------------------------------------
 
 
 @lru_cache
 def _kimlik_servisi() -> AuthService:
     """Tek örnek: OTP durumu süreç içinde tutuluyor (kısa ömürlü)."""
-    return AuthService(_kullanici_deposu())
+    return AuthService(_kullanici_deposu(), settings=ayarlar())
 
 
 def kimlik_servisi() -> AuthService:
@@ -130,12 +167,27 @@ def aksiyon_servisi() -> ActionService:
     return ActionService(_aksiyon_deposu(), _org_deposu(), _plan_deposu())
 
 
+def bildirim_servisi() -> NotificationService:
+    """Sürücü listesi boş: push (ST-046) ve SMS (ST-067) henüz bağlı değil.
+
+    Sürücüsüz gönderim denemesi kuyruğa `surucu-yok` hatasıyla
+    yazılır — eksik olan şeyin listesi böyle görünür hale gelir.
+    """
+    return NotificationService(_bildirim_deposu(), _kullanici_deposu())
+
+
+def hatirlatma_servisi() -> ReminderService:
+    return ReminderService(_plan_deposu(), _org_deposu(), _kullanici_deposu(), bildirim_servisi())
+
+
 def zamanlayici_servisi() -> SchedulerService:
     return SchedulerService(
         _plan_deposu(),
         _org_deposu(),
         _sablon_deposu(),
         ActionService(_aksiyon_deposu(), _org_deposu(), _plan_deposu()),
+        hatirlatma_servisi(),
+        bildirim_servisi(),
     )
 
 
@@ -157,6 +209,26 @@ def pano_servisi() -> DashboardService:
 # --- geliştirme kolaylığı ---------------------------------------------
 
 _ilk_tur_kosuldu = False
+
+#: Süreç başına tek örnek tutan her şey. Ayar değişince sıfırlanır.
+_ONBELLEKLER = (
+    _org_deposu,
+    _kullanici_deposu,
+    _sablon_deposu,
+    _plan_deposu,
+    _cevap_deposu,
+    _aksiyon_deposu,
+    _bildirim_deposu,
+    _kimlik_servisi,
+)
+
+
+def sifirla() -> None:
+    """Depoları ve servisleri bırakır; sonraki istek yenisini kurar."""
+    global _ilk_tur_kosuldu
+    for onbellek in _ONBELLEKLER:
+        onbellek.cache_clear()
+    _ilk_tur_kosuldu = False
 
 
 def _ilk_tur() -> None:

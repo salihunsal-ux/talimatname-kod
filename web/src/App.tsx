@@ -7,6 +7,7 @@ import { OturumBaglami } from './api/yetki';
 import { Kabuk } from './bilesenler/Kabuk';
 import { SistemDurumu } from './features/sistem/SistemDurumu';
 import { AksiyonlarSayfasi } from './features/aksiyonlar/AksiyonlarSayfasi';
+import { BildirimlerSayfasi } from './features/bildirimler/BildirimlerSayfasi';
 import { GirisSayfasi } from './features/oturum/GirisSayfasi';
 import { PanoSayfasi } from './features/pano/PanoSayfasi';
 import { PersonelSayfasi } from './features/personel/PersonelSayfasi';
@@ -16,7 +17,14 @@ import { SubelerSayfasi } from './features/subeler/SubelerSayfasi';
 import { tr } from './i18n/tr';
 
 export type Bolum =
-  'pano' | 'subeler' | 'personel' | 'sablonlar' | 'planlar' | 'aksiyonlar' | 'sistem';
+  | 'pano'
+  | 'subeler'
+  | 'personel'
+  | 'sablonlar'
+  | 'planlar'
+  | 'aksiyonlar'
+  | 'bildirimler'
+  | 'sistem';
 
 export function App() {
   return (
@@ -81,6 +89,7 @@ function Kapi() {
             {bolum === 'sablonlar' && <SablonlarSayfasi />}
             {bolum === 'planlar' && <PlanlarSayfasi />}
             {bolum === 'aksiyonlar' && <AksiyonlarSayfasi />}
+            {bolum === 'bildirimler' && <BildirimlerSayfasi />}
             {bolum === 'sistem' && <SistemDurumu />}
           </>
         )}

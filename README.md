@@ -108,6 +108,18 @@ Yetki iki soruya ayrılmış ve ikisi de `api/guvenlik.py`de toplanıyor: **kim*
 
 Panelde de rol kapısı var (`web/src/api/yetki.ts`) ama bu **güvenlik değil nezakettir**: asıl denetim sunucuda. Arayüz yalnızca açılamayacak bölümü ve basılamayacak düğmeyi göstermiyor.
 
+## Bildirim ve hatırlatma
+
+Zamanlayıcı her turda iki sabit hatırlatmayı kuyruğa koyar (FR-0509): **pencere açılışında** ve **bitişe 30 dk kala**. Kuyruk idempotenttir — tur dakikada bir koşar, aynı dilim ikinci kez üretilmez.
+
+Kanal bağımsız (FR-1007): servis `ChannelDriver` portunu kullanır; push (ST-046), SMS (ST-067) ve ileride WhatsApp birer sürücüdür, uygulama katmanı değişmez.
+
+**Şu anda hiçbir sürücü bağlı değil.** Bunun görünür sonucu: gönderim denemesi `failed / surucu-yok` olarak kuyruğa yazılır, panelde "Bildirimler" sayfasında uyarıyla birlikte listelenir. Gönderilmemiş bildirimi gönderilmiş saymıyoruz — sahada kaybolan hatırlatmayı aramak, eksik entegrasyonu görmekten pahalı.
+
+Sessiz saatler sabit, 23:00–07:00 yerel (FR-1004) ve **yalnızca yönetim bildirimlerine** uygulanır. Pencereye bağlı iş hatırlatması ötelenmez: kapanış listesi zaten gece yapılan iştir, hatırlatmasını sabaha atmak pencere kapandıktan sonra "30 dakika kaldı" demek olurdu.
+
+Teslimat izi (FR-1005) `GET /notifications`: kanal, alıcı, zaman, deneme sayısı ve hata kodu. `sent` **kanala verildi** demektir; `delivered` ayrı bir durumdur ve kanalın geri bildirimiyle yazılır.
+
 ## Sürekli tümleştirme
 
 `.github/workflows/kontrol.yml` üç iş koşuyor; üçü bağımsız, böylece tek koşuda bütün sorunlar görülüyor:

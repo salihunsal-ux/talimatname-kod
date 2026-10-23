@@ -13,7 +13,9 @@ from uuid import UUID, uuid4, uuid5
 import pytest
 from sqlalchemy import text
 
+from talimatname.domain.notifications import Notification
 from talimatname.domain.organization import Branch, uniform_hours
+from talimatname.domain.users import RoleAssignment, User
 from talimatname.settings import get_settings
 
 pytestmark = pytest.mark.db
@@ -26,8 +28,10 @@ if get_settings().database_url is None:  # pragma: no cover - ortam bağımlı
     )
 
 from talimatname.infra.db.adapters import (  # noqa: E402
+    SqlNotificationRepository,
     SqlOrganizationRepository,
     SqlTemplateRepository,
+    SqlUserRepository,
 )
 from talimatname.infra.db.session import APP_ROLE, create_db_engine  # noqa: E402
 from talimatname.seed import DEV_TENANT  # noqa: E402
@@ -154,3 +158,64 @@ def test_sube_kaydi_gidip_geliyor(iki_kiraci: object) -> None:
     assert geri.open_days == 7
     assert geri.business_hours[0] is not None
     assert geri.business_hours[0].close_time == time(23, 0)
+
+
+def _alici(kiraci: UUID) -> User:
+    """Bildirimin alıcısı gerçek bir kullanıcı olmalı: tabloda yabancı anahtar var.
+
+    Kuyrukta silinmiş kullanıcıya ait kayıt kalmasın diye konuldu;
+    adlar uydurma (ADR-0003).
+    """
+    kisi = User(
+        id=uuid4(),
+        full_name="Test Alıcı",
+        phone=f"+90532{uuid4().int % 10_000_000:07d}",
+        assignments=(RoleAssignment("admin"),),
+    ).validated()
+    SqlUserRepository(kiraci).save_user(kisi)
+    return kisi
+
+
+def _bildirim(baslik: str, alici: User) -> Notification:
+    an = datetime.now(UTC)
+    return Notification(
+        id=uuid4(),
+        kind="run_opened",
+        channel="push",
+        user_id=alici.id,
+        title=baslik,
+        body="gövde",
+        send_at=an,
+        created_at=an,
+    ).validated()
+
+
+def test_bildirim_kuyrugu_da_kiracilar_arasinda_yalitik(iki_kiraci: object) -> None:
+    """Yeni tablo da RLS altında: 0002 göçü yetkiyi ve politikayı kurdu.
+
+    Bildirim kuyruğu kim neyi görecek bilgisini taşıyor; sızması
+    yalnızca gürültü değil, başka zincirin operasyonunu göstermek olur.
+    """
+    a = SqlNotificationRepository(A_KIRACI)
+    b = SqlNotificationRepository(B_KIRACI)
+
+    kayit = _bildirim("A kiracısının hatırlatması", _alici(A_KIRACI))
+    a.save_notification(kayit)
+
+    assert [n.title for n in a.notifications()] == ["A kiracısının hatırlatması"]
+    assert b.notifications() == []
+    assert b.notification(kayit.id) is None
+
+
+def test_bildirim_teslimat_izi_gidip_geliyor(iki_kiraci: object) -> None:
+    """Hata kodu ve deneme sayısı kalıcı: destek bunlara bakacak (FR-1005)."""
+    depo = SqlNotificationRepository(A_KIRACI)
+    kayit = _bildirim("Gönderilemeyen", _alici(A_KIRACI))
+    depo.save_notification(kayit)
+
+    an = datetime.now(UTC)
+    depo.save_notification(kayit.failed(an, "surucu-yok", "push sürücüsü bağlı değil"))
+
+    geri = depo.notification(kayit.id)
+    assert geri is not None
+    assert (geri.status, geri.error_code, geri.attempts) == ("failed", "surucu-yok", 1)

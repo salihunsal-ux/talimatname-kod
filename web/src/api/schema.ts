@@ -585,6 +585,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Teslimat izi */
+        get: operations["bildirim_listesi_api_v1_notifications_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notifications/counts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Kuyruk sayaçları */
+        get: operations["bildirim_sayaclari_api_v1_notifications_counts_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/runs/{run_id}": {
         parameters: {
             query?: never;
@@ -748,6 +782,78 @@ export interface components {
             phone: string | null;
             /** Roles */
             roles: components["schemas"]["RolCiktisi"][];
+        };
+        /** BildirimOzet */
+        BildirimOzet: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Kind */
+            kind: string;
+            /** Kind Label */
+            kind_label: string;
+            /**
+             * Channel
+             * @enum {string}
+             */
+            channel: "push" | "sms" | "email";
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+            /** User Name */
+            user_name: string;
+            /** Title */
+            title: string;
+            /** Body */
+            body: string;
+            /**
+             * Send At
+             * Format: date-time
+             */
+            send_at: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "queued" | "sent" | "delivered" | "failed" | "suppressed";
+            /** Status Label */
+            status_label: string;
+            /** Attempts */
+            attempts: number;
+            /**
+             * Error Code
+             * @description Örn. surucu-yok: kanal henüz bağlanmadı
+             */
+            error_code?: string | null;
+            /** Error Detail */
+            error_detail?: string | null;
+            /** Run Id */
+            run_id?: string | null;
+            /** Branch Id */
+            branch_id?: string | null;
+        };
+        /**
+         * BildirimSayaclari
+         * @description Kuyruğun özeti. `failed` sıfırdan büyükse bir şey eksik demektir.
+         */
+        BildirimSayaclari: {
+            /** Queued */
+            queued: number;
+            /** Sent */
+            sent: number;
+            /** Failed */
+            failed: number;
+            /** Total */
+            total: number;
+            /**
+             * Drivers Connected
+             * @description Bağlı kanal sürücüleri; boşsa hiçbiri
+             */
+            drivers_connected?: string[];
         };
         /** BolgeDugumu */
         BolgeDugumu: {
@@ -1730,6 +1836,24 @@ export interface components {
              * @default 0
              */
             actions_opened?: number;
+            /**
+             * Reminders Queued
+             * @description Kuyruğa konan hatırlatma sayısı
+             * @default 0
+             */
+            reminders_queued?: number;
+            /**
+             * Sent
+             * @description Kanala verilen bildirim sayısı
+             * @default 0
+             */
+            sent?: number;
+            /**
+             * Failed
+             * @description Gönderilemeyen bildirim: sürücü yoksa hepsi buraya düşer
+             * @default 0
+             */
+            failed?: number;
         };
         /** UretimYaniti */
         UretimYaniti: {
@@ -2910,6 +3034,58 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    bildirim_listesi_api_v1_notifications_get: {
+        parameters: {
+            query?: {
+                delivery_status?: "queued" | "sent" | "delivered" | "failed" | "suppressed" | "all";
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BildirimOzet"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    bildirim_sayaclari_api_v1_notifications_counts_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BildirimSayaclari"];
                 };
             };
         };

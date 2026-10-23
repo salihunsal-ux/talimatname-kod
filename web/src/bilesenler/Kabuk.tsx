@@ -16,6 +16,7 @@ const BOLUMLER: { anahtar: Bolum | null; ad: string; yonetim?: boolean }[] = [
   { anahtar: 'sablonlar', ad: tr.gezinme.sablonlar },
   { anahtar: 'planlar', ad: tr.gezinme.planlar },
   { anahtar: 'aksiyonlar', ad: tr.gezinme.aksiyonlar },
+  { anahtar: 'bildirimler', ad: tr.gezinme.bildirimler, yonetim: true },
   { anahtar: null, ad: tr.gezinme.raporlar },
   { anahtar: 'sistem', ad: tr.sistem.baslik },
 ];

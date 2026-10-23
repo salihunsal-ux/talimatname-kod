@@ -271,6 +271,11 @@ class TurYaniti(BaseModel):
     deleted: int
     missed: int = Field(description="Toleransı dolduğu için kaçırıldı yazılan çalıştırma sayısı")
     actions_opened: int = Field(default=0, description="Kaçırmadan doğan yeni aksiyon sayısı")
+    reminders_queued: int = Field(default=0, description="Kuyruğa konan hatırlatma sayısı")
+    sent: int = Field(default=0, description="Kanala verilen bildirim sayısı")
+    failed: int = Field(
+        default=0, description="Gönderilemeyen bildirim: sürücü yoksa hepsi buraya düşer"
+    )
 
 
 @router.post("/plans/{plan_id}/generate", summary="Çalıştırmaları şimdi üret")
@@ -288,7 +293,16 @@ def zamanlayici_turu(servis: ZamanlayiciServis, _: Yonetici) -> TurYaniti:
     güvenle çağrılabilir.
     """
     sonuc = servis.tick()
-    return TurYaniti(at=sonuc.at, created=sonuc.created, deleted=sonuc.deleted, missed=sonuc.missed)
+    return TurYaniti(
+        at=sonuc.at,
+        created=sonuc.created,
+        deleted=sonuc.deleted,
+        missed=sonuc.missed,
+        actions_opened=sonuc.actions_opened,
+        reminders_queued=sonuc.reminders_queued,
+        sent=sonuc.sent,
+        failed=sonuc.failed,
+    )
 
 
 @router.get("/runs", summary="Bir iş gününün çalıştırmaları")

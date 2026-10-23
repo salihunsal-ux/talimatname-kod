@@ -19,6 +19,7 @@ from sqlalchemy import delete, select
 
 from talimatname.domain.actions import Action
 from talimatname.domain.answers import Answer, RunLock
+from talimatname.domain.notifications import Notification
 from talimatname.domain.organization import Branch, Region, Station
 from talimatname.domain.plans import Assignment, Plan, Run
 from talimatname.domain.templates import (
@@ -554,9 +555,68 @@ class SqlActionRepository(_TenantRepository):
             o.add(satir)
 
 
+def _bildirim(satir: m.Notification) -> Notification:
+    return Notification(
+        id=satir.id,
+        kind=satir.kind,  # type: ignore[arg-type]
+        channel=satir.channel,  # type: ignore[arg-type]
+        user_id=satir.user_id,
+        title=satir.title,
+        body=satir.body,
+        send_at=satir.send_at,
+        created_at=satir.created_at,
+        branch_id=satir.branch_id,
+        run_id=satir.run_id,
+        action_id=satir.action_id,
+        deep_link=satir.deep_link,
+        status=satir.status,  # type: ignore[arg-type]
+        attempts=satir.attempts,
+        sent_at=satir.sent_at,
+        delivered_at=satir.delivered_at,
+        error_code=satir.error_code,
+        error_detail=satir.error_detail,
+    )
+
+
+class SqlNotificationRepository(_TenantRepository):
+    def notifications(self) -> list[Notification]:
+        with tenant_session(self._tenant) as o:
+            return [_bildirim(b) for b in o.scalars(select(m.Notification)).all()]
+
+    def notification(self, notification_id: UUID) -> Notification | None:
+        with tenant_session(self._tenant) as o:
+            satir = o.get(m.Notification, notification_id)
+            return _bildirim(satir) if satir else None
+
+    def save_notification(self, notification: Notification) -> None:
+        with tenant_session(self._tenant) as o:
+            satir = o.get(m.Notification, notification.id) or m.Notification(
+                id=notification.id, tenant_id=self._tenant
+            )
+            satir.kind = notification.kind
+            satir.channel = notification.channel
+            satir.user_id = notification.user_id
+            satir.title = notification.title
+            satir.body = notification.body
+            satir.send_at = notification.send_at
+            satir.created_at = notification.created_at
+            satir.branch_id = notification.branch_id
+            satir.run_id = notification.run_id
+            satir.action_id = notification.action_id
+            satir.deep_link = notification.deep_link
+            satir.status = notification.status
+            satir.attempts = notification.attempts
+            satir.sent_at = notification.sent_at
+            satir.delivered_at = notification.delivered_at
+            satir.error_code = notification.error_code
+            satir.error_detail = notification.error_detail
+            o.add(satir)
+
+
 __all__ = [
     "SqlActionRepository",
     "SqlAnswerRepository",
+    "SqlNotificationRepository",
     "SqlOrganizationRepository",
     "SqlPlanRepository",
     "SqlTemplateRepository",

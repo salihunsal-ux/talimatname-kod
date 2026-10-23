@@ -17,6 +17,7 @@ from uuid import UUID, uuid5
 
 from talimatname.domain.actions import Action
 from talimatname.domain.answers import Answer, RunLock
+from talimatname.domain.notifications import Notification
 from talimatname.domain.organization import Branch, Region, Station, uniform_hours
 from talimatname.domain.plans import Assignment, Plan, Run
 from talimatname.domain.templates import (
@@ -465,6 +466,27 @@ class MemoryActionRepository:
 
     def save_action(self, action: Action) -> None:
         self._actions[action.id] = action
+
+
+class MemoryNotificationRepository:
+    """`NotificationRepository` portunun bellek içi karşılığı.
+
+    Tohum yok: bildirimler zamanlayıcı turunda doğar. Süreç yeniden
+    başlayınca kuyruk sıfırlanır — kalıcılık gereken her şey gibi
+    teslimat izi de PostgreSQL ister.
+    """
+
+    def __init__(self) -> None:
+        self._notifications: dict[UUID, Notification] = {}
+
+    def notifications(self) -> list[Notification]:
+        return list(self._notifications.values())
+
+    def notification(self, notification_id: UUID) -> Notification | None:
+        return self._notifications.get(notification_id)
+
+    def save_notification(self, notification: Notification) -> None:
+        self._notifications[notification.id] = notification
 
 
 class MemoryAnswerRepository:

@@ -11,12 +11,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from talimatname import __version__
+from talimatname.api.bagimliliklar import ayarlari_kullan
 from talimatname.api.errors import register_error_handlers
 from talimatname.api.routers import (
     actions,
     auth,
     dashboard,
     execution,
+    notifications,
     organization,
     plans,
     templates,
@@ -78,12 +80,14 @@ def build_router(settings: Settings) -> APIRouter:
     router.include_router(plans.router)
     router.include_router(dashboard.router)
     router.include_router(actions.router)
+    router.include_router(notifications.router)
     router.include_router(execution.router)
     return router
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or get_settings()
+    ayarlari_kullan(settings)
     configure_logging(settings.log_level)
 
     app = FastAPI(
