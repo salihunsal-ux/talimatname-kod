@@ -10,8 +10,10 @@ from fastapi.testclient import TestClient
 
 from conftest import oturum_ac
 from talimatname.api.app import create_app
+from talimatname.domain.actions import from_critical_item
 from talimatname.domain.answers import RunLocked, clock_skew
 from talimatname.infra.memory import (
+    MemoryActionRepository,
     MemoryAnswerRepository,
     MemoryOrganizationRepository,
     MemoryPlanRepository,
@@ -288,3 +290,91 @@ def test_uc_nokta_eksik_gonderim_422_ve_eksik_listesi(istemci: TestClient) -> No
     govde = yanit.json()
     assert govde["type"] == "urn:talimatname:gonderim-eksik"
     assert govde["missing"][0]["kind"] == "unanswered"
+
+
+# --- kritik madde → aksiyon (FR-0405, BR-08) --------------------------
+
+
+def _kritik_kurulum() -> tuple[ExecutionService, UUID, MemoryActionRepository, datetime]:
+    plan_deposu = MemoryPlanRepository()
+    org = MemoryOrganizationRepository()
+    sablonlar = MemoryTemplateRepository()
+    aksiyonlar = MemoryActionRepository()
+    PlanService(plan_deposu, org, sablonlar).generate_all()
+    run = sorted(
+        (r for r in plan_deposu.runs() if r.status == "scheduled"),
+        key=lambda r: r.window_start,
+    )[0]
+    simdi = run.window_start + timedelta(minutes=5)
+    servis = ExecutionService(
+        MemoryAnswerRepository(), plan_deposu, sablonlar, aksiyonlar, now=lambda: simdi
+    )
+    return servis, run.id, aksiyonlar, simdi
+
+
+def _kritik_basarisiz_gonder(servis: ExecutionService, run_id: UUID) -> int:
+    """Kritik maddeleri başarısız, kalanını geçer işaretleyip gönderir."""
+    gorunum = servis.view(run_id)
+    kritik = 0
+    for madde in gorunum.version.items:
+        if not madde.scored:
+            continue
+        basarisiz = madde.critical
+        kritik += int(basarisiz)
+        servis.write_answer(
+            run_id=run_id,
+            answer_id=uuid4(),
+            item_id=madde.id,
+            state="failed" if basarisiz else "passed",
+            note="sıcaklık yüksek" if basarisiz else None,
+            evidence_count=1 if (madde.photo_required or basarisiz) else 0,
+        )
+    servis.submit(run_id)
+    return kritik
+
+
+def test_br08_kritik_madde_basarisizsa_aksiyon_acilir() -> None:
+    servis, run_id, aksiyonlar, _ = _kritik_kurulum()
+
+    kritik_sayisi = _kritik_basarisiz_gonder(servis, run_id)
+
+    acilan = [a for a in aksiyonlar.actions() if a.source == "critical_item"]
+    assert kritik_sayisi > 0
+    assert len(acilan) == kritik_sayisi
+    assert all(a.priority == "critical" for a in acilan)
+
+
+def test_br10_kritik_aksiyonun_vadesi_dort_saat() -> None:
+    servis, run_id, aksiyonlar, _ = _kritik_kurulum()
+    _kritik_basarisiz_gonder(servis, run_id)
+
+    aksiyon = next(a for a in aksiyonlar.actions() if a.source == "critical_item")
+
+    assert aksiyon.due_at - aksiyon.opened_at == timedelta(hours=4)
+
+
+def test_kritik_aksiyon_kimligi_calistirma_ve_maddeden_turer() -> None:
+    """Cevap kimliği cihazda üretiliyor; ondan türeseydi senkte kopya doğardı."""
+    an = datetime.now(UTC)
+    run_a, run_b, madde = uuid4(), uuid4(), uuid4()
+    ortak = {
+        "branch_id": uuid4(),
+        "item_title": "Buzdolabı sıcaklığı",
+        "plan_name": "Günlük kapanış",
+        "now": an,
+    }
+
+    birinci = from_critical_item(run_id=run_a, item_id=madde, **ortak)  # type: ignore[arg-type]
+    ikinci = from_critical_item(run_id=run_a, item_id=madde, **ortak)  # type: ignore[arg-type]
+    baska = from_critical_item(run_id=run_b, item_id=madde, **ortak)  # type: ignore[arg-type]
+
+    assert birinci.id == ikinci.id
+    assert birinci.id != baska.id
+
+
+def test_kritik_madde_gecerse_aksiyon_acilmaz() -> None:
+    servis, run_id, aksiyonlar, _ = _kritik_kurulum()
+    _cevapla(servis, run_id)
+    servis.submit(run_id)
+
+    assert [a for a in aksiyonlar.actions() if a.source == "critical_item"] == []

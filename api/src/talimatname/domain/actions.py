@@ -100,6 +100,44 @@ class Action:
         )
 
 
+def critical_item_source(run_id: UUID, item_id: UUID) -> UUID:
+    """Kritik madde aksiyonunun kaynak kimliği: (çalıştırma, madde).
+
+    Cevabın kimliği **cihazda** üretiliyor ve aynı madde için
+    değişebilir; aksiyonun kimliği ondan türetilirse çevrimdışı
+    senkte kopya aksiyon doğar. Çalıştırma + madde sabittir.
+    """
+    return uuid5(ACTION_NAMESPACE, f"kritik:{run_id}:{item_id}")
+
+
+def from_critical_item(
+    *,
+    run_id: UUID,
+    item_id: UUID,
+    branch_id: UUID,
+    item_title: str,
+    plan_name: str,
+    now: datetime,
+) -> Action:
+    """Başarısız kritik maddeden doğan aksiyon (FR-0405, BR-08).
+
+    Kritik öncelik, 4 saat vade (BR-10). Kritik olmayan başarısız
+    madde kanıt ister ama aksiyon açmaz.
+    """
+    kaynak = critical_item_source(run_id, item_id)
+    return Action(
+        id=action_id("critical_item", kaynak),
+        branch_id=branch_id,
+        title=f"Kritik madde başarısız: {item_title}",
+        source="critical_item",
+        source_id=kaynak,
+        priority="critical",
+        opened_at=now,
+        due_at=due_at("critical", now),
+        description=f"{plan_name} listesinde kritik madde geçmedi.",
+    ).validated()
+
+
 def from_missed_run(
     *,
     run_id: UUID,

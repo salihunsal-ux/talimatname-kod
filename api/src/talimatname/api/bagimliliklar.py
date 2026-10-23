@@ -25,6 +25,8 @@ from talimatname.infra.memory import (
 from talimatname.services.actions import ActionRepository, ActionService
 from talimatname.services.auth import AuthService
 from talimatname.services.dashboard import DashboardService
+from talimatname.services.digest import DigestService
+from talimatname.services.escalation import EscalationService
 from talimatname.services.execution import AnswerRepository, ExecutionService
 from talimatname.services.notifications import (
     NotificationRepository,
@@ -180,6 +182,26 @@ def hatirlatma_servisi() -> ReminderService:
     return ReminderService(_plan_deposu(), _org_deposu(), _kullanici_deposu(), bildirim_servisi())
 
 
+def eskalasyon_servisi() -> EscalationService:
+    return EscalationService(
+        _plan_deposu(),
+        _org_deposu(),
+        _kullanici_deposu(),
+        _aksiyon_deposu(),
+        bildirim_servisi(),
+    )
+
+
+def ozet_servisi() -> DigestService:
+    return DigestService(
+        _plan_deposu(),
+        _org_deposu(),
+        _kullanici_deposu(),
+        _aksiyon_deposu(),
+        bildirim_servisi(),
+    )
+
+
 def zamanlayici_servisi() -> SchedulerService:
     return SchedulerService(
         _plan_deposu(),
@@ -188,6 +210,8 @@ def zamanlayici_servisi() -> SchedulerService:
         ActionService(_aksiyon_deposu(), _org_deposu(), _plan_deposu()),
         hatirlatma_servisi(),
         bildirim_servisi(),
+        eskalasyon_servisi(),
+        ozet_servisi(),
     )
 
 
@@ -198,7 +222,7 @@ def plan_servisi() -> PlanService:
 
 def yurutme_servisi() -> ExecutionService:
     _ilk_tur()
-    return ExecutionService(_cevap_deposu(), _plan_deposu(), _sablon_deposu())
+    return ExecutionService(_cevap_deposu(), _plan_deposu(), _sablon_deposu(), _aksiyon_deposu())
 
 
 def pano_servisi() -> DashboardService:

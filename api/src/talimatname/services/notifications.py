@@ -204,6 +204,12 @@ class NotificationService:
                 sayac["failed"] += 1
         return sayac
 
+    def suppress(self, notification_id_: UUID, code: str) -> Notification:
+        """Gönderilmeden kapatır: iş bitti, adım anlamsızlaştı (FR-0914)."""
+        kayit = self.get(notification_id_).suppressed(code)
+        self._repo.save_notification(kayit)
+        return kayit
+
     def mark_delivered(self, notification_id_: UUID, now: datetime | None = None) -> Notification:
         """Kanalın geri bildirimi: cihaz aldı (FR-1005)."""
         kayit = self.get(notification_id_).delivered(now or self._now())

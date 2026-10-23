@@ -18,6 +18,7 @@ from datetime import UTC, datetime
 from typing import Protocol
 from uuid import UUID
 
+from talimatname.domain.actions import from_critical_item
 from talimatname.domain.answers import (
     Answer,
     Missing,
@@ -31,6 +32,7 @@ from talimatname.domain.errors import DomainError, ErrorKind
 from talimatname.domain.plans import Run
 from talimatname.domain.scoring import evaluate
 from talimatname.domain.templates import TemplateVersion
+from talimatname.services.actions import ActionRepository
 from talimatname.services.plans import PlanRepository
 from talimatname.services.templates import TemplateRepository
 
@@ -94,12 +96,14 @@ class ExecutionService:
         answers: AnswerRepository,
         plans: PlanRepository,
         templates: TemplateRepository,
+        actions: ActionRepository | None = None,
         *,
         now: Callable[[], datetime] = lambda: datetime.now(UTC),
     ) -> None:
         self._answers = answers
         self._plans = plans
         self._templates = templates
+        self._actions = actions
         self._now = now
 
     # --- okuma -------------------------------------------------------
@@ -193,7 +197,38 @@ class ExecutionService:
         )
         self._plans.save_run(gonderilen)
         self._answers.save_lock(run_id, None)
+        self._kritik_aksiyonlar(run, surum, degerlendirme.failed_critical_items, an)
         return gonderilen
+
+    def _kritik_aksiyonlar(
+        self,
+        run: Run,
+        surum: TemplateVersion,
+        basarisiz: tuple[str, ...],
+        an: datetime,
+    ) -> None:
+        """Başarısız her kritik madde için aksiyon açar (FR-0405, BR-08).
+
+        Kimlik (çalıştırma, madde) ikilisinden türediği için aynı
+        liste yeniden gönderilse de ikinci aksiyon doğmaz; çevrimdışı
+        senk yolu (ST-054) da bu metottan geçecek.
+        """
+        if self._actions is None or not basarisiz:
+            return
+        plan = self._plans.plan(run.plan_id)
+        basliklar = {str(m.id): m.title for m in surum.items}
+        mevcut = {a.id for a in self._actions.actions()}
+        for madde_id in basarisiz:
+            aksiyon = from_critical_item(
+                run_id=run.id,
+                item_id=UUID(madde_id),
+                branch_id=run.branch_id,
+                item_title=basliklar.get(madde_id, "Madde"),
+                plan_name=plan.name if plan else "Liste",
+                now=an,
+            )
+            if aksiyon.id not in mevcut:
+                self._actions.save_action(aksiyon)
 
     # --- yardımcılar --------------------------------------------------
 

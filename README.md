@@ -118,6 +118,23 @@ Kanal bağımsız (FR-1007): servis `ChannelDriver` portunu kullanır; push (ST-
 
 Sessiz saatler sabit, 23:00–07:00 yerel (FR-1004) ve **yalnızca yönetim bildirimlerine** uygulanır. Pencereye bağlı iş hatırlatması ötelenmez: kapanış listesi zaten gece yapılan iştir, hatırlatmasını sabaha atmak pencere kapandıktan sonra "30 dakika kaldı" demek olurdu.
 
+### Eskalasyon ve sabah özeti
+
+Merdiven v1'de **sabit** (FR-0912, BR-11); editörü v1.1:
+
+| Tetik | Kime | Ne zaman |
+|---|---|---|
+| Kaçırılan liste | Şube müdürü | Anında |
+| Kritik madde başarısız | Şube **ve** bölge müdürü | Anında; 10 dk içinde teslim yoksa SMS (FR-1008) |
+| Gecikmiş aksiyon | Bölge müdürü, yönetici | Sabah özetinde |
+
+İki kural kolay atlanır, ikisi de kodda:
+
+- **Merdiven durur** (FR-0914): çalıştırma "yapılmayacak" olunca ya da aksiyon kapanınca bekleyen adımlar bastırılır (`suppressed`). Kapanmış işin ardından gelen bildirim güveni aşındırır.
+- **Alıcı yoksa bir üst adıma** (FR-0915) ve bu **günlüğe yazılır** (`eskalasyon.alici_yok`). Sessizce düşürmek, eskalasyonun hiç olmamasıyla aynı şey. Tohumda Üsküdar'ın şube müdürü yok; kaçırma bildirimi bölge müdürüne çıkıyor ve kayıt düşüyor.
+
+Sabah özeti (BR-27) her gün yerel 07:00: bölge müdürüne bölgesi, yöneticiye tüm hesap; önceki iş gününün kaçırılan/başarısız listeleri ve gecikmiş aksiyonları; push + e-posta. **Sorun yoksa da gider** ("her şey yolunda"): sessizlik, iyi haber ile bozuk entegrasyonu ayırt etmiyor. Bir kişiye günde bir özet; kimlik (kullanıcı, iş günü) ikilisinden türüyor.
+
 Teslimat izi (FR-1005) `GET /notifications`: kanal, alıcı, zaman, deneme sayısı ve hata kodu. `sent` **kanala verildi** demektir; `delivered` ayrı bir durumdur ve kanalın geri bildirimiyle yazılır.
 
 ## Sürekli tümleştirme
