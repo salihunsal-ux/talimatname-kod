@@ -8,6 +8,7 @@ from uuid import uuid4
 import pytest
 from fastapi.testclient import TestClient
 
+from conftest import oturum_ac
 from talimatname.api.app import create_app
 from talimatname.domain.templates import (
     ChoiceOption,
@@ -212,7 +213,7 @@ def test_olmayan_surum() -> None:
 
 @pytest.fixture
 def istemci() -> TestClient:
-    return TestClient(create_app(Settings()))
+    return oturum_ac(TestClient(create_app(Settings())))
 
 
 def test_uc_nokta_sablon_listesi(istemci: TestClient) -> None:

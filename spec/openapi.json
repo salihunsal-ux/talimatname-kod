@@ -28,12 +28,117 @@
         }
       }
     },
+    "/api/v1/auth/request-code": {
+      "post": {
+        "tags": [
+          "oturum"
+        ],
+        "summary": "Doğrulama kodu iste",
+        "description": "3 hatalı denemede 15 dk blok, 60 sn içinde yeniden gönderim yok (TC-009).",
+        "operationId": "kod_iste_api_v1_auth_request_code_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KodIstegi"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KodYaniti"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/verify": {
+      "post": {
+        "tags": [
+          "oturum"
+        ],
+        "summary": "Kodu doğrula ve oturum aç",
+        "operationId": "kod_dogrula_api_v1_auth_verify_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DogrulamaIstegi"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OturumYaniti"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/me": {
+      "get": {
+        "tags": [
+          "oturum"
+        ],
+        "summary": "Oturumdaki kullanıcı",
+        "operationId": "ben_api_v1_auth_me_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BenYaniti"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/branches": {
       "get": {
         "tags": [
           "organizasyon"
         ],
         "summary": "Bölge → şube ağacı",
+        "description": "Yalnızca kullanıcının kapsamındaki şubeler (FR-0205).\n\nBoş kalan bölge düğümü gösterilmez: bölge adı da bir bilgidir.",
         "operationId": "sube_agaci_api_v1_branches_get",
         "parameters": [
           {
@@ -301,7 +406,7 @@
           "personel"
         ],
         "summary": "Personel listesi",
-        "description": "Şubeye ya da role göre süzülebilir; kapsam denetimi `can_access` ile.",
+        "description": "Şubeye ya da role göre süzülebilir.\n\nYönetici hesabın tamamını görür; bölge müdürü **yalnızca kendi\nkapsamındaki** şubelerde çalışanları (FR-0205).",
         "operationId": "personel_listesi_api_v1_users_get",
         "parameters": [
           {
@@ -905,6 +1010,7 @@
           "plan"
         ],
         "summary": "Plan listesi",
+        "description": "Kullanıcının kapsamına **dokunan** planlar.\n\nBölge müdürü, kendi şubelerinden en az birini kapsayan planı görür;\nplan başka şubeleri de kapsıyorsa bu bilgi gizlenmez — plan zaten\nmerkezin kurduğu ortak bir kuraldır.",
         "operationId": "plan_listesi_api_v1_plans_get",
         "parameters": [
           {
@@ -1255,6 +1361,7 @@
           "pano"
         ],
         "summary": "Operasyon panosu (şube × liste)",
+        "description": "Izgara kullanıcının kapsamıyla sınırlı (FR-0205).\n\nGöstergeler de süzülmüş satırlardan hesaplanır: bölge müdürü kendi\nbölgesinin tamamlanma oranını görür, zincirin değil.",
         "operationId": "pano_api_v1_dashboard_get",
         "parameters": [
           {
@@ -1305,7 +1412,7 @@
           "aksiyon"
         ],
         "summary": "Aksiyon listesi",
-        "description": "Varsayılan: açık aksiyonlar, **vadesi yakın olan önce**.",
+        "description": "Varsayılan: açık aksiyonlar, **vadesi yakın olan önce**. Kapsamla süzülür.",
         "operationId": "aksiyon_listesi_api_v1_actions_get",
         "parameters": [
           {
@@ -1383,7 +1490,7 @@
           "aksiyon"
         ],
         "summary": "Elle aksiyon aç",
-        "description": "FR-0908. Vade önceliğe göre sabittir (BR-10): kritik 4 sa, yüksek 24, normal 72.",
+        "description": "FR-0908. Vade önceliğe göre sabittir (BR-10): kritik 4 sa, yüksek 24, normal 72.\n\nKapsam dışı şubeye aksiyon açılamaz.",
         "operationId": "aksiyon_ac_api_v1_actions_post",
         "requestBody": {
           "required": true,
@@ -1425,6 +1532,7 @@
           "aksiyon"
         ],
         "summary": "Aksiyon sayaçları",
+        "description": "Sayaçlar da kapsamla sınırlı: bölge müdürü kendi bölgesinin yükünü görür.",
         "operationId": "aksiyon_sayaclari_api_v1_actions_counts_get",
         "responses": {
           "200": {
@@ -1446,6 +1554,7 @@
           "aksiyon"
         ],
         "summary": "Aksiyonu kapat",
+        "description": "Kapatan, oturumdaki kullanıcıdır; kapsam dışı aksiyon kapatılamaz.",
         "operationId": "aksiyon_kapat_api_v1_actions__action_id__close_post",
         "parameters": [
           {
@@ -1542,7 +1651,7 @@
           "yürütme"
         ],
         "summary": "Cevap yaz (idempotent)",
-        "description": "Aynı `answer_id` ile ikinci çağrı yeni kayıt açmaz, var olanı günceller.",
+        "description": "Aynı `answer_id` ile ikinci çağrı yeni kayıt açmaz, var olanı günceller.\n\nCevabı yazan **oturumdaki kullanıcıdır**: gövdedeki `user_id` artık\ndikkate alınmıyor. Kapsam dışı şubenin çalıştırmasına yazılamaz.",
         "operationId": "cevap_yaz_api_v1_runs__run_id__answers__answer_id__put",
         "parameters": [
           {
@@ -1606,7 +1715,7 @@
           "yürütme"
         ],
         "summary": "Listeyi gönder",
-        "description": "Eksik varsa 422 ve eksiklerin listesi döner; puan sunucuda hesaplanır.",
+        "description": "Eksik varsa 422 ve eksiklerin listesi döner; puan sunucuda hesaplanır.\n\nGönderen de oturumdaki kullanıcıdır (gövdedeki `user_id` yok sayılır).",
         "operationId": "calistirma_gonder_api_v1_runs__run_id__submit_post",
         "parameters": [
           {
@@ -1853,6 +1962,45 @@
         },
         "type": "object",
         "title": "AtamaGirdisi"
+      },
+      "BenYaniti": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "full_name": {
+            "type": "string",
+            "title": "Full Name"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          },
+          "roles": {
+            "items": {
+              "$ref": "#/components/schemas/RolCiktisi"
+            },
+            "type": "array",
+            "title": "Roles"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "full_name",
+          "phone",
+          "roles"
+        ],
+        "title": "BenYaniti"
       },
       "BolgeDugumu": {
         "properties": {
@@ -2387,6 +2535,26 @@
         "title": "DavetYaniti",
         "description": "Davet sonucu.\n\n`invite_sent` bugün **her zaman false**: SMS sağlayıcısı bağlı değil\n(ST-044). Arayüz \"gönderildi\" demez, \"kuyruğa alındı\" der."
       },
+      "DogrulamaIstegi": {
+        "properties": {
+          "phone": {
+            "type": "string",
+            "title": "Phone"
+          },
+          "code": {
+            "type": "string",
+            "maxLength": 8,
+            "minLength": 4,
+            "title": "Code"
+          }
+        },
+        "type": "object",
+        "required": [
+          "phone",
+          "code"
+        ],
+        "title": "DogrulamaIstegi"
+      },
       "Eksik": {
         "properties": {
           "item_id": {
@@ -2742,6 +2910,59 @@
         ],
         "title": "KapanisGirdisi",
         "description": "Kapanış notu zorunlu (FR-0904): ne yapıldığı yazılmadan kapanmaz."
+      },
+      "KodIstegi": {
+        "properties": {
+          "phone": {
+            "type": "string",
+            "title": "Phone",
+            "description": "E.164'e çevrilir",
+            "examples": [
+              "0532 111 00 03"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "phone"
+        ],
+        "title": "KodIstegi"
+      },
+      "KodYaniti": {
+        "properties": {
+          "phone": {
+            "type": "string",
+            "title": "Phone"
+          },
+          "delivered": {
+            "type": "boolean",
+            "title": "Delivered",
+            "description": "SMS gönderildi mi (sağlayıcı bağlanana kadar false)",
+            "default": false
+          },
+          "note": {
+            "type": "string",
+            "title": "Note",
+            "default": "SMS sağlayıcısı bağlanınca kod telefona gidecek (ST-067)."
+          },
+          "dev_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dev Code",
+            "description": "Yalnızca geliştirme ortamında dolu"
+          }
+        },
+        "type": "object",
+        "required": [
+          "phone"
+        ],
+        "title": "KodYaniti"
       },
       "KullaniciGirdisi": {
         "properties": {
@@ -3214,6 +3435,33 @@
         "title": "OnizlemeYaniti",
         "description": "7 gün önizleme (FR-0511): kaydetmeden önce ne üretileceği."
       },
+      "OturumYaniti": {
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "title": "Access Token"
+          },
+          "token_type": {
+            "type": "string",
+            "title": "Token Type",
+            "default": "bearer"
+          },
+          "expires_in_minutes": {
+            "type": "integer",
+            "title": "Expires In Minutes"
+          },
+          "user": {
+            "$ref": "#/components/schemas/BenYaniti"
+          }
+        },
+        "type": "object",
+        "required": [
+          "access_token",
+          "expires_in_minutes",
+          "user"
+        ],
+        "title": "OturumYaniti"
+      },
       "PanoYaniti": {
         "properties": {
           "business_day": {
@@ -3431,6 +3679,41 @@
           "scope_type"
         ],
         "title": "RolAtamasi"
+      },
+      "RolCiktisi": {
+        "properties": {
+          "role": {
+            "type": "string",
+            "title": "Role"
+          },
+          "role_label": {
+            "type": "string",
+            "title": "Role Label"
+          },
+          "scope_type": {
+            "type": "string",
+            "title": "Scope Type"
+          },
+          "scope_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scope Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "role",
+          "role_label",
+          "scope_type"
+        ],
+        "title": "RolCiktisi"
       },
       "RolGirdisi": {
         "properties": {

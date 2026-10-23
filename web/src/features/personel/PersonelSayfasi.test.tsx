@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { personelDavet, personelListesi, personelMaskele } from '../../api/personel';
 import { subeAgaci } from '../../api/subeler';
+import { Oturumlu } from '../../test/oturum';
 import { PersonelSayfasi } from './PersonelSayfasi';
 
 vi.mock('../../api/personel');
@@ -37,7 +38,9 @@ function kur() {
   const istemci = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
     <QueryClientProvider client={istemci}>
-      <PersonelSayfasi />
+      <Oturumlu>
+        <PersonelSayfasi />
+      </Oturumlu>
     </QueryClientProvider>,
   );
 }

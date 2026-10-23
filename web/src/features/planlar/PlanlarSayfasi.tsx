@@ -13,6 +13,7 @@ import {
 import { sablonListesi } from '../../api/sablonlar';
 import { subeAgaci } from '../../api/subeler';
 import { Cip } from '../../bilesenler/Cip';
+import { useYonetici } from '../../api/yetki';
 import { tr } from '../../i18n/tr';
 
 const GUNLER = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
@@ -43,6 +44,7 @@ function gunAdi(isoTarih: string): string {
  * kullanıcı kuralı yanlış kurduysa bunu plan kaydedilmeden görür.
  */
 export function PlanlarSayfasi() {
+  const yonetici = useYonetici();
   const planlar = useQuery({ queryKey: ['planlar'], queryFn: () => planListesi(true) });
   const bugun = useQuery({ queryKey: ['calistirmalar'], queryFn: () => gununCalistirmalari() });
   const kuyruk = useQueryClient();
@@ -96,7 +98,7 @@ export function PlanlarSayfasi() {
                   {plan.branch_count} {tr.plan.sube}
                 </td>
                 <td style={{ textAlign: 'right' }}>
-                  {plan.active && (
+                  {plan.active && yonetici && (
                     <button type="button" onClick={() => durdur.mutate(plan.id)} style={kucukDugme}>
                       {tr.plan.durdur}
                     </button>
@@ -160,7 +162,7 @@ export function PlanlarSayfasi() {
         </ul>
       </section>
 
-      <PlanFormu />
+      {yonetici && <PlanFormu />}
     </div>
   );
 }

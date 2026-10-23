@@ -3,6 +3,7 @@ import { useState } from 'react';
 
 import { problemCoz } from '../../api/client';
 import { subeAgaci, subeDetayi, subeEkle, subePasiflestir } from '../../api/subeler';
+import { useYonetici } from '../../api/yetki';
 import { tr } from '../../i18n/tr';
 import { Cip } from '../../bilesenler/Cip';
 
@@ -12,6 +13,7 @@ import { Cip } from '../../bilesenler/Cip';
  * bulut PostgreSQL) bu ekran değişmez — aynı uç noktalar.
  */
 export function SubelerSayfasi() {
+  const yonetici = useYonetici();
   const [secili, setSecili] = useState<string | null>(null);
   const [pasifDahil, setPasifDahil] = useState(false);
 
@@ -118,7 +120,7 @@ export function SubelerSayfasi() {
           </section>
         ))}
 
-        <SubeEkleFormu />
+        {yonetici && <SubeEkleFormu />}
       </div>
 
       <div style={{ flex: '1 1 360px', minWidth: 300 }}>

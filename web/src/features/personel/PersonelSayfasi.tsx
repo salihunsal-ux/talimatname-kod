@@ -12,6 +12,7 @@ import {
 } from '../../api/personel';
 import { subeAgaci } from '../../api/subeler';
 import { Cip } from '../../bilesenler/Cip';
+import { useYonetici } from '../../api/yetki';
 import { tr } from '../../i18n/tr';
 
 const ROLLER: { deger: Rol; etiket: string; kapsam: 'yok' | 'bolge' | 'sube' }[] = [
@@ -27,6 +28,7 @@ const ROLLER: { deger: Rol; etiket: string; kapsam: 'yok' | 'bolge' | 'sube' }[]
  * gereken seçiciyi gösterir (FR-0205).
  */
 export function PersonelSayfasi() {
+  const yonetici = useYonetici();
   const [subeSuzgeci, setSubeSuzgeci] = useState<string>('');
   const [rolSuzgeci, setRolSuzgeci] = useState<string>('');
   const [pasifDahil, setPasifDahil] = useState(false);
@@ -143,7 +145,7 @@ export function PersonelSayfasi() {
         </table>
       )}
 
-      <DavetFormu subeler={duzSubeler} />
+      {yonetici && <DavetFormu subeler={duzSubeler} />}
     </div>
   );
 }

@@ -14,6 +14,7 @@ from talimatname import __version__
 from talimatname.api.errors import register_error_handlers
 from talimatname.api.routers import (
     actions,
+    auth,
     dashboard,
     execution,
     organization,
@@ -70,6 +71,7 @@ def build_router(settings: Settings) -> APIRouter:
             object_store_configured=settings.object_store_endpoint is not None,
         )
 
+    router.include_router(auth.router)
     router.include_router(organization.router)
     router.include_router(users.router)
     router.include_router(templates.router)

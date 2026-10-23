@@ -8,6 +8,7 @@ from uuid import uuid4
 import pytest
 from fastapi.testclient import TestClient
 
+from conftest import oturum_ac
 from talimatname.api.app import create_app
 from talimatname.domain.actions import DUE_HOURS, Action, action_id, due_at, from_missed_run
 from talimatname.domain.validation import ValidationError
@@ -192,7 +193,7 @@ def test_sayaclar_acik_gecikmis_ve_kritigi_ayirir() -> None:
 
 @pytest.fixture
 def istemci() -> TestClient:
-    return TestClient(create_app(Settings()))
+    return oturum_ac(TestClient(create_app(Settings())))
 
 
 def test_uc_nokta_kacirilan_listeden_aksiyon(istemci: TestClient) -> None:

@@ -10,7 +10,9 @@ from fastapi import APIRouter, Depends, status
 from pydantic import BaseModel, Field
 
 from talimatname.api.bagimliliklar import organizasyon_servisi
+from talimatname.api.guvenlik import Kullanici, Yonetici, sube_erisimi_zorunlu
 from talimatname.domain.organization import WEEKDAYS, Branch
+from talimatname.domain.users import can_access
 from talimatname.domain.window import BusinessHours
 from talimatname.services.organization import OrganizationService
 
@@ -112,20 +114,26 @@ def _ozet(sube: Branch) -> SubeOzet:
 
 
 @router.get("/branches", summary="Bölge → şube ağacı")
-def sube_agaci(servis: Servis, include_inactive: bool = False) -> list[BolgeDugumu]:
-    return [
-        BolgeDugumu(
-            id=dugum.id,
-            name=dugum.name,
-            branches=[_ozet(sube) for sube in dugum.branches],
-        )
-        for dugum in servis.tree(include_inactive=include_inactive)
-    ]
+def sube_agaci(
+    servis: Servis, kullanici: Kullanici, include_inactive: bool = False
+) -> list[BolgeDugumu]:
+    """Yalnızca kullanıcının kapsamındaki şubeler (FR-0205).
+
+    Boş kalan bölge düğümü gösterilmez: bölge adı da bir bilgidir.
+    """
+    agac = []
+    for dugum in servis.tree(include_inactive=include_inactive):
+        gorunur = [s for s in dugum.branches if can_access(kullanici, s)]
+        if gorunur:
+            agac.append(
+                BolgeDugumu(id=dugum.id, name=dugum.name, branches=[_ozet(s) for s in gorunur])
+            )
+    return agac
 
 
 @router.get("/branches/{branch_id}", summary="Şube detayı")
-def sube_detayi(branch_id: UUID, servis: Servis) -> SubeDetay:
-    sube = servis.get(branch_id)
+def sube_detayi(branch_id: UUID, servis: Servis, kullanici: Kullanici) -> SubeDetay:
+    sube = sube_erisimi_zorunlu(kullanici, branch_id, servis)
     return SubeDetay(
         **_ozet(sube).model_dump(),
         address=sube.address,
@@ -137,7 +145,7 @@ def sube_detayi(branch_id: UUID, servis: Servis) -> SubeDetay:
 
 
 @router.post("/branches", status_code=status.HTTP_201_CREATED, summary="Şube ekle")
-def sube_ekle(girdi: SubeGirdisi, servis: Servis) -> SubeOzet:
+def sube_ekle(girdi: SubeGirdisi, servis: Servis, _: Yonetici) -> SubeOzet:
     sube = servis.create_branch(
         Branch(
             id=uuid4(),
@@ -153,7 +161,7 @@ def sube_ekle(girdi: SubeGirdisi, servis: Servis) -> SubeOzet:
 
 
 @router.patch("/branches/{branch_id}", summary="Şube güncelle")
-def sube_guncelle(branch_id: UUID, girdi: SubeGirdisi, servis: Servis) -> SubeOzet:
+def sube_guncelle(branch_id: UUID, girdi: SubeGirdisi, servis: Servis, _: Yonetici) -> SubeOzet:
     sube = servis.update_branch(
         branch_id,
         code=girdi.code,
@@ -167,11 +175,11 @@ def sube_guncelle(branch_id: UUID, girdi: SubeGirdisi, servis: Servis) -> SubeOz
 
 
 @router.post("/branches/{branch_id}/deactivate", summary="Şubeyi pasifleştir")
-def sube_pasiflestir(branch_id: UUID, servis: Servis) -> SubeOzet:
+def sube_pasiflestir(branch_id: UUID, servis: Servis, _: Yonetici) -> SubeOzet:
     """Silme değil: geçmiş kayıtlar ve kanıtlar durur (BR-22)."""
     return _ozet(servis.set_status(branch_id, "inactive"))
 
 
 @router.post("/branches/{branch_id}/activate", summary="Şubeyi yeniden aktif et")
-def sube_aktif_et(branch_id: UUID, servis: Servis) -> SubeOzet:
+def sube_aktif_et(branch_id: UUID, servis: Servis, _: Yonetici) -> SubeOzet:
     return _ozet(servis.set_status(branch_id, "active"))

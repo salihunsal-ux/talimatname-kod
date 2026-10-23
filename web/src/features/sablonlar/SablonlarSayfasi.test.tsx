@@ -10,6 +10,7 @@ import {
   taslakKaydet,
   type SurumDetay,
 } from '../../api/sablonlar';
+import { Oturumlu } from '../../test/oturum';
 import { SablonlarSayfasi } from './SablonlarSayfasi';
 
 vi.mock('../../api/sablonlar');
@@ -60,7 +61,9 @@ function kur() {
   const istemci = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
     <QueryClientProvider client={istemci}>
-      <SablonlarSayfasi />
+      <Oturumlu>
+        <SablonlarSayfasi />
+      </Oturumlu>
     </QueryClientProvider>,
   );
 }

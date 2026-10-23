@@ -84,9 +84,12 @@ class ActionService:
             raise ActionNotFound(f"Aksiyon id: {action_id}")
         return aksiyon
 
-    def counts(self) -> dict[str, int]:
+    def counts(self, branch_ids: set[UUID] | None = None) -> dict[str, int]:
+        """`branch_ids` verilirse sayaçlar o şubelerle sınırlı (kapsam, FR-0205)."""
         an = self._now()
         acik = [a for a in self._repo.actions() if a.status == "open"]
+        if branch_ids is not None:
+            acik = [a for a in acik if a.branch_id in branch_ids]
         return {
             "open": len(acik),
             "overdue": sum(1 for a in acik if a.overdue(an)),

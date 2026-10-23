@@ -15,6 +15,7 @@ from talimatname.api.bagimliliklar import (
     sablon_servisi,
     zamanlayici_servisi,
 )
+from talimatname.api.guvenlik import Kullanici, Yonetici, erisilebilir_sube_idleri
 from talimatname.domain.plans import Assignment, Plan, Run
 from talimatname.domain.window import Anchor, WindowRule
 from talimatname.services.organization import OrganizationService
@@ -198,16 +199,28 @@ def _sablon_adi(sablonlar: TemplateService, version_id: UUID) -> str:
 def plan_listesi(
     servis: Servis,
     sablonlar: SablonServis,
+    org: OrgServis,
+    kullanici: Kullanici,
     include_inactive: bool = False,
 ) -> list[PlanOzet]:
+    """Kullanıcının kapsamına **dokunan** planlar.
+
+    Bölge müdürü, kendi şubelerinden en az birini kapsayan planı görür;
+    plan başka şubeleri de kapsıyorsa bu bilgi gizlenmez — plan zaten
+    merkezin kurduğu ortak bir kuraldır.
+    """
+    kapsam = erisilebilir_sube_idleri(kullanici, org)
     return [
         _ozet(plan, _sablon_adi(sablonlar, plan.template_version_id))
         for plan in servis.list_plans(include_inactive=include_inactive)
+        if kapsam & set(plan.branch_ids)
     ]
 
 
 @router.post("/plans", status_code=status.HTTP_201_CREATED, summary="Plan oluştur")
-def plan_olustur(girdi: PlanGirdisi, servis: Servis, sablonlar: SablonServis) -> PlanOzet:
+def plan_olustur(
+    girdi: PlanGirdisi, servis: Servis, sablonlar: SablonServis, _: Yonetici
+) -> PlanOzet:
     """Plan kaydedilir ve ufuk içindeki çalıştırmalar hemen üretilir."""
     plan = servis.create(_plan(girdi))
     return _ozet(plan, _sablon_adi(sablonlar, plan.template_version_id))
@@ -218,6 +231,7 @@ def plan_onizleme(
     girdi: PlanGirdisi,
     servis: Servis,
     org: OrgServis,
+    _: Yonetici,
     days: Annotated[int, Query(ge=1, le=30)] = HORIZON_DAYS,
 ) -> OnizlemeYaniti:
     plan = _plan(girdi)
@@ -232,14 +246,14 @@ def plan_onizleme(
 
 
 @router.post("/plans/{plan_id}/deactivate", summary="Planı durdur")
-def plan_durdur(plan_id: UUID, servis: Servis, sablonlar: SablonServis) -> PlanOzet:
+def plan_durdur(plan_id: UUID, servis: Servis, sablonlar: SablonServis, _: Yonetici) -> PlanOzet:
     """Durdurulan plandan yeni çalıştırma üretilmez; başlanmamışlar silinir."""
     plan = servis.set_active(plan_id, False)
     return _ozet(plan, _sablon_adi(sablonlar, plan.template_version_id))
 
 
 @router.post("/plans/{plan_id}/activate", summary="Planı yeniden başlat")
-def plan_baslat(plan_id: UUID, servis: Servis, sablonlar: SablonServis) -> PlanOzet:
+def plan_baslat(plan_id: UUID, servis: Servis, sablonlar: SablonServis, _: Yonetici) -> PlanOzet:
     plan = servis.set_active(plan_id, True)
     return _ozet(plan, _sablon_adi(sablonlar, plan.template_version_id))
 
@@ -260,14 +274,14 @@ class TurYaniti(BaseModel):
 
 
 @router.post("/plans/{plan_id}/generate", summary="Çalıştırmaları şimdi üret")
-def plan_uret(plan_id: UUID, servis: Servis) -> UretimYaniti:
+def plan_uret(plan_id: UUID, servis: Servis, _: Yonetici) -> UretimYaniti:
     """Zamanlayıcının (ST-027) yapacağı işin elle tetiklenmesi; idempotenttir."""
     eklenen, silinen = servis.generate(plan_id)
     return UretimYaniti(created=eklenen, deleted=silinen)
 
 
 @router.post("/scheduler/tick", tags=["zamanlayıcı"], summary="Zamanlayıcı turunu şimdi koş")
-def zamanlayici_turu(servis: ZamanlayiciServis) -> TurYaniti:
+def zamanlayici_turu(servis: ZamanlayiciServis, _: Yonetici) -> TurYaniti:
     """Ayrı süreçte koşan zamanlayıcının (ST-027) elle tetiklenmesi.
 
     Aynı iş mantığı; idempotent olduğu için zamanlayıcı çalışırken de
@@ -281,10 +295,12 @@ def zamanlayici_turu(servis: ZamanlayiciServis) -> TurYaniti:
 def calistirmalar(
     servis: Servis,
     org: OrgServis,
+    kullanici: Kullanici,
     business_day: date | None = None,
 ) -> list[CalistirmaOzet]:
     gun = business_day or datetime.now(UTC).date()
     adlar = _sube_adlari(org)
-    runs = servis.runs_for_day(gun)
+    kapsam = erisilebilir_sube_idleri(kullanici, org)
+    runs = [r for r in servis.runs_for_day(gun) if r.branch_id in kapsam]
     simdi = datetime.now(UTC)
     return [_calistirma(r, adlar, simdi) for r in runs]

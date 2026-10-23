@@ -95,6 +95,19 @@ Doğrulaması `tests/test_db.py` (TC-011): iki kiracı açılır, biri diğerini
 
 Kurulum adımları: [infra/veritabani-kurulum.md](infra/veritabani-kurulum.md).
 
+## Kimlik ve yetki
+
+Giriş **telefon + tek kullanımlık kod** (OTP) ile; aynı mekanizma panelde ve mobilde kullanılacak (ST-004).
+
+- Kod 6 hane, 5 dakika geçerli; 3 hatalı denemede 15 dakika blok, 60 saniye içinde yeniden gönderim yok (TC-009).
+- Kodun kendisi **saklanmaz**: telefonla tuzlanmış HMAC-SHA256 özeti tutulur.
+- Belirteç RS256 imzalı JWT. `JWT_PRIVATE_KEY`/`JWT_PUBLIC_KEY` boşsa dev'de geçici anahtar üretilir ve uyarı yazılır; staging/prod'da bu ayarlar zorunludur (uygulama açılmaz).
+- **SMS sağlayıcısı henüz bağlı değil.** `/auth/request-code` bunu açıkça söyler (`delivered: false`) ve kodu yalnızca `ENVIRONMENT=dev` iken yanıta koyar. Sağlayıcı ST-067'de bağlanacak; o güne kadar panelde de "gönderildi" yazmıyoruz.
+
+Yetki iki soruya ayrılmış ve ikisi de `api/guvenlik.py`de toplanıyor: **kim** (uç nokta hangi rolü ister) ve **nerede** (kapsam — `can_access` ile süzme). Kapsam belirteçten değil **kullanıcıdan** okunur: rol değişince ya da kullanıcı pasife alınınca elindeki belirteç eski yetkiyi taşımaz. Kapsam dışı kayıtta 404 değil **403** döner; şube kodları zincir içinde zaten bilinen bilgi.
+
+Panelde de rol kapısı var (`web/src/api/yetki.ts`) ama bu **güvenlik değil nezakettir**: asıl denetim sunucuda. Arayüz yalnızca açılamayacak bölümü ve basılamayacak düğmeyi göstermiyor.
+
 ## Sürekli tümleştirme
 
 `.github/workflows/kontrol.yml` üç iş koşuyor; üçü bağımsız, böylece tek koşuda bütün sorunlar görülüyor:

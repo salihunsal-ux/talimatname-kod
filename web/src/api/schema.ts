@@ -27,6 +27,60 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/request-code": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Doğrulama kodu iste
+         * @description 3 hatalı denemede 15 dk blok, 60 sn içinde yeniden gönderim yok (TC-009).
+         */
+        post: operations["kod_iste_api_v1_auth_request_code_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Kodu doğrula ve oturum aç */
+        post: operations["kod_dogrula_api_v1_auth_verify_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Oturumdaki kullanıcı */
+        get: operations["ben_api_v1_auth_me_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/branches": {
         parameters: {
             query?: never;
@@ -34,7 +88,12 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Bölge → şube ağacı */
+        /**
+         * Bölge → şube ağacı
+         * @description Yalnızca kullanıcının kapsamındaki şubeler (FR-0205).
+         *
+         *     Boş kalan bölge düğümü gösterilmez: bölge adı da bir bilgidir.
+         */
         get: operations["sube_agaci_api_v1_branches_get"];
         put?: never;
         /** Şube ekle */
@@ -109,7 +168,10 @@ export interface paths {
         };
         /**
          * Personel listesi
-         * @description Şubeye ya da role göre süzülebilir; kapsam denetimi `can_access` ile.
+         * @description Şubeye ya da role göre süzülebilir.
+         *
+         *     Yönetici hesabın tamamını görür; bölge müdürü **yalnızca kendi
+         *     kapsamındaki** şubelerde çalışanları (FR-0205).
          */
         get: operations["personel_listesi_api_v1_users_get"];
         put?: never;
@@ -299,7 +361,14 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Plan listesi */
+        /**
+         * Plan listesi
+         * @description Kullanıcının kapsamına **dokunan** planlar.
+         *
+         *     Bölge müdürü, kendi şubelerinden en az birini kapsayan planı görür;
+         *     plan başka şubeleri de kapsıyorsa bu bilgi gizlenmez — plan zaten
+         *     merkezin kurduğu ortak bir kuraldır.
+         */
         get: operations["plan_listesi_api_v1_plans_get"];
         put?: never;
         /**
@@ -434,7 +503,13 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Operasyon panosu (şube × liste) */
+        /**
+         * Operasyon panosu (şube × liste)
+         * @description Izgara kullanıcının kapsamıyla sınırlı (FR-0205).
+         *
+         *     Göstergeler de süzülmüş satırlardan hesaplanır: bölge müdürü kendi
+         *     bölgesinin tamamlanma oranını görür, zincirin değil.
+         */
         get: operations["pano_api_v1_dashboard_get"];
         put?: never;
         post?: never;
@@ -453,13 +528,15 @@ export interface paths {
         };
         /**
          * Aksiyon listesi
-         * @description Varsayılan: açık aksiyonlar, **vadesi yakın olan önce**.
+         * @description Varsayılan: açık aksiyonlar, **vadesi yakın olan önce**. Kapsamla süzülür.
          */
         get: operations["aksiyon_listesi_api_v1_actions_get"];
         put?: never;
         /**
          * Elle aksiyon aç
          * @description FR-0908. Vade önceliğe göre sabittir (BR-10): kritik 4 sa, yüksek 24, normal 72.
+         *
+         *     Kapsam dışı şubeye aksiyon açılamaz.
          */
         post: operations["aksiyon_ac_api_v1_actions_post"];
         delete?: never;
@@ -475,7 +552,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Aksiyon sayaçları */
+        /**
+         * Aksiyon sayaçları
+         * @description Sayaçlar da kapsamla sınırlı: bölge müdürü kendi bölgesinin yükünü görür.
+         */
         get: operations["aksiyon_sayaclari_api_v1_actions_counts_get"];
         put?: never;
         post?: never;
@@ -494,7 +574,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Aksiyonu kapat */
+        /**
+         * Aksiyonu kapat
+         * @description Kapatan, oturumdaki kullanıcıdır; kapsam dışı aksiyon kapatılamaz.
+         */
         post: operations["aksiyon_kapat_api_v1_actions__action_id__close_post"];
         delete?: never;
         options?: never;
@@ -530,6 +613,9 @@ export interface paths {
         /**
          * Cevap yaz (idempotent)
          * @description Aynı `answer_id` ile ikinci çağrı yeni kayıt açmaz, var olanı günceller.
+         *
+         *     Cevabı yazan **oturumdaki kullanıcıdır**: gövdedeki `user_id` artık
+         *     dikkate alınmıyor. Kapsam dışı şubenin çalıştırmasına yazılamaz.
          */
         put: operations["cevap_yaz_api_v1_runs__run_id__answers__answer_id__put"];
         post?: never;
@@ -551,6 +637,8 @@ export interface paths {
         /**
          * Listeyi gönder
          * @description Eksik varsa 422 ve eksiklerin listesi döner; puan sunucuda hesaplanır.
+         *
+         *     Gönderen de oturumdaki kullanıcıdır (gövdedeki `user_id` yok sayılır).
          */
         post: operations["calistirma_gonder_api_v1_runs__run_id__submit_post"];
         delete?: never;
@@ -646,6 +734,20 @@ export interface components {
             role?: string | null;
             /** User Id */
             user_id?: string | null;
+        };
+        /** BenYaniti */
+        BenYaniti: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Full Name */
+            full_name: string;
+            /** Phone */
+            phone: string | null;
+            /** Roles */
+            roles: components["schemas"]["RolCiktisi"][];
         };
         /** BolgeDugumu */
         BolgeDugumu: {
@@ -885,6 +987,13 @@ export interface components {
              */
             invite_note?: string;
         };
+        /** DogrulamaIstegi */
+        DogrulamaIstegi: {
+            /** Phone */
+            phone: string;
+            /** Code */
+            code: string;
+        };
         /** Eksik */
         Eksik: {
             /**
@@ -1040,6 +1149,36 @@ export interface components {
             note: string;
             /** Closed By */
             closed_by?: string | null;
+        };
+        /** KodIstegi */
+        KodIstegi: {
+            /**
+             * Phone
+             * @description E.164'e çevrilir
+             * @example 0532 111 00 03
+             */
+            phone: string;
+        };
+        /** KodYaniti */
+        KodYaniti: {
+            /** Phone */
+            phone: string;
+            /**
+             * Delivered
+             * @description SMS gönderildi mi (sağlayıcı bağlanana kadar false)
+             * @default false
+             */
+            delivered?: boolean;
+            /**
+             * Note
+             * @default SMS sağlayıcısı bağlanınca kod telefona gidecek (ST-067).
+             */
+            note?: string;
+            /**
+             * Dev Code
+             * @description Yalnızca geliştirme ortamında dolu
+             */
+            dev_code?: string | null;
         };
         /** KullaniciGirdisi */
         KullaniciGirdisi: {
@@ -1218,6 +1357,19 @@ export interface components {
             /** Runs */
             runs: components["schemas"]["CalistirmaOzet"][];
         };
+        /** OturumYaniti */
+        OturumYaniti: {
+            /** Access Token */
+            access_token: string;
+            /**
+             * Token Type
+             * @default bearer
+             */
+            token_type?: string;
+            /** Expires In Minutes */
+            expires_in_minutes: number;
+            user: components["schemas"]["BenYaniti"];
+        };
         /**
          * PanoYaniti
          * @description Şube × liste ızgarası.
@@ -1319,6 +1471,17 @@ export interface components {
              * @enum {string}
              */
             scope_type: "tenant" | "region" | "branch";
+            /** Scope Id */
+            scope_id?: string | null;
+        };
+        /** RolCiktisi */
+        RolCiktisi: {
+            /** Role */
+            role: string;
+            /** Role Label */
+            role_label: string;
+            /** Scope Type */
+            scope_type: string;
             /** Scope Id */
             scope_id?: string | null;
         };
@@ -1668,6 +1831,92 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HealthResponse"];
+                };
+            };
+        };
+    };
+    kod_iste_api_v1_auth_request_code_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["KodIstegi"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KodYaniti"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    kod_dogrula_api_v1_auth_verify_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DogrulamaIstegi"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OturumYaniti"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ben_api_v1_auth_me_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BenYaniti"];
                 };
             };
         };

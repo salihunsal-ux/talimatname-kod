@@ -22,6 +22,7 @@ from talimatname.infra.memory import (
     MemoryUserRepository,
 )
 from talimatname.services.actions import ActionRepository, ActionService
+from talimatname.services.auth import AuthService
 from talimatname.services.dashboard import DashboardService
 from talimatname.services.execution import AnswerRepository, ExecutionService
 from talimatname.services.organization import OrganizationRepository, OrganizationService
@@ -101,6 +102,16 @@ def _aksiyon_deposu() -> ActionRepository:
 
 
 # --- servisler --------------------------------------------------------
+
+
+@lru_cache
+def _kimlik_servisi() -> AuthService:
+    """Tek örnek: OTP durumu süreç içinde tutuluyor (kısa ömürlü)."""
+    return AuthService(_kullanici_deposu())
+
+
+def kimlik_servisi() -> AuthService:
+    return _kimlik_servisi()
 
 
 def organizasyon_servisi() -> OrganizationService:

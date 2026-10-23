@@ -16,6 +16,7 @@ import {
   type SurumOzet,
 } from '../../api/sablonlar';
 import { Cip } from '../../bilesenler/Cip';
+import { useYonetici } from '../../api/yetki';
 import { tr } from '../../i18n/tr';
 
 const TURLER: { deger: MaddeTuru; etiket: string }[] = [
@@ -40,6 +41,7 @@ const DURUM_CIPI = {
  * Koşul editörü ve ağırlık v1.1'de (ADR-0008).
  */
 export function SablonlarSayfasi() {
+  const yonetici = useYonetici();
   const [seciliSurum, setSeciliSurum] = useState<string | null>(null);
 
   const sablonlar = useQuery({ queryKey: ['sablonlar'], queryFn: sablonListesi });
@@ -85,7 +87,7 @@ export function SablonlarSayfasi() {
           </section>
         ))}
 
-        <SablonEkleFormu onOlusturuldu={(detay) => setSeciliSurum(detay.id)} />
+        {yonetici && <SablonEkleFormu onOlusturuldu={(detay) => setSeciliSurum(detay.id)} />}
       </div>
 
       <div style={{ flex: '1 1 420px', minWidth: 320 }}>
@@ -141,6 +143,7 @@ function SurumEditoru({
   id: string;
   onSurumDegisti: (id: string) => void;
 }) {
+  const yonetici = useYonetici();
   const kuyruk = useQueryClient();
   const detay = useQuery({ queryKey: ['surum', id], queryFn: () => surumDetayi(id) });
   const [taslak, setTaslak] = useState<BolumGirdisi[] | null>(null);
@@ -180,7 +183,8 @@ function SurumEditoru({
     );
 
   const surum = detay.data;
-  const duzenlenebilir = surum.status === 'draft';
+  // Taslak olması yetmiyor: yazma yetkisi de gerek (ST-005).
+  const duzenlenebilir = surum.status === 'draft' && yonetici;
   const bolumler: BolumGirdisi[] =
     taslak ??
     surum.sections.map((bolum) => ({
@@ -255,9 +259,11 @@ function SurumEditoru({
           }}
         >
           {tr.sablon.yayinDegismez}{' '}
-          <button type="button" onClick={() => turet.mutate()} style={kucukDugme}>
-            {tr.sablon.yeniTaslak}
-          </button>
+          {yonetici && (
+            <button type="button" onClick={() => turet.mutate()} style={kucukDugme}>
+              {tr.sablon.yeniTaslak}
+            </button>
+          )}
         </p>
       )}
 

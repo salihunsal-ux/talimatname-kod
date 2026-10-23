@@ -14,15 +14,22 @@ from uuid import UUID
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 
-from talimatname.api.bagimliliklar import sablon_servisi, yurutme_servisi
+from talimatname.api.bagimliliklar import (
+    organizasyon_servisi,
+    sablon_servisi,
+    yurutme_servisi,
+)
+from talimatname.api.guvenlik import Kullanici, sube_erisimi_zorunlu
 from talimatname.domain.templates import ITEM_TYPE_LABELS
 from talimatname.services.execution import ExecutionService, RunView
+from talimatname.services.organization import OrganizationService
 from talimatname.services.templates import TemplateService
 
 router = APIRouter(tags=["yürütme"])
 
 Servis = Annotated[ExecutionService, Depends(yurutme_servisi)]
 SablonServis = Annotated[TemplateService, Depends(sablon_servisi)]
+OrgServis = Annotated[OrganizationService, Depends(organizasyon_servisi)]
 
 
 class CevapGirdisi(BaseModel):
@@ -155,15 +162,32 @@ def _gorunum(gorunum: RunView, template_name: str) -> CalistirmaGorunumu:
 
 @router.get("/runs/{run_id}", summary="Çalıştırma görünümü (maddeler ve cevaplar)")
 def calistirma_gorunumu(
-    run_id: UUID, servis: Servis, sablonlar: SablonServis
+    run_id: UUID,
+    servis: Servis,
+    sablonlar: SablonServis,
+    org: OrgServis,
+    kullanici: Kullanici,
 ) -> CalistirmaGorunumu:
     gorunum = servis.view(run_id)
+    sube_erisimi_zorunlu(kullanici, gorunum.run.branch_id, org)
     return _gorunum(gorunum, sablonlar.get(gorunum.version.template_id).name)
 
 
 @router.put("/runs/{run_id}/answers/{answer_id}", summary="Cevap yaz (idempotent)")
-def cevap_yaz(run_id: UUID, answer_id: UUID, girdi: CevapGirdisi, servis: Servis) -> CevapCiktisi:
-    """Aynı `answer_id` ile ikinci çağrı yeni kayıt açmaz, var olanı günceller."""
+def cevap_yaz(
+    run_id: UUID,
+    answer_id: UUID,
+    girdi: CevapGirdisi,
+    servis: Servis,
+    org: OrgServis,
+    kullanici: Kullanici,
+) -> CevapCiktisi:
+    """Aynı `answer_id` ile ikinci çağrı yeni kayıt açmaz, var olanı günceller.
+
+    Cevabı yazan **oturumdaki kullanıcıdır**: gövdedeki `user_id` artık
+    dikkate alınmıyor. Kapsam dışı şubenin çalıştırmasına yazılamaz.
+    """
+    sube_erisimi_zorunlu(kullanici, servis.view(run_id).run.branch_id, org)
     cevap = servis.write_answer(
         run_id=run_id,
         answer_id=answer_id,
@@ -171,7 +195,7 @@ def cevap_yaz(run_id: UUID, answer_id: UUID, girdi: CevapGirdisi, servis: Servis
         state=girdi.state,
         value=girdi.value,
         note=girdi.note,
-        user_id=girdi.user_id,
+        user_id=kullanici.id,
         device_id=girdi.device_id,
         device_reported_at=girdi.device_reported_at,
         evidence_count=girdi.evidence_count,
@@ -195,9 +219,18 @@ class GonderimGirdisi(BaseModel):
 
 @router.post("/runs/{run_id}/submit", summary="Listeyi gönder")
 def calistirma_gonder(
-    run_id: UUID, girdi: GonderimGirdisi, servis: Servis, sablonlar: SablonServis
+    run_id: UUID,
+    girdi: GonderimGirdisi,
+    servis: Servis,
+    sablonlar: SablonServis,
+    org: OrgServis,
+    kullanici: Kullanici,
 ) -> CalistirmaGorunumu:
-    """Eksik varsa 422 ve eksiklerin listesi döner; puan sunucuda hesaplanır."""
-    servis.submit(run_id, user_id=girdi.user_id)
+    """Eksik varsa 422 ve eksiklerin listesi döner; puan sunucuda hesaplanır.
+
+    Gönderen de oturumdaki kullanıcıdır (gövdedeki `user_id` yok sayılır).
+    """
+    sube_erisimi_zorunlu(kullanici, servis.view(run_id).run.branch_id, org)
+    servis.submit(run_id, user_id=kullanici.id)
     gorunum = servis.view(run_id)
     return _gorunum(gorunum, sablonlar.get(gorunum.version.template_id).name)

@@ -10,6 +10,11 @@ from fastapi import APIRouter, Depends, status
 from pydantic import BaseModel, Field
 
 from talimatname.api.bagimliliklar import aksiyon_servisi, organizasyon_servisi
+from talimatname.api.guvenlik import (
+    Kullanici,
+    erisilebilir_sube_idleri,
+    sube_erisimi_zorunlu,
+)
 from talimatname.domain.actions import PRIORITY_LABELS, SOURCE_LABELS, Action, Priority
 from talimatname.services.actions import ActionService
 from talimatname.services.organization import OrganizationService
@@ -95,12 +100,14 @@ def _sube_adlari(org: OrganizationService) -> dict[UUID, str]:
 def aksiyon_listesi(
     servis: Servis,
     org: OrgServis,
+    kullanici: Kullanici,
     branch_id: UUID | None = None,
     action_status: Literal["open", "closed", "all"] = "open",
     only_overdue: bool = False,
 ) -> list[AksiyonOzet]:
-    """Varsayılan: açık aksiyonlar, **vadesi yakın olan önce**."""
+    """Varsayılan: açık aksiyonlar, **vadesi yakın olan önce**. Kapsamla süzülür."""
     adlar = _sube_adlari(org)
+    kapsam = erisilebilir_sube_idleri(kullanici, org)
     simdi = datetime.now(UTC)
     return [
         _ozet(a, adlar, simdi)
@@ -109,20 +116,28 @@ def aksiyon_listesi(
             status=None if action_status == "all" else action_status,
             only_overdue=only_overdue,
         )
+        if a.branch_id in kapsam
     ]
 
 
 @router.get("/actions/counts", summary="Aksiyon sayaçları")
-def aksiyon_sayaclari(servis: Servis) -> AksiyonSayaclari:
-    sayac = servis.counts()
+def aksiyon_sayaclari(servis: Servis, org: OrgServis, kullanici: Kullanici) -> AksiyonSayaclari:
+    """Sayaçlar da kapsamla sınırlı: bölge müdürü kendi bölgesinin yükünü görür."""
+    sayac = servis.counts(erisilebilir_sube_idleri(kullanici, org))
     return AksiyonSayaclari(
         open=sayac["open"], overdue=sayac["overdue"], critical=sayac["critical"]
     )
 
 
 @router.post("/actions", status_code=status.HTTP_201_CREATED, summary="Elle aksiyon aç")
-def aksiyon_ac(girdi: ElleAksiyonGirdisi, servis: Servis, org: OrgServis) -> AksiyonOzet:
-    """FR-0908. Vade önceliğe göre sabittir (BR-10): kritik 4 sa, yüksek 24, normal 72."""
+def aksiyon_ac(
+    girdi: ElleAksiyonGirdisi, servis: Servis, org: OrgServis, kullanici: Kullanici
+) -> AksiyonOzet:
+    """FR-0908. Vade önceliğe göre sabittir (BR-10): kritik 4 sa, yüksek 24, normal 72.
+
+    Kapsam dışı şubeye aksiyon açılamaz.
+    """
+    sube_erisimi_zorunlu(kullanici, girdi.branch_id, org)
     aksiyon = servis.create_manual(
         branch_id=girdi.branch_id,
         title=girdi.title,
@@ -135,7 +150,13 @@ def aksiyon_ac(girdi: ElleAksiyonGirdisi, servis: Servis, org: OrgServis) -> Aks
 
 @router.post("/actions/{action_id}/close", summary="Aksiyonu kapat")
 def aksiyon_kapat(
-    action_id: UUID, girdi: KapanisGirdisi, servis: Servis, org: OrgServis
+    action_id: UUID,
+    girdi: KapanisGirdisi,
+    servis: Servis,
+    org: OrgServis,
+    kullanici: Kullanici,
 ) -> AksiyonOzet:
-    aksiyon = servis.close(action_id, girdi.note, girdi.closed_by)
+    """Kapatan, oturumdaki kullanıcıdır; kapsam dışı aksiyon kapatılamaz."""
+    sube_erisimi_zorunlu(kullanici, servis.get(action_id).branch_id, org)
+    aksiyon = servis.close(action_id, girdi.note, kullanici.id)
     return _ozet(aksiyon, _sube_adlari(org), datetime.now(UTC))

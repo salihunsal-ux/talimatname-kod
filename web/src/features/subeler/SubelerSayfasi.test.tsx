@@ -4,6 +4,8 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { subeAgaci, subeDetayi, subeEkle } from '../../api/subeler';
+import { SUBE_MUDURU } from '../../test/kullanicilar';
+import { Oturumlu } from '../../test/oturum';
 import { SubelerSayfasi } from './SubelerSayfasi';
 
 vi.mock('../../api/subeler');
@@ -21,11 +23,13 @@ const KADIKOY = {
   open_days: 7,
 };
 
-function kur() {
+function kur(ben?: Parameters<typeof Oturumlu>[0]['ben']) {
   const istemci = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
     <QueryClientProvider client={istemci}>
-      <SubelerSayfasi />
+      <Oturumlu ben={ben}>
+        <SubelerSayfasi />
+      </Oturumlu>
     </QueryClientProvider>,
   );
 }
@@ -75,5 +79,13 @@ describe('Şubeler sayfası', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Şube ekle' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Bu şube kodu zaten var');
+  });
+
+  it('şube müdürüne ekleme formu gösterilmez', async () => {
+    // Asıl denetim sunucuda (403); arayüz basılamayacak düğmeyi hiç göstermiyor.
+    kur(SUBE_MUDURU);
+
+    expect(await screen.findByText('Kadıköy')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Şube ekle' })).not.toBeInTheDocument();
   });
 });

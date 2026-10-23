@@ -7,6 +7,7 @@ from datetime import UTC, date, datetime, timedelta
 import pytest
 from fastapi.testclient import TestClient
 
+from conftest import oturum_ac
 from talimatname.api.app import create_app
 from talimatname.infra.memory import (
     MemoryOrganizationRepository,
@@ -100,7 +101,7 @@ def test_plan_kapsamadigi_sube_bos_hucre_sorun_degil() -> None:
 
 @pytest.fixture
 def istemci() -> TestClient:
-    return TestClient(create_app(Settings()))
+    return oturum_ac(TestClient(create_app(Settings())))
 
 
 def test_uc_nokta_pano(istemci: TestClient) -> None:

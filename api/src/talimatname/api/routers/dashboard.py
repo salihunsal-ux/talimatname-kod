@@ -9,12 +9,15 @@ from uuid import UUID
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 
-from talimatname.api.bagimliliklar import pano_servisi
+from talimatname.api.bagimliliklar import organizasyon_servisi, pano_servisi
+from talimatname.api.guvenlik import Kullanici, erisilebilir_sube_idleri
 from talimatname.services.dashboard import Board, DashboardService
+from talimatname.services.organization import OrganizationService
 
 router = APIRouter(tags=["pano"])
 
 Servis = Annotated[DashboardService, Depends(pano_servisi)]
+OrgServis = Annotated[OrganizationService, Depends(organizasyon_servisi)]
 
 
 class Hucre(BaseModel):
@@ -106,6 +109,17 @@ def _yanit(board: Board) -> PanoYaniti:
 
 
 @router.get("/dashboard", summary="Operasyon panosu (şube × liste)")
-def pano(servis: Servis, business_day: date | None = None) -> PanoYaniti:
+def pano(
+    servis: Servis,
+    org: OrgServis,
+    kullanici: Kullanici,
+    business_day: date | None = None,
+) -> PanoYaniti:
+    """Izgara kullanıcının kapsamıyla sınırlı (FR-0205).
+
+    Göstergeler de süzülmüş satırlardan hesaplanır: bölge müdürü kendi
+    bölgesinin tamamlanma oranını görür, zincirin değil.
+    """
     gun = business_day or datetime.now(UTC).date()
-    return _yanit(servis.board(gun, datetime.now(UTC)))
+    tahta = servis.board(gun, datetime.now(UTC), erisilebilir_sube_idleri(kullanici, org))
+    return _yanit(tahta)

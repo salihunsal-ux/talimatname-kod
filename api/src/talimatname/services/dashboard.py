@@ -88,8 +88,16 @@ class DashboardService:
         self._plans = plans
         self._org = org
 
-    def board(self, business_day: object, now: datetime) -> Board:
+    def board(
+        self,
+        business_day: object,
+        now: datetime,
+        branch_ids: set[UUID] | None = None,
+    ) -> Board:
+        """`branch_ids` verilirse ızgara o şubelerle sınırlanır (kapsam, FR-0205)."""
         runs = [r for r in self._plans.runs() if r.business_day == business_day]
+        if branch_ids is not None:
+            runs = [r for r in runs if r.branch_id in branch_ids]
         planlar = {p.id: p for p in self._plans.plans()}
         # Sütunlar: o gün çalıştırması olan planlar (alfabetik).
         kolonlar = sorted(

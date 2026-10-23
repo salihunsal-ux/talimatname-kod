@@ -9,13 +9,20 @@ from uuid import UUID, uuid4
 from fastapi import APIRouter, Depends, status
 from pydantic import BaseModel, Field
 
-from talimatname.api.bagimliliklar import kullanici_servisi
+from talimatname.api.bagimliliklar import kullanici_servisi, organizasyon_servisi
+from talimatname.api.guvenlik import (
+    Yonetici,
+    YoneticiVeyaBolge,
+    erisilebilir_sube_idleri,
+)
 from talimatname.domain.users import ROLE_LABELS, Role, RoleAssignment, User
+from talimatname.services.organization import OrganizationService
 from talimatname.services.users import UserService
 
 router = APIRouter(tags=["personel"])
 
 Servis = Annotated[UserService, Depends(kullanici_servisi)]
+OrgServis = Annotated[OrganizationService, Depends(organizasyon_servisi)]
 
 
 class RolAtamasi(BaseModel):
@@ -92,26 +99,35 @@ def _ozet(kullanici: User) -> KullaniciOzet:
 @router.get("/users", summary="Personel listesi")
 def personel_listesi(
     servis: Servis,
+    org: OrgServis,
+    kullanici: YoneticiVeyaBolge,
     branch_id: UUID | None = None,
     role: Role | None = None,
     include_inactive: bool = False,
 ) -> list[KullaniciOzet]:
-    """Şubeye ya da role göre süzülebilir; kapsam denetimi `can_access` ile."""
-    return [
-        _ozet(k)
-        for k in servis.list_users(
-            branch_id=branch_id, role=role, include_inactive=include_inactive
-        )
-    ]
+    """Şubeye ya da role göre süzülebilir.
+
+    Yönetici hesabın tamamını görür; bölge müdürü **yalnızca kendi
+    kapsamındaki** şubelerde çalışanları (FR-0205).
+    """
+    liste = servis.list_users(branch_id=branch_id, role=role, include_inactive=include_inactive)
+    if "admin" not in kullanici.roles:
+        kapsam = erisilebilir_sube_idleri(kullanici, org)
+        liste = [
+            k
+            for k in liste
+            if any(a.scope_id in kapsam for a in k.assignments if a.scope_id is not None)
+        ]
+    return [_ozet(k) for k in liste]
 
 
 @router.get("/users/{user_id}", summary="Personel detayı")
-def personel_detayi(user_id: UUID, servis: Servis) -> KullaniciOzet:
+def personel_detayi(user_id: UUID, servis: Servis, _: YoneticiVeyaBolge) -> KullaniciOzet:
     return _ozet(servis.get(user_id))
 
 
 @router.post("/users", status_code=status.HTTP_201_CREATED, summary="Personel davet et")
-def personel_davet(girdi: KullaniciGirdisi, servis: Servis) -> DavetYaniti:
+def personel_davet(girdi: KullaniciGirdisi, servis: Servis, _: Yonetici) -> DavetYaniti:
     kullanici = servis.invite(
         User(
             id=uuid4(),
@@ -125,23 +141,25 @@ def personel_davet(girdi: KullaniciGirdisi, servis: Servis) -> DavetYaniti:
 
 
 @router.patch("/users/{user_id}/roles", summary="Rolleri değiştir")
-def roller_guncelle(user_id: UUID, girdi: list[RolGirdisi], servis: Servis) -> KullaniciOzet:
+def roller_guncelle(
+    user_id: UUID, girdi: list[RolGirdisi], servis: Servis, _: Yonetici
+) -> KullaniciOzet:
     return _ozet(servis.update(user_id, assignments=_atamalar(girdi)))
 
 
 @router.post("/users/{user_id}/deactivate", summary="Personeli pasifleştir")
-def personel_pasiflestir(user_id: UUID, servis: Servis) -> KullaniciOzet:
+def personel_pasiflestir(user_id: UUID, servis: Servis, _: Yonetici) -> KullaniciOzet:
     """Giriş kapanır, gelecek atamalar düşer; geçmiş cevap ve kanıtlar kalır (BR-22)."""
     return _ozet(servis.set_status(user_id, "inactive"))
 
 
 @router.post("/users/{user_id}/activate", summary="Personeli yeniden aktif et")
-def personel_aktif_et(user_id: UUID, servis: Servis) -> KullaniciOzet:
+def personel_aktif_et(user_id: UUID, servis: Servis, _: Yonetici) -> KullaniciOzet:
     return _ozet(servis.set_status(user_id, "active"))
 
 
 @router.post("/users/{user_id}/mask", summary="KVKK: kişi verisini maskele")
-def personel_maskele(user_id: UUID, servis: Servis) -> KullaniciOzet:
+def personel_maskele(user_id: UUID, servis: Servis, _: Yonetici) -> KullaniciOzet:
     """Silme talebi karşılığı (FR-1310): ad takma etikete döner, telefon
     ve e-posta silinir; cevaplar ve kanıtlar iş kaydı olarak kalır."""
     return _ozet(servis.mask(user_id))

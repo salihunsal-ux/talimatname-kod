@@ -34,6 +34,11 @@ class Settings(BaseSettings):
 
     access_token_minutes: int = Field(default=30, ge=5, le=240)
 
+    # Belirteç imzası (RS256). Üretimde zorunlu; geliştirmede boşsa
+    # geçici anahtar üretilir ve uyarı yazılır.
+    jwt_private_key: str | None = None
+    jwt_public_key: str | None = None
+
     # Tarayıcıdan çağıran kaynaklar. Yalnızca burada yazılı olanlar;
     # joker (*) kullanılmaz — kimlik bilgisi taşıyan istekler için güvensiz.
     cors_origins: list[str] = Field(
@@ -41,7 +46,14 @@ class Settings(BaseSettings):
         description="Virgülle ayrılmış kaynak listesi (CORS_ORIGINS)",
     )
 
-    @field_validator("database_url", "object_store_endpoint", "object_store_bucket", mode="before")
+    @field_validator(
+        "database_url",
+        "object_store_endpoint",
+        "object_store_bucket",
+        "jwt_private_key",
+        "jwt_public_key",
+        mode="before",
+    )
     @classmethod
     def _bos_dize_none(cls, deger: object) -> object:
         """`.env` içinde `DATABASE_URL=` boş bırakılabilir: bu "tanımsız" demektir.
@@ -69,6 +81,11 @@ class Settings(BaseSettings):
                 raise RuntimeError("TIME_TRAVEL_ENABLED prod'da açık olamaz")
             if not self.database_url:
                 raise RuntimeError("prod ortamında DATABASE_URL zorunlu")
+            if not (self.jwt_private_key and self.jwt_public_key):
+                raise RuntimeError(
+                    "prod ortamında JWT_PRIVATE_KEY ve JWT_PUBLIC_KEY zorunlu: "
+                    "geçici anahtar üretimi yalnızca geliştirme içindir"
+                )
 
 
 @lru_cache

@@ -33,6 +33,19 @@ export const tr = {
   genel: {
     yukleniyor: 'Yükleniyor…',
   },
+  giris: {
+    aciklama: 'Telefonunuza gelen kodla girin',
+    telefon: 'Telefon numarası',
+    telefonOrnek: '0532 000 00 00',
+    kodIste: 'Kod iste',
+    kod: 'Doğrulama kodu',
+    gir: 'Giriş yap',
+    numarayiDegistir: 'Numarayı değiştir',
+    gonderilmedi: 'SMS sağlayıcısı henüz bağlı değil: kod telefona gönderilmedi.',
+    gelistirmeKodu: (kod: string) => `Geliştirme kodu: ${kod}`,
+    cikis: 'Çıkış',
+    oturumDustu: 'Oturumunuz sona erdi, yeniden girin',
+  },
   subeler: {
     baslik: 'Şubeler',
     pasifleriGoster: 'Pasifleri göster',

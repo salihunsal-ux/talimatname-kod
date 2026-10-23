@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { gununCalistirmalari, planListesi, planOnizleme } from '../../api/planlar';
 import { sablonListesi } from '../../api/sablonlar';
 import { subeAgaci } from '../../api/subeler';
+import { Oturumlu } from '../../test/oturum';
 import { PlanlarSayfasi } from './PlanlarSayfasi';
 
 vi.mock('../../api/planlar');
@@ -22,7 +23,9 @@ function kur() {
   const istemci = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
     <QueryClientProvider client={istemci}>
-      <PlanlarSayfasi />
+      <Oturumlu>
+        <PlanlarSayfasi />
+      </Oturumlu>
     </QueryClientProvider>,
   );
 }

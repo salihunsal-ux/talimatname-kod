@@ -9,6 +9,7 @@ from uuid import UUID
 import pytest
 from fastapi.testclient import TestClient
 
+from conftest import oturum_ac
 from talimatname.api.app import create_app
 from talimatname.domain.plans import Run
 from talimatname.infra.memory import (
@@ -118,7 +119,7 @@ def test_kapanis_kendi_basina_cagrilabilir() -> None:
 
 @pytest.fixture
 def istemci() -> TestClient:
-    return TestClient(create_app(Settings()))
+    return oturum_ac(TestClient(create_app(Settings())))
 
 
 def test_uc_nokta_tur_ozeti_doner(istemci: TestClient) -> None:
