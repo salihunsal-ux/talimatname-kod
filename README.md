@@ -73,17 +73,27 @@ Eşikler (ADR-0014 md.9-10): ruff temiz · `mypy --strict` temiz · kural kodund
 
 Veritabanı isteyen testler `@pytest.mark.db` ile işaretlenir ve PostgreSQL yoksa atlanır; **sessiz atlama yok**, atlama sebebi yazılır.
 
-## Veri: bugün bellek içi, yarın ücretsiz bulut PostgreSQL
+## Veri: PostgreSQL (bellek içi adaptör hâlâ var)
 
-Panel bugün **bellek içi tohum veriyle** çalışıyor (`api/src/talimatname/infra/memory.py`): Kahve Durağı örnek zinciri — 3 bölge, 8 şube, istasyonlar. Gerçek kişi ya da müşteri verisi yok (ADR-0003).
+Kalıcılık iki adaptörle çalışıyor ve seçim **tek yerde**: `DATABASE_URL` doluysa PostgreSQL, boşsa bellek içi (`api/bagimliliklar.py`). Servis katmanı, uç noktalar ve panel iki durumda da aynı.
 
-Veritabanı [ADR-0012](../Talimatname/docs/adr/0012-barindirma-saglayici-ve-ortamlar.md) md.2 uyarınca **ücretsiz bulut PostgreSQL**'e taşınacak (geliştirme ortamında gerçek kişisel veri yok). Taşıma günü değişecek olan **üç dosya** bellidir; servis katmanı, uç noktalar, testler ve panel değişmez:
+```bash
+cd api
+cp .env.example .env            # DATABASE_URL satırını doldurun (infra/veritabani-kurulum.md)
+./.venv/Scripts/python.exe -m alembic upgrade head     # şema + RLS + uygulama rolü
+./.venv/Scripts/python.exe -m talimatname.seed         # tohum veri (idempotent)
+```
 
-1. `infra/db/` — `OrganizationRepository` portunun SQLAlchemy karşılığı,
-2. `infra/db/migrations/` — Alembic göçü: tablolar + `tenant_id` + RLS politikaları,
-3. `api/bagimliliklar.py` — `DATABASE_URL` doluysa SQL adaptörünü döndürür (bugün açıkça `NotImplementedError` atıyor; sessizce belleğe düşmüyor).
+**Çok kiracılılık veritabanında zorlanır** (ADR-0014 md.4):
 
-Bunu mümkün kılan kural: **servis katmanı kalıcılığı tanımaz** (ADR-0014 md.2). Aynı testler iki adaptörle de koşar.
+- Her kiracı tablosunda `tenant_id`; 13 tabloda RLS politikası.
+- Uygulama **sahip rolüyle çalışmaz**: bağlantı açılınca `SET ROLE talimatname_app` (bu rol `BYPASSRLS` almaz). Göçler sahip rolüyle koşar.
+- Her iş birimi `SET LOCAL app.tenant_id` der. **Demezse hiçbir satır gelmez** — unutmak veri sızdırmaz, boş liste verir.
+- `FORCE ROW LEVEL SECURITY`: yanlışlıkla sahip bağlantısıyla çalışıldığında da politika uygulanır.
+
+Doğrulaması `tests/test_db.py` (TC-011): iki kiracı açılır, biri diğerinin şubesini kimliğini bilerek bile göremez. Veritabanı testleri `@pytest.mark.db` ile işaretli; `DATABASE_URL` yoksa **sebebi yazılarak** atlanır, diğer testler bellek içi koşar (`tests/conftest.py`).
+
+Kurulum adımları: [infra/veritabani-kurulum.md](infra/veritabani-kurulum.md).
 
 ## Kural motoru ve ortak fikstürler
 

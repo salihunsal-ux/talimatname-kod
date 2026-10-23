@@ -5,7 +5,7 @@ from __future__ import annotations
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import Field
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 Environment = Literal["dev", "test", "staging", "prod"]
@@ -40,6 +40,18 @@ class Settings(BaseSettings):
         default=["http://localhost:5173", "http://127.0.0.1:5173"],
         description="Virgülle ayrılmış kaynak listesi (CORS_ORIGINS)",
     )
+
+    @field_validator("database_url", "object_store_endpoint", "object_store_bucket", mode="before")
+    @classmethod
+    def _bos_dize_none(cls, deger: object) -> object:
+        """`.env` içinde `DATABASE_URL=` boş bırakılabilir: bu "tanımsız" demektir.
+
+        Boş dizeyi tanımlı saymak, SQL moduna boş bağlantıyla girmek
+        demek olurdu — sessiz ve kafa karıştırıcı bir hata.
+        """
+        if isinstance(deger, str) and not deger.strip():
+            return None
+        return deger
 
     def require_database_url(self) -> str:
         if not self.database_url:

@@ -1,8 +1,12 @@
 """Bağımlılıklar: hangi kalıcılık adaptörünün kullanılacağı tek yerde.
 
-Bugün bellek içi adaptör; `DATABASE_URL` tanımlandığında (ücretsiz bulut
-PostgreSQL, ADR-0012 md.2) burada PostgreSQL adaptörü döner. Servis
-katmanı ve uç noktalar değişmez.
+`DATABASE_URL` doluysa **PostgreSQL** adaptörleri, boşsa **bellek içi**
+adaptörler kullanılır. Servis katmanı ve uç noktalar iki durumda da aynı
+kodu çalıştırır (ADR-0014 md.2).
+
+Bellek içi adaptör bir geliştirme kolaylığıdır: veritabanı olmadan panel
+açılır, saf alan testleri koşar. Kalıcılık gerektiren her şey — geçmiş,
+raporlar, kanıt — PostgreSQL ister.
 """
 
 from __future__ import annotations
@@ -17,115 +21,140 @@ from talimatname.infra.memory import (
     MemoryTemplateRepository,
     MemoryUserRepository,
 )
-from talimatname.services.actions import ActionService
+from talimatname.services.actions import ActionRepository, ActionService
 from talimatname.services.dashboard import DashboardService
-from talimatname.services.execution import ExecutionService
-from talimatname.services.organization import OrganizationService
-from talimatname.services.plans import PlanService
+from talimatname.services.execution import AnswerRepository, ExecutionService
+from talimatname.services.organization import OrganizationRepository, OrganizationService
+from talimatname.services.plans import PlanRepository, PlanService
 from talimatname.services.scheduler import SchedulerService
-from talimatname.services.templates import TemplateService
-from talimatname.services.users import UserService
+from talimatname.services.templates import TemplateRepository, TemplateService
+from talimatname.services.users import UserRepository, UserService
 from talimatname.settings import get_settings
 
 
+def sql_modu() -> bool:
+    """Kalıcı mod mu? Tek karar noktası."""
+    return get_settings().database_url is not None
+
+
+def _kiraci() -> object:
+    from talimatname.seed import DEV_TENANT
+
+    return DEV_TENANT
+
+
+# --- depolar (süreç başına tek örnek) ---------------------------------
+
+
 @lru_cache
-def _bellek_deposu() -> MemoryOrganizationRepository:
+def _org_deposu() -> OrganizationRepository:
+    if sql_modu():
+        from talimatname.infra.db.adapters import SqlOrganizationRepository
+
+        return SqlOrganizationRepository(_kiraci())  # type: ignore[arg-type]
     return MemoryOrganizationRepository()
 
 
 @lru_cache
-def _bellek_kullanici_deposu() -> MemoryUserRepository:
+def _kullanici_deposu() -> UserRepository:
+    if sql_modu():
+        from talimatname.infra.db.adapters import SqlUserRepository
+
+        return SqlUserRepository(_kiraci())  # type: ignore[arg-type]
     return MemoryUserRepository()
 
 
-def _veritabani_kontrolu() -> None:
-    """DATABASE_URL doluysa sessizce belleğe düşme; açıkça söyle."""
-    if get_settings().database_url:
-        raise NotImplementedError(
-            "PostgreSQL adaptörü henüz yazılmadı; DATABASE_URL'i boş bırakın "
-            "(bellek içi tohum veri) — bkz. README · veri."
-        )
-
-
-def organizasyon_servisi() -> OrganizationService:
-    _veritabani_kontrolu()
-    return OrganizationService(_bellek_deposu())
-
-
 @lru_cache
-def _bellek_sablon_deposu() -> MemoryTemplateRepository:
+def _sablon_deposu() -> TemplateRepository:
+    if sql_modu():
+        from talimatname.infra.db.adapters import SqlTemplateRepository
+
+        return SqlTemplateRepository(_kiraci())  # type: ignore[arg-type]
     return MemoryTemplateRepository()
 
 
-def sablon_servisi() -> TemplateService:
-    _veritabani_kontrolu()
-    return TemplateService(_bellek_sablon_deposu())
-
-
 @lru_cache
-def _bellek_plan_deposu() -> MemoryPlanRepository:
+def _plan_deposu() -> PlanRepository:
+    if sql_modu():
+        from talimatname.infra.db.adapters import SqlPlanRepository
+
+        return SqlPlanRepository(_kiraci())  # type: ignore[arg-type]
     return MemoryPlanRepository()
 
 
 @lru_cache
-def _bellek_aksiyon_deposu() -> MemoryActionRepository:
-    return MemoryActionRepository()
+def _cevap_deposu() -> AnswerRepository:
+    if sql_modu():
+        from talimatname.infra.db.adapters import SqlAnswerRepository
 
-
-def aksiyon_servisi() -> ActionService:
-    _veritabani_kontrolu()
-    return ActionService(_bellek_aksiyon_deposu(), _bellek_deposu(), _bellek_plan_deposu())
-
-
-@lru_cache
-def _bellek_cevap_deposu() -> MemoryAnswerRepository:
+        return SqlAnswerRepository(_kiraci())  # type: ignore[arg-type]
     return MemoryAnswerRepository()
 
 
-def yurutme_servisi() -> ExecutionService:
-    _veritabani_kontrolu()
-    _ilk_tur()
-    return ExecutionService(_bellek_cevap_deposu(), _bellek_plan_deposu(), _bellek_sablon_deposu())
+@lru_cache
+def _aksiyon_deposu() -> ActionRepository:
+    if sql_modu():
+        from talimatname.infra.db.adapters import SqlActionRepository
+
+        return SqlActionRepository(_kiraci())  # type: ignore[arg-type]
+    return MemoryActionRepository()
+
+
+# --- servisler --------------------------------------------------------
+
+
+def organizasyon_servisi() -> OrganizationService:
+    return OrganizationService(_org_deposu())
+
+
+def kullanici_servisi() -> UserService:
+    return UserService(_kullanici_deposu(), _org_deposu())
+
+
+def sablon_servisi() -> TemplateService:
+    return TemplateService(_sablon_deposu())
+
+
+def aksiyon_servisi() -> ActionService:
+    return ActionService(_aksiyon_deposu(), _org_deposu(), _plan_deposu())
 
 
 def zamanlayici_servisi() -> SchedulerService:
-    _veritabani_kontrolu()
     return SchedulerService(
-        _bellek_plan_deposu(),
-        _bellek_deposu(),
-        _bellek_sablon_deposu(),
-        ActionService(_bellek_aksiyon_deposu(), _bellek_deposu(), _bellek_plan_deposu()),
+        _plan_deposu(),
+        _org_deposu(),
+        _sablon_deposu(),
+        ActionService(_aksiyon_deposu(), _org_deposu(), _plan_deposu()),
     )
 
 
 def plan_servisi() -> PlanService:
-    _veritabani_kontrolu()
     _ilk_tur()
-    return PlanService(_bellek_plan_deposu(), _bellek_deposu(), _bellek_sablon_deposu())
+    return PlanService(_plan_deposu(), _org_deposu(), _sablon_deposu())
 
+
+def yurutme_servisi() -> ExecutionService:
+    _ilk_tur()
+    return ExecutionService(_cevap_deposu(), _plan_deposu(), _sablon_deposu())
+
+
+def pano_servisi() -> DashboardService:
+    _ilk_tur()
+    return DashboardService(_plan_deposu(), _org_deposu())
+
+
+# --- geliştirme kolaylığı ---------------------------------------------
 
 _ilk_tur_kosuldu = False
 
 
 def _ilk_tur() -> None:
-    """Geliştirme kolaylığı: zamanlayıcı süreci açık değilken bir tur koşar.
+    """Zamanlayıcı süreci açık değilken ilk istekte bir tur atar.
 
-    Zamanlayıcı (`python -m talimatname.scheduler`) ayrı süreçte çalışır;
-    o çalışmıyorken panelin boş pano göstermemesi için ilk istekte bir tur
-    atılır. İdempotent olduğu için iki yol çakışmaz.
+    Üretimde zamanlayıcı ayrı süreçtir (ST-027); bu kanca yalnızca
+    geliştiricinin panelde boş pano görmemesi içindir ve idempotenttir.
     """
     global _ilk_tur_kosuldu
     if not _ilk_tur_kosuldu:
         _ilk_tur_kosuldu = True
         zamanlayici_servisi().tick()
-
-
-def pano_servisi() -> DashboardService:
-    _veritabani_kontrolu()
-    _ilk_tur()
-    return DashboardService(_bellek_plan_deposu(), _bellek_deposu())
-
-
-def kullanici_servisi() -> UserService:
-    _veritabani_kontrolu()
-    return UserService(_bellek_kullanici_deposu(), _bellek_deposu())
