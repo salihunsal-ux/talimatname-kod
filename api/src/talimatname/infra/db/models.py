@@ -50,6 +50,7 @@ TENANT_TABLES: tuple[str, ...] = (
     "answer",
     "action",
     "notification",
+    "evidence",
 )
 
 
@@ -93,7 +94,9 @@ class Branch(Base):
     code: Mapped[str] = mapped_column(String(16))
     name: Mapped[str] = mapped_column(String(80))
     timezone: Mapped[str] = mapped_column(String(64))
-    address: Mapped[str | None] = mapped_column(String(200))
+    address: Mapped[str | None] = mapped_column(Text)
+    latitude: Mapped[float | None] = mapped_column(Float)
+    longitude: Mapped[float | None] = mapped_column(Float)
     status: Mapped[str] = mapped_column(String(16), default="active")
     #: Haftalık çalışma saatleri: {"0": ["08:00","23:00"], "6": null}
     business_hours: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
@@ -310,3 +313,45 @@ class Notification(Base):
     delivered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     error_code: Mapped[str | None] = mapped_column(String(40))
     error_detail: Mapped[str | None] = mapped_column(Text)
+
+
+class Evidence(Base):
+    """Kanıt dosyası ve bağlamı (FR-0606).
+
+    `sha256` üzerinde **kiracı içinde tekil** indeks: aynı fotoğrafın
+    ikinci kez kullanılması veritabanı düzeyinde de engellenir. Servis
+    katmanındaki denetim yarış durumunda kaçabilir, indeks kaçmaz.
+    """
+
+    __tablename__ = "evidence"
+    __table_args__ = (
+        Index("ux_evidence_digest", "tenant_id", "sha256", unique=True),
+        Index("ix_evidence_run", "tenant_id", "run_id"),
+    )
+
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True)
+    tenant_id: Mapped[UUID] = _tenant_column()
+    run_id: Mapped[UUID] = mapped_column(Uuid, ForeignKey("run.id", ondelete="CASCADE"))
+    answer_id: Mapped[UUID] = mapped_column(Uuid)
+    item_id: Mapped[UUID] = mapped_column(Uuid)
+    branch_id: Mapped[UUID] = mapped_column(Uuid)
+    user_id: Mapped[UUID | None] = mapped_column(Uuid)
+    sha256: Mapped[str] = mapped_column(String(64))
+    content_type: Mapped[str] = mapped_column(String(40))
+    size_bytes: Mapped[int] = mapped_column(Integer)
+    storage_key: Mapped[str] = mapped_column(String(200))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    status: Mapped[str] = mapped_column(String(10), default="pending")
+    captured_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    device_reported_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    clock_skew_minutes: Mapped[int | None] = mapped_column(Integer)
+    latitude: Mapped[float | None] = mapped_column(Float)
+    longitude: Mapped[float | None] = mapped_column(Float)
+    distance_meters: Mapped[int | None] = mapped_column(Integer)
+    device_id: Mapped[UUID | None] = mapped_column(Uuid)
+    from_gallery: Mapped[bool] = mapped_column(Boolean, default=False)
+    flags: Mapped[Any] = mapped_column(JSONB, default=list)
+    stored_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    stamped_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    stamped_key: Mapped[str | None] = mapped_column(String(200))
+    thumbnail_key: Mapped[str | None] = mapped_column(String(200))

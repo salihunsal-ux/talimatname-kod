@@ -240,6 +240,11 @@ export const tr = {
       'push (ST-046) ve SMS (ST-067) bağlanana kadar bu liste eksiklerin kaydıdır.',
     bagliKanallar: 'Bağlı kanallar:',
   },
+  kanit: {
+    gorselAlt: 'Kanıt fotoğrafı',
+    acilamadi: 'Görsel açılamadı',
+    bayraksiz: 'Bayrak yok',
+  },
   hata: {
     genel: 'Bir şey ters gitti',
     aglaBaglanilamadi: 'Sunucuya bağlanılamadı',

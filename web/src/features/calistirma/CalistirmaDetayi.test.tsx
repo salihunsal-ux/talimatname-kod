@@ -4,10 +4,29 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { calistirmaGorunumu, type CalistirmaGorunumu } from '../../api/calistirma';
+import { calistirmaKanitlari, kanitBaglantisi, type Kanit } from '../../api/kanitlar';
 import { CalistirmaDetayi } from './CalistirmaDetayi';
 
 vi.mock('../../api/calistirma');
+vi.mock('../../api/kanitlar');
 const getir = vi.mocked(calistirmaGorunumu);
+const kanitlariGetir = vi.mocked(calistirmaKanitlari);
+const baglantiGetir = vi.mocked(kanitBaglantisi);
+
+const KANIT: Kanit = {
+  id: 'k-1',
+  run_id: 'r-1',
+  answer_id: 'c-1',
+  item_id: 'i-1',
+  status: 'stored',
+  content_type: 'image/jpeg',
+  size_bytes: 250_000,
+  sha256: 'a'.repeat(64),
+  created_at: '2026-11-02T21:30:00Z',
+  captured_at: '2026-11-02T21:29:00Z',
+  distance_meters: 1800,
+  flags: [{ code: 'far_location', label: 'Konum şube dışında' }],
+};
 
 const MADDE = {
   type_label: 'Onay',
@@ -107,6 +126,8 @@ function kur(onKapat = vi.fn()) {
 beforeEach(() => {
   vi.resetAllMocks();
   getir.mockResolvedValue(GORUNUM);
+  kanitlariGetir.mockResolvedValue([]);
+  baglantiGetir.mockResolvedValue('/api/v1/evidence/file/belirtec');
 });
 
 describe('Çalıştırma detayı', () => {
@@ -152,5 +173,32 @@ describe('Çalıştırma detayı', () => {
     await screen.findByText('Kapanış (kafe)');
     await userEvent.click(screen.getByRole('button', { name: 'Kapat' }));
     expect(onKapat).toHaveBeenCalled();
+  });
+
+  it('kanıt görseli imzalı bağlantıyla gösterilir', async () => {
+    kanitlariGetir.mockResolvedValue([KANIT]);
+
+    kur();
+
+    const gorsel = await screen.findByAltText('Kanıt fotoğrafı');
+    expect(gorsel).toHaveAttribute('src', '/api/v1/evidence/file/belirtec');
+    expect(baglantiGetir).toHaveBeenCalledWith('k-1');
+  });
+
+  it('kanıt bayrağı metniyle birlikte gösterilir', async () => {
+    // Bayrak suçlama değil, incelemeye çağrı: renk tek başına yetmez.
+    kanitlariGetir.mockResolvedValue([KANIT]);
+
+    kur();
+
+    expect(await screen.findByText('Konum şube dışında')).toBeInTheDocument();
+  });
+
+  it('bayraksız kanıt bunu açıkça söyler', async () => {
+    kanitlariGetir.mockResolvedValue([{ ...KANIT, flags: [] }]);
+
+    kur();
+
+    expect(await screen.findByText('Bayrak yok')).toBeInTheDocument();
   });
 });

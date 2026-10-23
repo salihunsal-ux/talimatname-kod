@@ -15,13 +15,9 @@ from __future__ import annotations
 import secrets
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
-from functools import lru_cache
 from uuid import UUID
 
-import jwt
 import structlog
-from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric import rsa
 
 from talimatname.domain.auth import (
     CODE_LENGTH,
@@ -31,12 +27,14 @@ from talimatname.domain.auth import (
 )
 from talimatname.domain.errors import DomainError, ErrorKind
 from talimatname.domain.users import User, normalize_phone
+from talimatname.services.tokens import TokenInvalid, coz, imzala
 from talimatname.services.users import UserRepository
 from talimatname.settings import Settings, get_settings
 
 log = structlog.get_logger("auth")
 
-ALGORITHM = "RS256"
+#: Oturum belirtecinin kapsamı; kanıt bağlantısı başka kapsam kullanır.
+SCOPE = "session"
 
 
 class UnknownPhone(DomainError):
@@ -61,40 +59,6 @@ class OtpRejected(DomainError):
     code = "kod-gecersiz"
     title = "Kod doğrulanamadı"
     kind: ErrorKind = "forbidden"
-
-
-class TokenInvalid(DomainError):
-    code = "belirtec-gecersiz"
-    title = "Oturum geçersiz ya da süresi doldu"
-    kind: ErrorKind = "forbidden"
-
-
-@lru_cache
-def _gecici_anahtar() -> tuple[str, str]:
-    """Geliştirme için geçici RSA çifti (süreç ömrü kadar)."""
-    anahtar = rsa.generate_private_key(public_exponent=65537, key_size=2048)
-    ozel = anahtar.private_bytes(
-        serialization.Encoding.PEM,
-        serialization.PrivateFormat.PKCS8,
-        serialization.NoEncryption(),
-    ).decode()
-    acik = (
-        anahtar.public_key()
-        .public_bytes(serialization.Encoding.PEM, serialization.PublicFormat.SubjectPublicKeyInfo)
-        .decode()
-    )
-    log.warning(
-        "auth.gecici_anahtar",
-        aciklama="JWT_PRIVATE_KEY tanımlı değil: geçici anahtar üretildi, "
-        "sunucu yeniden başlayınca oturumlar düşer",
-    )
-    return ozel, acik
-
-
-def _anahtarlar(ayar: Settings) -> tuple[str, str]:
-    if ayar.jwt_private_key and ayar.jwt_public_key:
-        return ayar.jwt_private_key, ayar.jwt_public_key
-    return _gecici_anahtar()
 
 
 class AuthService:
@@ -180,26 +144,16 @@ class AuthService:
     # --- belirteç ----------------------------------------------------
 
     def issue_token(self, user: User) -> str:
-        ozel, _ = _anahtarlar(self._ayar)
-        an = self._now()
-        bitis = an + timedelta(minutes=self._ayar.access_token_minutes)
-        return jwt.encode(
-            {
-                "sub": str(user.id),
-                "iat": int(an.timestamp()),
-                "exp": int(bitis.timestamp()),
-            },
-            ozel,
-            algorithm=ALGORITHM,
+        return imzala(
+            self._ayar,
+            subject=str(user.id),
+            scope=SCOPE,
+            ttl=timedelta(minutes=self._ayar.access_token_minutes),
+            now=self._now(),
         )
 
     def user_from_token(self, token: str) -> User:
-        _, acik = _anahtarlar(self._ayar)
-        try:
-            govde = jwt.decode(token, acik, algorithms=[ALGORITHM])
-        except jwt.PyJWTError as hata:
-            raise TokenInvalid(str(hata)) from hata
-
+        govde = coz(self._ayar, token, scope=SCOPE)
         kullanici = self._users.user(UUID(govde["sub"]))
         if kullanici is None:
             raise TokenInvalid("Kullanıcı bulunamadı")

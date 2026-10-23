@@ -24,8 +24,9 @@ from talimatname.api.bagimliliklar import kimlik_servisi
 from talimatname.domain.errors import DomainError, ErrorKind
 from talimatname.domain.organization import Branch
 from talimatname.domain.users import Role, User, can_access
-from talimatname.services.auth import AuthService, TokenInvalid
+from talimatname.services.auth import AuthService
 from talimatname.services.organization import OrganizationService
+from talimatname.services.tokens import TokenInvalid
 
 
 class NotAuthenticated(DomainError):

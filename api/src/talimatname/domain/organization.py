@@ -72,6 +72,10 @@ class Branch:
     business_hours: dict[int, BusinessHours | None] = field(default_factory=dict)
     region_id: UUID | None = None
     address: str | None = None
+    #: Kanıt konum bayrağının ölçüsü (FR-0615, BR-15). Tanımsızsa
+    #: 'uzak' bayrağı **verilmez**: ölçüsüz şüphe işareti anlamsız.
+    latitude: float | None = None
+    longitude: float | None = None
     status: Status = "active"
 
     def validated(self) -> Branch:

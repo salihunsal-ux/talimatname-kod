@@ -137,6 +137,25 @@ Sabah özeti (BR-27) her gün yerel 07:00: bölge müdürüne bölgesi, yönetic
 
 Teslimat izi (FR-1005) `GET /notifications`: kanal, alıcı, zaman, deneme sayısı ve hata kodu. `sent` **kanala verildi** demektir; `delivered` ayrı bir durumdur ve kanalın geri bildirimiyle yazılır.
 
+## Kanıt (ST-039, ST-049)
+
+Ürünün iddiası "iş yapıldı" değil, **"iş yapıldığının kanıtı var"**. Akış üç çağrı (FR-0606):
+
+```
+POST /runs/{run}/answers/{answer}/evidence   → izin + yükleme adresi
+PUT  {upload_url}                            → baytlar (sunucu belleğinden geçmez)
+POST /evidence/{id}/complete                 → sunucu özeti kendisi hesaplar
+GET  /evidence/{id}/url                      → 15 dk imzalı bağlantı (FR-1305)
+```
+
+İkinci ve üçüncü adımın **ayrı** olması kasıtlı: istemcinin "yükledim, özeti şu" demesine güvenmek kanıtı bir beyana indirger. Sunucu depodaki baytların SHA-256'sını kendisi hesaplar; tutmuyorsa kayıt **silinir** (bastırılmaz: tekillik kilidini tutsaydı bozuk bir yükleme doğru fotoğrafı sonsuza kadar yasaklardı).
+
+**Tekillik** (FR-0614) hem serviste hem şemada: `(tenant_id, sha256)` tekil indeksi. Servis denetimi iki eşzamanlı yüklemede kaçabilir, indeks kaçmaz. Geçen haftanın fotoğrafını yeniden göndermek listeyi doldurmanın en kolay yolu olurdu.
+
+**Bayraklar** (FR-0615) ölçüye dayanır ve **suçlama değil, incelemeye çağrıdır**: galeriden yükleme, konum şubeden 500 m'den uzak (BR-15 parametresi), konum yok, cihaz saati 10 dk'dan farklı, 24 saatten geç senk. Şubenin koordinatı tanımlı değilse "uzak" bayrağı **verilmez** — ölçüsüz bir şüphe işareti bayrağın anlamını boşaltır.
+
+**Depolama** port/adaptör (ADR-0012 md.4): geliştirmede yerel dizin (`EVIDENCE_DIR`), üretimde S3 uyumlu kova. Sağlayıcı kararı bu kodu değiştirmeden verilebilir; üretim kovası Türkiye'de olmalı (fotoğraf kişisel veri sayılabilir).
+
 ## Sürekli tümleştirme
 
 `.github/workflows/kontrol.yml` üç iş koşuyor; üçü bağımsız, böylece tek koşuda bütün sorunlar görülüyor:

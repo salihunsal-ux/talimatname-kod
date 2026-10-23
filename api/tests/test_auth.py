@@ -24,10 +24,10 @@ from talimatname.services.auth import (
     AuthService,
     OtpRejected,
     ResendTooSoon,
-    TokenInvalid,
     UnknownPhone,
     UserInactive,
 )
+from talimatname.services.tokens import TokenInvalid
 from talimatname.settings import Settings
 
 KADIKOY = sabit_id("sube:KDK")

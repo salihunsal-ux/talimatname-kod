@@ -17,6 +17,7 @@ from uuid import UUID, uuid5
 
 from talimatname.domain.actions import Action
 from talimatname.domain.answers import Answer, RunLock
+from talimatname.domain.evidence import Evidence
 from talimatname.domain.notifications import Notification
 from talimatname.domain.organization import Branch, Region, Station, uniform_hours
 from talimatname.domain.plans import Assignment, Plan, Run
@@ -52,15 +53,18 @@ def _tohum_subeler() -> list[Branch]:
     gec_kapanan = uniform_hours(time(8, 0), time(1, 0))
     pazar_kapali = uniform_hours(time(9, 0), time(21, 0), closed=(6,))
 
-    tanim: list[tuple[str, str, str, dict[int, BusinessHours | None]]] = [
-        ("KDK", "Kadıköy", "anadolu", standart),
-        ("USK", "Üsküdar", "anadolu", standart),
-        ("ATS", "Ataşehir", "anadolu", pazar_kapali),
-        ("BSK", "Beşiktaş", "avrupa", gec_kapanan),
-        ("BKR", "Bakırköy", "avrupa", standart),
-        ("SSL", "Şişli", "avrupa", gec_kapanan),
-        ("ALS", "Alsancak", "ege", standart),
-        ("BRN", "Bornova", "ege", pazar_kapali),
+    #: Koordinatlar semt merkezlerine yakın **yaklaşık** değerler: kanıtın
+    #: "konum şube dışında" bayrağı (FR-0615) ölçüye dayansın diye var.
+    #: Şubeler uydurma (ADR-0003); bu noktalar gerçek bir adres değildir.
+    tanim: list[tuple[str, str, str, dict[int, BusinessHours | None], float, float]] = [
+        ("KDK", "Kadıköy", "anadolu", standart, 40.9903, 29.0275),
+        ("USK", "Üsküdar", "anadolu", standart, 41.0254, 29.0152),
+        ("ATS", "Ataşehir", "anadolu", pazar_kapali, 40.9923, 29.1270),
+        ("BSK", "Beşiktaş", "avrupa", gec_kapanan, 41.0430, 29.0094),
+        ("BKR", "Bakırköy", "avrupa", standart, 40.9819, 28.8772),
+        ("SSL", "Şişli", "avrupa", gec_kapanan, 41.0602, 28.9877),
+        ("ALS", "Alsancak", "ege", standart, 38.4379, 27.1430),
+        ("BRN", "Bornova", "ege", pazar_kapali, 38.4700, 27.2200),
     ]
     return [
         Branch(
@@ -71,8 +75,10 @@ def _tohum_subeler() -> list[Branch]:
             business_hours=saatler,
             region_id=sabit_id(f"bolge:{bolge}"),
             address=f"{ad}, İstanbul" if bolge != "ege" else f"{ad}, İzmir",
+            latitude=enlem,
+            longitude=boylam,
         ).validated()
-        for kod, ad, bolge, saatler in tanim
+        for kod, ad, bolge, saatler, enlem, boylam in tanim
     ]
 
 
@@ -466,6 +472,37 @@ class MemoryActionRepository:
 
     def save_action(self, action: Action) -> None:
         self._actions[action.id] = action
+
+
+class MemoryEvidenceRepository:
+    """`EvidenceRepository` portunun bellek içi karşılığı.
+
+    Özete göre arama bir sözlükle: tekillik denetimi (FR-0614)
+    her yüklemede koşuyor, doğrusal tarama kabul edilemez.
+    """
+
+    def __init__(self) -> None:
+        self._evidences: dict[UUID, Evidence] = {}
+        self._by_digest: dict[str, UUID] = {}
+
+    def evidences(self) -> list[Evidence]:
+        return list(self._evidences.values())
+
+    def evidence(self, evidence_id: UUID) -> Evidence | None:
+        return self._evidences.get(evidence_id)
+
+    def evidence_by_digest(self, sha256: str) -> Evidence | None:
+        kimlik = self._by_digest.get(sha256)
+        return self._evidences.get(kimlik) if kimlik else None
+
+    def save_evidence(self, evidence: Evidence) -> None:
+        self._evidences[evidence.id] = evidence
+        self._by_digest[evidence.sha256] = evidence.id
+
+    def delete_evidence(self, evidence_id: UUID) -> None:
+        kanit = self._evidences.pop(evidence_id, None)
+        if kanit is not None:
+            self._by_digest.pop(kanit.sha256, None)
 
 
 class MemoryNotificationRepository:

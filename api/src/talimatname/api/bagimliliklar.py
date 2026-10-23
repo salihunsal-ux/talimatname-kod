@@ -16,6 +16,7 @@ from functools import lru_cache
 from talimatname.infra.memory import (
     MemoryActionRepository,
     MemoryAnswerRepository,
+    MemoryEvidenceRepository,
     MemoryNotificationRepository,
     MemoryOrganizationRepository,
     MemoryPlanRepository,
@@ -27,6 +28,7 @@ from talimatname.services.auth import AuthService
 from talimatname.services.dashboard import DashboardService
 from talimatname.services.digest import DigestService
 from talimatname.services.escalation import EscalationService
+from talimatname.services.evidence import EvidenceRepository, EvidenceService
 from talimatname.services.execution import AnswerRepository, ExecutionService
 from talimatname.services.notifications import (
     NotificationRepository,
@@ -36,6 +38,7 @@ from talimatname.services.organization import OrganizationRepository, Organizati
 from talimatname.services.plans import PlanRepository, PlanService
 from talimatname.services.reminders import ReminderService
 from talimatname.services.scheduler import SchedulerService
+from talimatname.services.storage import LocalObjectStore, ObjectStore
 from talimatname.services.templates import TemplateRepository, TemplateService
 from talimatname.services.users import UserRepository, UserService
 from talimatname.settings import Settings, get_settings
@@ -140,6 +143,21 @@ def _bildirim_deposu() -> NotificationRepository:
     return MemoryNotificationRepository()
 
 
+@lru_cache
+def _kanit_deposu() -> EvidenceRepository:
+    if sql_modu():
+        from talimatname.infra.db.adapters import SqlEvidenceRepository
+
+        return SqlEvidenceRepository(_kiraci())  # type: ignore[arg-type,return-value]
+    return MemoryEvidenceRepository()  # type: ignore[return-value]
+
+
+@lru_cache
+def _nesne_deposu() -> ObjectStore:
+    """S3 yokken yerel dizin (ADR-0012 md.4; sağlayıcı kararı beklemiyor)."""
+    return LocalObjectStore(ayarlar().evidence_dir)
+
+
 # --- servisler --------------------------------------------------------
 
 
@@ -225,6 +243,16 @@ def yurutme_servisi() -> ExecutionService:
     return ExecutionService(_cevap_deposu(), _plan_deposu(), _sablon_deposu(), _aksiyon_deposu())
 
 
+def kanit_servisi() -> EvidenceService:
+    return EvidenceService(
+        _kanit_deposu(),
+        _plan_deposu(),
+        _org_deposu(),
+        _nesne_deposu(),
+        settings=ayarlar(),
+    )
+
+
 def pano_servisi() -> DashboardService:
     _ilk_tur()
     return DashboardService(_plan_deposu(), _org_deposu())
@@ -243,6 +271,8 @@ _ONBELLEKLER = (
     _cevap_deposu,
     _aksiyon_deposu,
     _bildirim_deposu,
+    _kanit_deposu,
+    _nesne_deposu,
     _kimlik_servisi,
 )
 

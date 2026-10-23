@@ -7,15 +7,20 @@ yapar, sonra siler — paylaşılan geliştirme veritabanını kirletmez.
 
 from __future__ import annotations
 
-from datetime import UTC, datetime, time
+from datetime import UTC, datetime, time, timedelta
 from uuid import UUID, uuid4, uuid5
 
 import pytest
 from sqlalchemy import text
+from sqlalchemy.exc import IntegrityError
 
+from talimatname.domain.evidence import Evidence
 from talimatname.domain.notifications import Notification
 from talimatname.domain.organization import Branch, uniform_hours
+from talimatname.domain.plans import Plan, Run
+from talimatname.domain.templates import Template, TemplateVersion
 from talimatname.domain.users import RoleAssignment, User
+from talimatname.domain.window import WindowRule
 from talimatname.settings import get_settings
 
 pytestmark = pytest.mark.db
@@ -28,8 +33,10 @@ if get_settings().database_url is None:  # pragma: no cover - ortam bağımlı
     )
 
 from talimatname.infra.db.adapters import (  # noqa: E402
+    SqlEvidenceRepository,
     SqlNotificationRepository,
     SqlOrganizationRepository,
+    SqlPlanRepository,
     SqlTemplateRepository,
     SqlUserRepository,
 )
@@ -219,3 +226,106 @@ def test_bildirim_teslimat_izi_gidip_geliyor(iki_kiraci: object) -> None:
     geri = depo.notification(kayit.id)
     assert geri is not None
     assert (geri.status, geri.error_code, geri.attempts) == ("failed", "surucu-yok", 1)
+
+
+def _calistirma(kiraci: UUID) -> Run:
+    """Kanıt bir çalıştırmaya bağlı (yabancı anahtar): zinciri gerçekten kuruyoruz.
+
+    Şube → şablon → sürüm → plan → çalıştırma. Uydurma bir UUID ile
+    kestirme yapmak, şemanın bütünlük kuralını test dışında bırakırdı.
+    """
+    org = SqlOrganizationRepository(kiraci)
+    sube = _sube(f"K{uuid4().hex[:2].upper()}")
+    org.save_branch(sube)
+
+    sablonlar = SqlTemplateRepository(kiraci)
+    sablon = Template(id=uuid4(), name="Kanıt denemesi")
+    sablonlar.save_template(sablon)
+    surum = TemplateVersion(
+        id=uuid4(), template_id=sablon.id, version_no=1, status="published"
+    ).validated()
+    sablonlar.save_version(surum)
+
+    planlar = SqlPlanRepository(kiraci)
+    an = datetime.now(UTC)
+    plan = Plan(
+        id=uuid4(),
+        name="Kanıt planı",
+        template_version_id=surum.id,
+        branch_ids=(sube.id,),
+        rule=WindowRule(
+            recurrence="daily",
+            starts_on=an.date(),
+            duration_minutes=60,
+            start_time=time(9, 0),
+        ),
+    ).validated()
+    planlar.save_plan(plan)
+
+    run = Run(
+        id=uuid4(),
+        plan_id=plan.id,
+        template_version_id=surum.id,
+        branch_id=sube.id,
+        business_day=an.date(),
+        window_start=an,
+        window_end=an + timedelta(hours=1),
+        tolerance_end=an + timedelta(hours=2),
+    )
+    planlar.save_run(run)
+    return run
+
+
+def _kanit(run: Run, ozet: str) -> Evidence:
+    return Evidence(
+        id=uuid4(),
+        run_id=run.id,
+        answer_id=uuid4(),
+        item_id=uuid4(),
+        branch_id=run.branch_id,
+        user_id=None,
+        sha256=ozet,
+        content_type="image/jpeg",
+        size_bytes=1234,
+        storage_key=f"evidence/{run.id}/{uuid4()}.jpg",
+        created_at=datetime.now(UTC),
+    ).validated()
+
+
+def test_fr0614_ayni_ozet_veritabaninda_da_engellenir(iki_kiraci: object) -> None:
+    """Tekillik şemaya yazılı: servis denetimi yarışta kaçabilir, indeks kaçmaz.
+
+    Ürünün tek iddiası "kanıt gerçek"; onu yalnızca uygulama koduna
+    bağlamak, iki eşzamanlı yüklemede iddiayı kaybetmek demek.
+    """
+    run = _calistirma(A_KIRACI)
+    depo = SqlEvidenceRepository(A_KIRACI)
+    ozet = "a" * 64
+    depo.save_evidence(_kanit(run, ozet))
+
+    with pytest.raises(IntegrityError):
+        depo.save_evidence(_kanit(run, ozet))
+
+
+def test_ayni_ozet_baska_kiracida_serbest(iki_kiraci: object) -> None:
+    """Tekillik **hesap içinde** (FR-0614): başka zincirin fotoğrafı bizi bağlamaz."""
+    ozet = "b" * 64
+    SqlEvidenceRepository(A_KIRACI).save_evidence(_kanit(_calistirma(A_KIRACI), ozet))
+    SqlEvidenceRepository(B_KIRACI).save_evidence(_kanit(_calistirma(B_KIRACI), ozet))
+
+    assert SqlEvidenceRepository(A_KIRACI).evidence_by_digest(ozet) is not None
+    assert SqlEvidenceRepository(B_KIRACI).evidence_by_digest(ozet) is not None
+
+
+def test_kanit_silinebiliyor(iki_kiraci: object) -> None:
+    """Doğrulanmamış yükleme silinir; tekillik kilidi onunla birlikte kalkar."""
+    run = _calistirma(A_KIRACI)
+    depo = SqlEvidenceRepository(A_KIRACI)
+    ozet = "c" * 64
+    kanit = _kanit(run, ozet)
+    depo.save_evidence(kanit)
+
+    depo.delete_evidence(kanit.id)
+
+    assert depo.evidence_by_digest(ozet) is None
+    depo.save_evidence(_kanit(run, ozet))  # aynı kare yeniden yüklenebilir

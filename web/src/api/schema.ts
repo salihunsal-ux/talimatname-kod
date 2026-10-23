@@ -681,6 +681,127 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/runs/{run_id}/answers/{answer_id}/evidence": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Kanıt yükleme izni al
+         * @description Aynı SHA-256 hesapta daha önce kullanıldıysa 409 döner (FR-0614).
+         */
+        post: operations["kanit_baslat_api_v1_runs__run_id__answers__answer_id__evidence_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/uploads/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Kanıt baytlarını yükle
+         * @description Yerel depolama adaptörünün yükleme ucu.
+         *
+         *     Oturum **istemez**: yetki belirtecin kendisindedir ve o belirteç tek
+         *     bir kanıt için 15 dakika geçerlidir. S3'e geçilince bu uç nokta
+         *     kullanılmaz, istemci doğrudan kovaya yükler.
+         */
+        put: operations["kanit_yukle_api_v1_uploads__token__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/evidence/{evidence_id}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Yüklemeyi doğrula ve tamamla
+         * @description Sunucu depodaki baytların özetini hesaplar; tutmuyorsa reddeder.
+         */
+        post: operations["kanit_tamamla_api_v1_evidence__evidence_id__complete_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/runs/{run_id}/evidence": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Çalıştırmanın kanıtları */
+        get: operations["calistirma_kanitlari_api_v1_runs__run_id__evidence_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/evidence/{evidence_id}/url": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * İmzalı görüntüleme bağlantısı
+         * @description 15 dakikalık bağlantı (FR-1305). Kapsam denetimi **burada** yapılır.
+         */
+        get: operations["kanit_baglantisi_api_v1_evidence__evidence_id__url_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/evidence/file/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Kanıt dosyası
+         * @description Belirteçle servis edilir: `<img src>` Authorization başlığı gönderemez.
+         */
+        get: operations["kanit_dosyasi_api_v1_evidence_file__token__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -768,6 +889,13 @@ export interface components {
             role?: string | null;
             /** User Id */
             user_id?: string | null;
+        };
+        /** BayrakCiktisi */
+        BayrakCiktisi: {
+            /** Code */
+            code: string;
+            /** Label */
+            label: string;
         };
         /** BenYaniti */
         BenYaniti: {
@@ -1143,6 +1271,13 @@ export interface components {
             /** User Id */
             user_id?: string | null;
         };
+        /** GoruntulemeBaglantisi */
+        GoruntulemeBaglantisi: {
+            /** Url */
+            url: string;
+            /** Expires In Minutes */
+            expires_in_minutes: number;
+        };
         /** Gostergeler */
         Gostergeler: {
             /** Total */
@@ -1242,6 +1377,93 @@ export interface components {
             name: string;
             /** Kind */
             kind: string;
+        };
+        /**
+         * KanitGirdisi
+         * @description Yükleme öncesi beyan. Dosyanın kendisi bu istekte **yok**.
+         */
+        KanitGirdisi: {
+            /**
+             * Item Id
+             * Format: uuid
+             */
+            item_id: string;
+            /**
+             * Sha256
+             * @description Dosyanın SHA-256 özeti
+             */
+            sha256: string;
+            /**
+             * Content Type
+             * @enum {string}
+             */
+            content_type: "image/jpeg" | "image/png";
+            /** Size Bytes */
+            size_bytes: number;
+            /**
+             * From Gallery
+             * @description Galeriden seçildiyse true; bayrak olarak saklanır
+             * @default false
+             */
+            from_gallery?: boolean;
+            /** Captured At */
+            captured_at?: string | null;
+            /** Device Reported At */
+            device_reported_at?: string | null;
+            /** Device Id */
+            device_id?: string | null;
+            /** Latitude */
+            latitude?: number | null;
+            /** Longitude */
+            longitude?: number | null;
+        };
+        /** KanitOzet */
+        KanitOzet: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Run Id
+             * Format: uuid
+             */
+            run_id: string;
+            /**
+             * Answer Id
+             * Format: uuid
+             */
+            answer_id: string;
+            /**
+             * Item Id
+             * Format: uuid
+             */
+            item_id: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "pending" | "stored" | "stamped";
+            /** Content Type */
+            content_type: string;
+            /** Size Bytes */
+            size_bytes: number;
+            /** Sha256 */
+            sha256: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Captured At */
+            captured_at?: string | null;
+            /** Distance Meters */
+            distance_meters?: number | null;
+            /**
+             * Flags
+             * @description Bayrak suçlama değil, incelemeye çağrıdır
+             */
+            flags?: components["schemas"]["BayrakCiktisi"][];
         };
         /**
          * KapanisGirdisi
@@ -1881,6 +2103,33 @@ export interface components {
             where: string;
             /** Message */
             message: string;
+        };
+        /**
+         * YuklemeIzni
+         * @description Yükleme adresi ve belirteci.
+         *
+         *     `upload_url` yerel adaptörde kendi uç noktamızdır ve **göreli**
+         *     yazılır: istemci kendi kaynağına göre çözsün, ters vekil arkasında
+         *     sunucunun iç adresi sızmasın. S3 uyumlu depoya geçilince burası ön
+         *     imzalı kova adresi olur (mutlak) ve istemci kodu değişmez.
+         */
+        YuklemeIzni: {
+            evidence: components["schemas"]["KanitOzet"];
+            /** Upload Url */
+            upload_url: string;
+            /**
+             * Upload Method
+             * @default PUT
+             * @constant
+             */
+            upload_method?: "PUT";
+            /** Expires In Minutes */
+            expires_in_minutes: number;
+            /**
+             * Max Per Item
+             * @default 3
+             */
+            max_per_item?: number;
         };
         /**
          * Zamanlama
@@ -3179,6 +3428,197 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CalistirmaGorunumu"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    kanit_baslat_api_v1_runs__run_id__answers__answer_id__evidence_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+                answer_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["KanitGirdisi"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["YuklemeIzni"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    kanit_yukle_api_v1_uploads__token__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KanitOzet"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    kanit_tamamla_api_v1_evidence__evidence_id__complete_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                evidence_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KanitOzet"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    calistirma_kanitlari_api_v1_runs__run_id__evidence_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KanitOzet"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    kanit_baglantisi_api_v1_evidence__evidence_id__url_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                evidence_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GoruntulemeBaglantisi"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    kanit_dosyasi_api_v1_evidence_file__token__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */

@@ -2,7 +2,9 @@ import { useQuery } from '@tanstack/react-query';
 
 import { calistirmaGorunumu, type MaddeDurumu } from '../../api/calistirma';
 import { Cip } from '../../bilesenler/Cip';
+import { calistirmaKanitlari, type Kanit } from '../../api/kanitlar';
 import { tr } from '../../i18n/tr';
+import { Kanitlar } from './Kanitlar';
 
 const CEVAP: Record<
   string,
@@ -21,14 +23,18 @@ function saat(iso: string | null | undefined): string {
 }
 
 /**
- * SCR-W-08 · Çalıştırma detayı (v1 alt kümesi): maddeler, cevaplar, puan
- * ve eksikler. Kanıt dosyaları Faz B'de (mobil kamera) geliyor; burada
- * şimdilik **kanıt sayısı** gösteriliyor, uydurma görsel değil.
+ * SCR-W-08 · Çalıştırma detayı: maddeler, cevaplar, puan, eksikler ve
+ * **kanıt görselleri** (FR-0606). Görseller imzalı ve 15 dakikalık
+ * bağlantıyla geliyor (FR-1305); bayraklar madde altında listeleniyor.
  */
 export function CalistirmaDetayi({ runId, onKapat }: { runId: string; onKapat: () => void }) {
   const gorunum = useQuery({
     queryKey: ['calistirma', runId],
     queryFn: () => calistirmaGorunumu(runId),
+  });
+  const kanitlar = useQuery({
+    queryKey: ['kanitlar', runId],
+    queryFn: () => calistirmaKanitlari(runId),
   });
 
   if (gorunum.isPending)
@@ -117,7 +123,11 @@ export function CalistirmaDetayi({ runId, onKapat }: { runId: string; onKapat: (
           </h3>
           <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
             {bolum.items.map((madde) => (
-              <MaddeSatiri key={madde.item_id} madde={madde} />
+              <MaddeSatiri
+                key={madde.item_id}
+                madde={madde}
+                kanitlar={(kanitlar.data ?? []).filter((k) => k.item_id === madde.item_id)}
+              />
             ))}
           </ul>
         </section>
@@ -126,7 +136,7 @@ export function CalistirmaDetayi({ runId, onKapat }: { runId: string; onKapat: (
   );
 }
 
-function MaddeSatiri({ madde }: { madde: MaddeDurumu }) {
+function MaddeSatiri({ madde, kanitlar }: { madde: MaddeDurumu; kanitlar: Kanit[] }) {
   const cevap = madde.answer;
   const gorunum = cevap ? CEVAP[cevap.state] : null;
   const talimat = madde.type === 'instruction';
@@ -161,6 +171,7 @@ function MaddeSatiri({ madde }: { madde: MaddeDurumu }) {
           {cevap?.evidence_count ? (
             <Cip renk="nötr" ikon="📷" metin={`${cevap.evidence_count}`} />
           ) : null}
+          <Kanitlar kanitlar={kanitlar} />
           {cevap?.clock_flagged && <Cip renk="uyari" ikon="⏱" metin={tr.calistirma.saatSapmasi} />}
           {cevap?.note && (
             <span

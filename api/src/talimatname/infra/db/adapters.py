@@ -19,6 +19,7 @@ from sqlalchemy import delete, select
 
 from talimatname.domain.actions import Action
 from talimatname.domain.answers import Answer, RunLock
+from talimatname.domain.evidence import Evidence
 from talimatname.domain.notifications import Notification
 from talimatname.domain.organization import Branch, Region, Station
 from talimatname.domain.plans import Assignment, Plan, Run
@@ -79,6 +80,8 @@ def _branch(satir: m.Branch) -> Branch:
         business_hours=_saatler_alan(satir.business_hours),
         region_id=satir.region_id,
         address=satir.address,
+        latitude=satir.latitude,
+        longitude=satir.longitude,
         status=satir.status,  # type: ignore[arg-type]
     )
 
@@ -112,6 +115,8 @@ class SqlOrganizationRepository(_TenantRepository):
             satir.name = branch.name
             satir.timezone = branch.timezone
             satir.address = branch.address
+            satir.latitude = branch.latitude
+            satir.longitude = branch.longitude
             satir.status = branch.status
             satir.business_hours = _saatler_json(branch.business_hours)
             o.add(satir)
@@ -613,9 +618,93 @@ class SqlNotificationRepository(_TenantRepository):
             o.add(satir)
 
 
+def _kanit(satir: m.Evidence) -> Evidence:
+    return Evidence(
+        id=satir.id,
+        run_id=satir.run_id,
+        answer_id=satir.answer_id,
+        item_id=satir.item_id,
+        branch_id=satir.branch_id,
+        user_id=satir.user_id,
+        sha256=satir.sha256,
+        content_type=satir.content_type,
+        size_bytes=satir.size_bytes,
+        storage_key=satir.storage_key,
+        created_at=satir.created_at,
+        status=satir.status,  # type: ignore[arg-type]
+        captured_at=satir.captured_at,
+        device_reported_at=satir.device_reported_at,
+        clock_skew_minutes=satir.clock_skew_minutes,
+        latitude=satir.latitude,
+        longitude=satir.longitude,
+        distance_meters=satir.distance_meters,
+        device_id=satir.device_id,
+        from_gallery=satir.from_gallery,
+        flags=tuple(satir.flags or ()),
+        stored_at=satir.stored_at,
+        stamped_at=satir.stamped_at,
+        stamped_key=satir.stamped_key,
+        thumbnail_key=satir.thumbnail_key,
+    )
+
+
+class SqlEvidenceRepository(_TenantRepository):
+    def evidences(self) -> list[Evidence]:
+        with tenant_session(self._tenant) as o:
+            return [_kanit(k) for k in o.scalars(select(m.Evidence)).all()]
+
+    def evidence(self, evidence_id: UUID) -> Evidence | None:
+        with tenant_session(self._tenant) as o:
+            satir = o.get(m.Evidence, evidence_id)
+            return _kanit(satir) if satir else None
+
+    def evidence_by_digest(self, sha256: str) -> Evidence | None:
+        with tenant_session(self._tenant) as o:
+            satir = o.scalars(select(m.Evidence).where(m.Evidence.sha256 == sha256)).first()
+            return _kanit(satir) if satir else None
+
+    def save_evidence(self, evidence: Evidence) -> None:
+        with tenant_session(self._tenant) as o:
+            satir = o.get(m.Evidence, evidence.id) or m.Evidence(
+                id=evidence.id, tenant_id=self._tenant
+            )
+            satir.run_id = evidence.run_id
+            satir.answer_id = evidence.answer_id
+            satir.item_id = evidence.item_id
+            satir.branch_id = evidence.branch_id
+            satir.user_id = evidence.user_id
+            satir.sha256 = evidence.sha256
+            satir.content_type = evidence.content_type
+            satir.size_bytes = evidence.size_bytes
+            satir.storage_key = evidence.storage_key
+            satir.created_at = evidence.created_at
+            satir.status = evidence.status
+            satir.captured_at = evidence.captured_at
+            satir.device_reported_at = evidence.device_reported_at
+            satir.clock_skew_minutes = evidence.clock_skew_minutes
+            satir.latitude = evidence.latitude
+            satir.longitude = evidence.longitude
+            satir.distance_meters = evidence.distance_meters
+            satir.device_id = evidence.device_id
+            satir.from_gallery = evidence.from_gallery
+            satir.flags = list(evidence.flags)
+            satir.stored_at = evidence.stored_at
+            satir.stamped_at = evidence.stamped_at
+            satir.stamped_key = evidence.stamped_key
+            satir.thumbnail_key = evidence.thumbnail_key
+            o.add(satir)
+
+    def delete_evidence(self, evidence_id: UUID) -> None:
+        with tenant_session(self._tenant) as o:
+            satir = o.get(m.Evidence, evidence_id)
+            if satir is not None:
+                o.delete(satir)
+
+
 __all__ = [
     "SqlActionRepository",
     "SqlAnswerRepository",
+    "SqlEvidenceRepository",
     "SqlNotificationRepository",
     "SqlOrganizationRepository",
     "SqlPlanRepository",

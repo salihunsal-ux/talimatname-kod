@@ -31,6 +31,9 @@ class Settings(BaseSettings):
     # Kanıt dosyaları: S3 uyumlu uç nokta; dev'de yerel dizin adaptörü kullanılır.
     object_store_endpoint: str | None = None
     object_store_bucket: str | None = None
+    #: S3 yokken kanıtların yazıldığı yerel dizin. Üretimde
+    #: kullanılmaz: tek makineye bağlı, yedeği ve şifrelemesi yok.
+    evidence_dir: str = "var/evidence"
 
     access_token_minutes: int = Field(default=30, ge=5, le=240)
 
