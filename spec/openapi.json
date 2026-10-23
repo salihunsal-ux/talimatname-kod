@@ -1492,6 +1492,167 @@
           }
         }
       }
+    },
+    "/api/v1/runs/{run_id}": {
+      "get": {
+        "tags": [
+          "yürütme"
+        ],
+        "summary": "Çalıştırma görünümü (maddeler ve cevaplar)",
+        "operationId": "calistirma_gorunumu_api_v1_runs__run_id__get",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Run Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalistirmaGorunumu"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/runs/{run_id}/answers/{answer_id}": {
+      "put": {
+        "tags": [
+          "yürütme"
+        ],
+        "summary": "Cevap yaz (idempotent)",
+        "description": "Aynı `answer_id` ile ikinci çağrı yeni kayıt açmaz, var olanı günceller.",
+        "operationId": "cevap_yaz_api_v1_runs__run_id__answers__answer_id__put",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Run Id"
+            }
+          },
+          {
+            "name": "answer_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Answer Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CevapGirdisi"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CevapCiktisi"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/runs/{run_id}/submit": {
+      "post": {
+        "tags": [
+          "yürütme"
+        ],
+        "summary": "Listeyi gönder",
+        "description": "Eksik varsa 422 ve eksiklerin listesi döner; puan sunucuda hesaplanır.",
+        "operationId": "calistirma_gonder_api_v1_runs__run_id__submit_post",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Run Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GonderimGirdisi"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalistirmaGorunumu"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1759,6 +1920,33 @@
         ],
         "title": "BolumCiktisi"
       },
+      "BolumDurumu": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/MaddeDurumu"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "items"
+        ],
+        "title": "BolumDurumu"
+      },
       "BolumGirdisi": {
         "properties": {
           "id": {
@@ -1840,6 +2028,121 @@
         "title": "CalismaSaati",
         "description": "Bir günün açılış/kapanışı. `null` gün = kapalı."
       },
+      "CalistirmaGorunumu": {
+        "properties": {
+          "run_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Run Id"
+          },
+          "branch_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Branch Id"
+          },
+          "business_day": {
+            "type": "string",
+            "title": "Business Day"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Result"
+          },
+          "score_percent": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score Percent"
+          },
+          "window_start": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Window Start"
+          },
+          "window_end": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Window End"
+          },
+          "tolerance_end": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Tolerance End"
+          },
+          "submitted_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Submitted At"
+          },
+          "template_name": {
+            "type": "string",
+            "title": "Template Name"
+          },
+          "locked_by": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Locked By"
+          },
+          "sections": {
+            "items": {
+              "$ref": "#/components/schemas/BolumDurumu"
+            },
+            "type": "array",
+            "title": "Sections"
+          },
+          "blockers": {
+            "items": {
+              "$ref": "#/components/schemas/Eksik"
+            },
+            "type": "array",
+            "title": "Blockers"
+          }
+        },
+        "type": "object",
+        "required": [
+          "run_id",
+          "branch_id",
+          "business_day",
+          "status",
+          "window_start",
+          "window_end",
+          "tolerance_end",
+          "template_name",
+          "sections",
+          "blockers"
+        ],
+        "title": "CalistirmaGorunumu"
+      },
       "CalistirmaOzet": {
         "properties": {
           "id": {
@@ -1905,6 +2208,162 @@
         ],
         "title": "CalistirmaOzet"
       },
+      "CevapCiktisi": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "item_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Item Id"
+          },
+          "state": {
+            "type": "string",
+            "title": "State"
+          },
+          "value": {
+            "title": "Value"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "evidence_count": {
+            "type": "integer",
+            "title": "Evidence Count"
+          },
+          "answered_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Answered At"
+          },
+          "clock_skew_minutes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Clock Skew Minutes"
+          },
+          "clock_flagged": {
+            "type": "boolean",
+            "title": "Clock Flagged",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "item_id",
+          "state",
+          "evidence_count",
+          "answered_at"
+        ],
+        "title": "CevapCiktisi"
+      },
+      "CevapGirdisi": {
+        "properties": {
+          "item_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Item Id"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "passed",
+              "failed",
+              "not_done",
+              "not_applicable"
+            ],
+            "title": "State"
+          },
+          "value": {
+            "title": "Value"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "user_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Id"
+          },
+          "device_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Device Id"
+          },
+          "device_reported_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Device Reported At",
+            "description": "Cihazın saati. Kaydedilir ama karar için kullanılmaz (BR-13)."
+          },
+          "evidence_count": {
+            "type": "integer",
+            "maximum": 3.0,
+            "minimum": 0.0,
+            "title": "Evidence Count",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "item_id",
+          "state"
+        ],
+        "title": "CevapGirdisi"
+      },
       "DavetYaniti": {
         "properties": {
           "user": {
@@ -1927,6 +2386,35 @@
         ],
         "title": "DavetYaniti",
         "description": "Davet sonucu.\n\n`invite_sent` bugün **her zaman false**: SMS sağlayıcısı bağlı değil\n(ST-044). Arayüz \"gönderildi\" demez, \"kuyruğa alındı\" der."
+      },
+      "Eksik": {
+        "properties": {
+          "item_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Item Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "unanswered",
+              "evidence",
+              "note"
+            ],
+            "title": "Kind"
+          }
+        },
+        "type": "object",
+        "required": [
+          "item_id",
+          "title",
+          "kind"
+        ],
+        "title": "Eksik"
       },
       "ElleAksiyonGirdisi": {
         "properties": {
@@ -1984,6 +2472,24 @@
           "title"
         ],
         "title": "ElleAksiyonGirdisi"
+      },
+      "GonderimGirdisi": {
+        "properties": {
+          "user_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Id"
+          }
+        },
+        "type": "object",
+        "title": "GonderimGirdisi"
       },
       "Gostergeler": {
         "properties": {
@@ -2484,6 +2990,93 @@
           "scored"
         ],
         "title": "MaddeCiktisi"
+      },
+      "MaddeDurumu": {
+        "properties": {
+          "item_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Item Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "type": {
+            "type": "string",
+            "title": "Type"
+          },
+          "type_label": {
+            "type": "string",
+            "title": "Type Label"
+          },
+          "required": {
+            "type": "boolean",
+            "title": "Required"
+          },
+          "photo_required": {
+            "type": "boolean",
+            "title": "Photo Required"
+          },
+          "critical": {
+            "type": "boolean",
+            "title": "Critical"
+          },
+          "min_value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min Value"
+          },
+          "max_value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Value"
+          },
+          "unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit"
+          },
+          "answer": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CevapCiktisi"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "item_id",
+          "title",
+          "type",
+          "type_label",
+          "required",
+          "photo_required",
+          "critical"
+        ],
+        "title": "MaddeDurumu"
       },
       "MaddeGirdisi": {
         "properties": {
@@ -3395,6 +3988,12 @@
             "type": "integer",
             "title": "Missed",
             "description": "Toleransı dolduğu için kaçırıldı yazılan çalıştırma sayısı"
+          },
+          "actions_opened": {
+            "type": "integer",
+            "title": "Actions Opened",
+            "description": "Kaçırmadan doğan yeni aksiyon sayısı",
+            "default": 0
           }
         },
         "type": "object",

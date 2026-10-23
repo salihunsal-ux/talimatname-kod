@@ -16,6 +16,7 @@ from datetime import UTC, date, datetime, time, timedelta
 from uuid import UUID, uuid5
 
 from talimatname.domain.actions import Action
+from talimatname.domain.answers import Answer, RunLock
 from talimatname.domain.organization import Branch, Region, Station, uniform_hours
 from talimatname.domain.plans import Assignment, Plan, Run
 from talimatname.domain.templates import (
@@ -464,3 +465,33 @@ class MemoryActionRepository:
 
     def save_action(self, action: Action) -> None:
         self._actions[action.id] = action
+
+
+class MemoryAnswerRepository:
+    """`AnswerRepository` portunun bellek içi karşılığı.
+
+    Cevap kimliği cihazda üretildiği için anahtar doğrudan onu kullanır:
+    aynı kimlikle ikinci yazma var olanı değiştirir (idempotency).
+    """
+
+    def __init__(self) -> None:
+        self._answers: dict[UUID, Answer] = {}
+        self._locks: dict[UUID, RunLock] = {}
+
+    def answers(self, run_id: UUID) -> list[Answer]:
+        return [a for a in self._answers.values() if a.run_id == run_id]
+
+    def answer(self, answer_id: UUID) -> Answer | None:
+        return self._answers.get(answer_id)
+
+    def save_answer(self, answer: Answer) -> None:
+        self._answers[answer.id] = answer
+
+    def lock(self, run_id: UUID) -> RunLock | None:
+        return self._locks.get(run_id)
+
+    def save_lock(self, run_id: UUID, lock: RunLock | None) -> None:
+        if lock is None:
+            self._locks.pop(run_id, None)
+        else:
+            self._locks[run_id] = lock

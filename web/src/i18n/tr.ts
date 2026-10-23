@@ -183,6 +183,23 @@ export const tr = {
     ac: 'Aksiyon aç',
     vadeNotu: 'Vade önceliğe göre sabittir: kritik 4 saat, yüksek 24 saat, normal 72 saat.',
   },
+  calistirma: {
+    gecti: 'Geçti',
+    gecmedi: 'Geçmedi',
+    yapilamadi: 'Yapılamadı',
+    uygunDegil: 'Uygun değil',
+    cevapsiz: 'Cevapsız',
+    basarili: 'Başarılı',
+    basarisiz: 'Başarısız',
+    eksikler: 'Gönderime engel eksikler',
+    eksikTuru: {
+      unanswered: 'cevaplanmadı',
+      evidence: 'fotoğraf gerekiyor',
+      note: 'not gerekiyor',
+    },
+    saatSapmasi: 'cihaz saati',
+    kapat: 'Kapat',
+  },
   durum: {
     planli: 'Planlı',
     devam: 'Devam ediyor',

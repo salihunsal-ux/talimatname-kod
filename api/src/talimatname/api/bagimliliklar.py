@@ -11,6 +11,7 @@ from functools import lru_cache
 
 from talimatname.infra.memory import (
     MemoryActionRepository,
+    MemoryAnswerRepository,
     MemoryOrganizationRepository,
     MemoryPlanRepository,
     MemoryTemplateRepository,
@@ -18,6 +19,7 @@ from talimatname.infra.memory import (
 )
 from talimatname.services.actions import ActionService
 from talimatname.services.dashboard import DashboardService
+from talimatname.services.execution import ExecutionService
 from talimatname.services.organization import OrganizationService
 from talimatname.services.plans import PlanService
 from talimatname.services.scheduler import SchedulerService
@@ -73,6 +75,17 @@ def _bellek_aksiyon_deposu() -> MemoryActionRepository:
 def aksiyon_servisi() -> ActionService:
     _veritabani_kontrolu()
     return ActionService(_bellek_aksiyon_deposu(), _bellek_deposu(), _bellek_plan_deposu())
+
+
+@lru_cache
+def _bellek_cevap_deposu() -> MemoryAnswerRepository:
+    return MemoryAnswerRepository()
+
+
+def yurutme_servisi() -> ExecutionService:
+    _veritabani_kontrolu()
+    _ilk_tur()
+    return ExecutionService(_bellek_cevap_deposu(), _bellek_plan_deposu(), _bellek_sablon_deposu())
 
 
 def zamanlayici_servisi() -> SchedulerService:

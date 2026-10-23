@@ -1,0 +1,225 @@
+"""Çalıştırma yürütme: cevap yazma ve gönderim (ST-030, ST-033, ST-139).
+
+Mobilin bağlanacağı yüzey burası. Üç davranış sözleşme sayılır ve
+Faz B'den önce değişmemeli (ADR-0013 devir kapısı):
+
+1. `PUT .../answers/{uuid}` **idempotent**: aynı gövdeyle tekrar aynı
+   kaydı verir, farklı gövdeyle son yazan kazanır.
+2. Gönderim **eksik varken reddedilir** ve eksiklerin listesini döner
+   (FR-0607); puan ve sonuç sunucuda hesaplanır (FR-0306/0307).
+3. Kilit: "biri tamamlasın" listesinde ilk açan alır (FR-0521).
+"""
+
+from __future__ import annotations
+
+from collections.abc import Callable
+from dataclasses import dataclass, replace
+from datetime import UTC, datetime
+from typing import Protocol
+from uuid import UUID
+
+from talimatname.domain.answers import (
+    Answer,
+    Missing,
+    RunLock,
+    clock_skew,
+    ensure_writable,
+    outcomes,
+    submission_blockers,
+)
+from talimatname.domain.errors import DomainError, ErrorKind
+from talimatname.domain.plans import Run
+from talimatname.domain.scoring import evaluate
+from talimatname.domain.templates import TemplateVersion
+from talimatname.services.plans import PlanRepository
+from talimatname.services.templates import TemplateRepository
+
+
+class RunNotFound(DomainError):
+    code = "calistirma-bulunamadi"
+    title = "Çalıştırma bulunamadı"
+    kind: ErrorKind = "not_found"
+
+
+class RunClosed(DomainError):
+    code = "calistirma-kapali"
+    title = "Bu çalıştırma gönderilmiş ya da iptal edilmiş"
+    kind: ErrorKind = "conflict"
+
+
+class WindowClosed(DomainError):
+    code = "pencere-kapali"
+    title = "Pencere ve tolerans süresi doldu"
+    kind: ErrorKind = "conflict"
+
+
+class ItemNotInTemplate(DomainError):
+    code = "madde-bulunamadi"
+    title = "Madde bu şablon sürümünde yok"
+    kind: ErrorKind = "not_found"
+
+
+class SubmissionIncomplete(DomainError):
+    code = "gonderim-eksik"
+    title = "Liste eksik: gönderilemez"
+    kind: ErrorKind = "invalid"
+
+
+class AnswerRepository(Protocol):
+    def answers(self, run_id: UUID) -> list[Answer]: ...
+
+    def answer(self, answer_id: UUID) -> Answer | None: ...
+
+    def save_answer(self, answer: Answer) -> None: ...
+
+    def lock(self, run_id: UUID) -> RunLock | None: ...
+
+    def save_lock(self, run_id: UUID, lock: RunLock | None) -> None: ...
+
+
+@dataclass(frozen=True, slots=True)
+class RunView:
+    """Çalıştırma + şablon + cevaplar: ekranın ve gönderimin ortak görünümü."""
+
+    run: Run
+    version: TemplateVersion
+    answers: dict[UUID, Answer]
+    lock: RunLock | None
+    blockers: list[Missing]
+
+
+class ExecutionService:
+    def __init__(
+        self,
+        answers: AnswerRepository,
+        plans: PlanRepository,
+        templates: TemplateRepository,
+        *,
+        now: Callable[[], datetime] = lambda: datetime.now(UTC),
+    ) -> None:
+        self._answers = answers
+        self._plans = plans
+        self._templates = templates
+        self._now = now
+
+    # --- okuma -------------------------------------------------------
+
+    def view(self, run_id: UUID) -> RunView:
+        run = self._run(run_id)
+        surum = self._version(run)
+        cevaplar = {a.item_id: a for a in self._answers.answers(run_id)}
+        return RunView(
+            run=run,
+            version=surum,
+            answers=cevaplar,
+            lock=self._answers.lock(run_id),
+            blockers=submission_blockers(items=self._items(surum), answers=cevaplar),
+        )
+
+    # --- yazma -------------------------------------------------------
+
+    def write_answer(
+        self,
+        *,
+        run_id: UUID,
+        answer_id: UUID,
+        item_id: UUID,
+        state: str,
+        value: object = None,
+        note: str | None = None,
+        user_id: UUID | None = None,
+        device_id: UUID | None = None,
+        device_reported_at: datetime | None = None,
+        evidence_count: int = 0,
+    ) -> Answer:
+        """Cevabı yazar (idempotent). Kimlik cihazdan gelir."""
+        an = self._now()
+        run = self._run(run_id)
+        self._ensure_open(run, an)
+        surum = self._version(run)
+        if all(madde.id != item_id for madde in surum.items):
+            raise ItemNotInTemplate(f"Madde id: {item_id}")
+
+        kilit = ensure_writable(self._answers.lock(run_id), user_id, an)
+        self._answers.save_lock(run_id, kilit)
+
+        cevap = Answer(
+            id=answer_id,
+            run_id=run_id,
+            item_id=item_id,
+            state=state,  # type: ignore[arg-type]
+            value=value,
+            note=note,
+            user_id=user_id,
+            device_id=device_id,
+            answered_at=an,
+            device_reported_at=device_reported_at,
+            clock_skew_minutes=clock_skew(an, device_reported_at),
+            evidence_count=evidence_count,
+        ).validated()
+        self._answers.save_answer(cevap)
+
+        if run.status == "scheduled":
+            self._plans.save_run(replace(run, status="in_progress"))
+        return cevap
+
+    def submit(self, run_id: UUID, *, user_id: UUID | None = None) -> Run:
+        """Listeyi gönderir: eksikleri denetler, puanı ve sonucu hesaplar."""
+        an = self._now()
+        run = self._run(run_id)
+        self._ensure_open(run, an)
+        surum = self._version(run)
+        cevaplar = {a.item_id: a for a in self._answers.answers(run_id)}
+
+        eksikler = submission_blockers(items=self._items(surum), answers=cevaplar)
+        if eksikler:
+            raise SubmissionIncomplete(
+                f"{len(eksikler)} madde eksik",
+                missing=[
+                    {"item_id": str(m.item_id), "title": m.title, "kind": m.kind} for m in eksikler
+                ],
+            )
+
+        meta = {madde.id: (madde.critical, madde.scored) for madde in surum.items}
+        degerlendirme = evaluate(outcomes(list(cevaplar.values()), meta))
+
+        gonderilen = replace(
+            run,
+            status="submitted",
+            result=degerlendirme.result,
+            score_percent=degerlendirme.score_percent,
+            submitted_at=an,
+            locked_by=user_id,
+        )
+        self._plans.save_run(gonderilen)
+        self._answers.save_lock(run_id, None)
+        return gonderilen
+
+    # --- yardımcılar --------------------------------------------------
+
+    def _run(self, run_id: UUID) -> Run:
+        run = next((r for r in self._plans.runs() if r.id == run_id), None)
+        if run is None:
+            raise RunNotFound(f"Çalıştırma id: {run_id}")
+        return run
+
+    def _version(self, run: Run) -> TemplateVersion:
+        surum = self._templates.version(run.template_version_id)
+        if surum is None:
+            raise RunNotFound(f"Şablon sürümü: {run.template_version_id}")
+        return surum
+
+    def _ensure_open(self, run: Run, now: datetime) -> None:
+        if run.status in ("submitted", "cancelled"):
+            raise RunClosed(f"Durum: {run.status}")
+        if now >= run.tolerance_end:
+            # Tolerans bittiyse yazma da gönderim de kapanır (BR-03).
+            raise WindowClosed(f"Tolerans bitişi: {run.tolerance_end.isoformat()}")
+
+    @staticmethod
+    def _items(surum: TemplateVersion) -> list[tuple[UUID, str, bool, bool, bool]]:
+        return [
+            (madde.id, madde.title, madde.required, madde.photo_required, madde.scored)
+            for madde in surum.items
+            if madde.scored  # talimat satırı cevaplanmaz
+        ]

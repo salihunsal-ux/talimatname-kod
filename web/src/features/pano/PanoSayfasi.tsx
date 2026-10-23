@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 
 import { panoGetir, type Hucre } from '../../api/pano';
+import { CalistirmaDetayi } from '../calistirma/CalistirmaDetayi';
 import { tr } from '../../i18n/tr';
 
 /** Hücre görünümü: renk tek başına anlam taşımaz, ikon + başlık var (NFR-11). */
@@ -81,6 +82,7 @@ function saat(iso: string | null | undefined): string {
 export function PanoSayfasi() {
   const [gun, setGun] = useState(bugunIso());
   const [tumu, setTumu] = useState(false);
+  const [acikCalistirma, setAcikCalistirma] = useState<string | null>(null);
 
   const pano = useQuery({
     queryKey: ['pano', gun],
@@ -191,7 +193,10 @@ export function PanoSayfasi() {
                   const g = HUCRE[tur];
                   return (
                     <td key={`${satir.branch_id}-${hucre.plan_id}`} style={{ padding: '6px 10px' }}>
-                      <span
+                      <button
+                        type="button"
+                        disabled={!hucre.run_id}
+                        onClick={() => hucre.run_id && setAcikCalistirma(hucre.run_id)}
                         title={`${g.ad}${hucre.window_start ? ` · ${saat(hucre.window_start)}–${saat(hucre.window_end)}` : ''}`}
                         style={{
                           display: 'inline-flex',
@@ -205,11 +210,13 @@ export function PanoSayfasi() {
                           color: g.yazi,
                           fontSize: 'var(--etiket)',
                           fontWeight: 600,
+                          border: '1px solid transparent',
+                          cursor: hucre.run_id ? 'pointer' : 'default',
                         }}
                       >
                         <span aria-hidden="true">{g.ikon}</span>
                         {g.ad}
-                      </span>
+                      </button>
                     </td>
                   );
                 })}
@@ -217,6 +224,12 @@ export function PanoSayfasi() {
             ))}
           </tbody>
         </table>
+      )}
+
+      {acikCalistirma && (
+        <div style={{ marginTop: 'var(--bosluk-4)' }}>
+          <CalistirmaDetayi runId={acikCalistirma} onKapat={() => setAcikCalistirma(null)} />
+        </div>
       )}
 
       {veri && veri.rows.length > 0 && (

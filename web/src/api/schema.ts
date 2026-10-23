@@ -502,6 +502,63 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/runs/{run_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Çalıştırma görünümü (maddeler ve cevaplar) */
+    get: operations['calistirma_gorunumu_api_v1_runs__run_id__get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/runs/{run_id}/answers/{answer_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /**
+     * Cevap yaz (idempotent)
+     * @description Aynı `answer_id` ile ikinci çağrı yeni kayıt açmaz, var olanı günceller.
+     */
+    put: operations['cevap_yaz_api_v1_runs__run_id__answers__answer_id__put'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/runs/{run_id}/submit': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Listeyi gönder
+     * @description Eksik varsa 422 ve eksiklerin listesi döner; puan sunucuda hesaplanır.
+     */
+    post: operations['calistirma_gonder_api_v1_runs__run_id__submit_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -613,6 +670,18 @@ export interface components {
       /** Items */
       items: components['schemas']['MaddeCiktisi'][];
     };
+    /** BolumDurumu */
+    BolumDurumu: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Title */
+      title: string;
+      /** Items */
+      items: components['schemas']['MaddeDurumu'][];
+    };
     /** BolumGirdisi */
     BolumGirdisi: {
       /** Id */
@@ -641,6 +710,52 @@ export interface components {
       open_time?: string | null;
       /** Close Time */
       close_time?: string | null;
+    };
+    /** CalistirmaGorunumu */
+    CalistirmaGorunumu: {
+      /**
+       * Run Id
+       * Format: uuid
+       */
+      run_id: string;
+      /**
+       * Branch Id
+       * Format: uuid
+       */
+      branch_id: string;
+      /** Business Day */
+      business_day: string;
+      /** Status */
+      status: string;
+      /** Result */
+      result?: string | null;
+      /** Score Percent */
+      score_percent?: number | null;
+      /**
+       * Window Start
+       * Format: date-time
+       */
+      window_start: string;
+      /**
+       * Window End
+       * Format: date-time
+       */
+      window_end: string;
+      /**
+       * Tolerance End
+       * Format: date-time
+       */
+      tolerance_end: string;
+      /** Submitted At */
+      submitted_at?: string | null;
+      /** Template Name */
+      template_name: string;
+      /** Locked By */
+      locked_by?: string | null;
+      /** Sections */
+      sections: components['schemas']['BolumDurumu'][];
+      /** Blockers */
+      blockers: components['schemas']['Eksik'][];
     };
     /** CalistirmaOzet */
     CalistirmaOzet: {
@@ -689,6 +804,67 @@ export interface components {
        */
       late?: boolean;
     };
+    /** CevapCiktisi */
+    CevapCiktisi: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /**
+       * Item Id
+       * Format: uuid
+       */
+      item_id: string;
+      /** State */
+      state: string;
+      /** Value */
+      value?: unknown;
+      /** Note */
+      note?: string | null;
+      /** Evidence Count */
+      evidence_count: number;
+      /** Answered At */
+      answered_at: string | null;
+      /** Clock Skew Minutes */
+      clock_skew_minutes?: number | null;
+      /**
+       * Clock Flagged
+       * @default false
+       */
+      clock_flagged?: boolean;
+    };
+    /** CevapGirdisi */
+    CevapGirdisi: {
+      /**
+       * Item Id
+       * Format: uuid
+       */
+      item_id: string;
+      /**
+       * State
+       * @enum {string}
+       */
+      state: 'passed' | 'failed' | 'not_done' | 'not_applicable';
+      /** Value */
+      value?: unknown;
+      /** Note */
+      note?: string | null;
+      /** User Id */
+      user_id?: string | null;
+      /** Device Id */
+      device_id?: string | null;
+      /**
+       * Device Reported At
+       * @description Cihazın saati. Kaydedilir ama karar için kullanılmaz (BR-13).
+       */
+      device_reported_at?: string | null;
+      /**
+       * Evidence Count
+       * @default 0
+       */
+      evidence_count?: number;
+    };
     /**
      * DavetYaniti
      * @description Davet sonucu.
@@ -708,6 +884,21 @@ export interface components {
        * @default SMS sağlayıcısı bağlanınca davet gönderilecek (ST-044).
        */
       invite_note?: string;
+    };
+    /** Eksik */
+    Eksik: {
+      /**
+       * Item Id
+       * Format: uuid
+       */
+      item_id: string;
+      /** Title */
+      title: string;
+      /**
+       * Kind
+       * @enum {string}
+       */
+      kind: 'unanswered' | 'evidence' | 'note';
     };
     /** ElleAksiyonGirdisi */
     ElleAksiyonGirdisi: {
@@ -731,6 +922,11 @@ export interface components {
       description?: string | null;
       /** Assignee User Id */
       assignee_user_id?: string | null;
+    };
+    /** GonderimGirdisi */
+    GonderimGirdisi: {
+      /** User Id */
+      user_id?: string | null;
     };
     /** Gostergeler */
     Gostergeler: {
@@ -939,6 +1135,33 @@ export interface components {
       type_label: string;
       /** Scored */
       scored: boolean;
+    };
+    /** MaddeDurumu */
+    MaddeDurumu: {
+      /**
+       * Item Id
+       * Format: uuid
+       */
+      item_id: string;
+      /** Title */
+      title: string;
+      /** Type */
+      type: string;
+      /** Type Label */
+      type_label: string;
+      /** Required */
+      required: boolean;
+      /** Photo Required */
+      photo_required: boolean;
+      /** Critical */
+      critical: boolean;
+      /** Min Value */
+      min_value?: number | null;
+      /** Max Value */
+      max_value?: number | null;
+      /** Unit */
+      unit?: string | null;
+      answer?: components['schemas']['CevapCiktisi'] | null;
     };
     /** MaddeGirdisi */
     MaddeGirdisi: {
@@ -1338,6 +1561,12 @@ export interface components {
        * @description Toleransı dolduğu için kaçırıldı yazılan çalıştırma sayısı
        */
       missed: number;
+      /**
+       * Actions Opened
+       * @description Kaçırmadan doğan yeni aksiyon sayısı
+       * @default 0
+       */
+      actions_opened?: number;
     };
     /** UretimYaniti */
     UretimYaniti: {
@@ -2423,6 +2652,108 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['AksiyonOzet'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  calistirma_gorunumu_api_v1_runs__run_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        run_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['CalistirmaGorunumu'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  cevap_yaz_api_v1_runs__run_id__answers__answer_id__put: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        run_id: string;
+        answer_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CevapGirdisi'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['CevapCiktisi'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  calistirma_gonder_api_v1_runs__run_id__submit_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        run_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['GonderimGirdisi'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['CalistirmaGorunumu'];
         };
       };
       /** @description Validation Error */

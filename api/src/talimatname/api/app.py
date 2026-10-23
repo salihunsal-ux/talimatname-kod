@@ -15,6 +15,7 @@ from talimatname.api.errors import register_error_handlers
 from talimatname.api.routers import (
     actions,
     dashboard,
+    execution,
     organization,
     plans,
     templates,
@@ -75,6 +76,7 @@ def build_router(settings: Settings) -> APIRouter:
     router.include_router(plans.router)
     router.include_router(dashboard.router)
     router.include_router(actions.router)
+    router.include_router(execution.router)
     return router
 
 
