@@ -72,7 +72,7 @@ Hesap sahibi isterse kendisi koşabilir (parolayı ekrana yazmaz):
 
 ```bash
 cd D:/Products/talimatname-kod/api
-./.venv/Scripts/python.exe -c "import os,psycopg;from dotenv import dotenv_values;u=dotenv_values('.env')['DATABASE_URL'];c=psycopg.connect(u);print('baglandi:',c.execute('select version()').fetchone()[0][:40]);print('rol olusturma izni:',c.execute(\"select rolcreaterole from pg_roles where rolname=current_user\").fetchone()[0])"
+./.venv/Scripts/python.exe -c "import io,re,psycopg;u=re.search(r'^DATABASE_URL=(.*)$', io.open('.env',encoding='utf-8').read(), re.M).group(1).strip();c=psycopg.connect(u);print('baglandi:', c.execute('select version()').fetchone()[0][:40]);print('rol olusturma izni:', c.execute('select rolcreaterole from pg_roles where rolname=current_user').fetchone()[0])"
 ```
 
 Beklenen çıktı iki satır: PostgreSQL sürümü ve `rol olusturma izni: True`.
