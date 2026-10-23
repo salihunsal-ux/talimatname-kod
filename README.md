@@ -36,6 +36,18 @@ cp .env.example .env
 
 Varsayılan backend portu **8010**'dur; bu makinede 8000 başka bir projeye ait ve 8010/8011 soketleri ölü süreçlerce tutulduğu için şu an **8020** kullanılıyor (`web/.env.local` → `VITE_API_TARGET`). Makine yeniden başlayınca varsayılana dönülebilir.
 
+### Zamanlayıcı
+
+Ayrı süreç (01-teknik-mimari `SCH`): ufuk üretimi ve toleransı dolan çalıştırmaların kapanışı.
+
+```bash
+cd api
+./.venv/Scripts/python.exe -m talimatname.scheduler --once        # tek tur
+./.venv/Scripts/python.exe -m talimatname.scheduler --interval 60 # döngü
+```
+
+İş **idempotenttir**: ikinci tur ne ekler ne siler. Üretimde döngü yerine sistem zamanlayıcısı `--once` ile çağırabilir. Geliştirmede zamanlayıcı süreci açık değilse panel ilk istekte bir tur atar (`api/bagimliliklar.py`), böylece pano boş kalmaz. `POST /api/v1/scheduler/tick` turu elle tetikler.
+
 ### Panel
 
 ```bash

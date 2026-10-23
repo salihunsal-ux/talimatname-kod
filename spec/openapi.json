@@ -1172,6 +1172,29 @@
         }
       }
     },
+    "/api/v1/scheduler/tick": {
+      "post": {
+        "tags": [
+          "plan",
+          "zamanlayıcı"
+        ],
+        "summary": "Zamanlayıcı turunu şimdi koş",
+        "description": "Ayrı süreçte koşan zamanlayıcının (ST-027) elle tetiklenmesi.\n\nAynı iş mantığı; idempotent olduğu için zamanlayıcı çalışırken de\ngüvenle çağrılabilir.",
+        "operationId": "zamanlayici_turu_api_v1_scheduler_tick_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TurYaniti"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/runs": {
       "get": {
         "tags": [
@@ -2912,6 +2935,37 @@
           "sections"
         ],
         "title": "TaslakGirdisi"
+      },
+      "TurYaniti": {
+        "properties": {
+          "at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "At"
+          },
+          "created": {
+            "type": "integer",
+            "title": "Created"
+          },
+          "deleted": {
+            "type": "integer",
+            "title": "Deleted"
+          },
+          "missed": {
+            "type": "integer",
+            "title": "Missed",
+            "description": "Toleransı dolduğu için kaçırıldı yazılan çalıştırma sayısı"
+          }
+        },
+        "type": "object",
+        "required": [
+          "at",
+          "created",
+          "deleted",
+          "missed"
+        ],
+        "title": "TurYaniti",
+        "description": "Zamanlayıcı turunun özeti (ST-027)."
       },
       "UretimYaniti": {
         "properties": {

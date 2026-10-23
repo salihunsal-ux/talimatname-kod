@@ -9,11 +9,17 @@ from uuid import UUID, uuid4
 from fastapi import APIRouter, Depends, Query, status
 from pydantic import BaseModel, Field, model_validator
 
-from talimatname.api.bagimliliklar import organizasyon_servisi, plan_servisi, sablon_servisi
+from talimatname.api.bagimliliklar import (
+    organizasyon_servisi,
+    plan_servisi,
+    sablon_servisi,
+    zamanlayici_servisi,
+)
 from talimatname.domain.plans import Assignment, Plan, Run
 from talimatname.domain.window import Anchor, WindowRule
 from talimatname.services.organization import OrganizationService
 from talimatname.services.plans import HORIZON_DAYS, PlanService
+from talimatname.services.scheduler import SchedulerService
 from talimatname.services.templates import TemplateService
 
 router = APIRouter(tags=["plan"])
@@ -21,6 +27,7 @@ router = APIRouter(tags=["plan"])
 Servis = Annotated[PlanService, Depends(plan_servisi)]
 OrgServis = Annotated[OrganizationService, Depends(organizasyon_servisi)]
 SablonServis = Annotated[TemplateService, Depends(sablon_servisi)]
+ZamanlayiciServis = Annotated[SchedulerService, Depends(zamanlayici_servisi)]
 
 GUN_KISA = ("MO", "TU", "WE", "TH", "FR", "SA", "SU")
 
@@ -242,11 +249,31 @@ class UretimYaniti(BaseModel):
     deleted: int
 
 
+class TurYaniti(BaseModel):
+    """Zamanlayıcı turunun özeti (ST-027)."""
+
+    at: datetime
+    created: int
+    deleted: int
+    missed: int = Field(description="Toleransı dolduğu için kaçırıldı yazılan çalıştırma sayısı")
+
+
 @router.post("/plans/{plan_id}/generate", summary="Çalıştırmaları şimdi üret")
 def plan_uret(plan_id: UUID, servis: Servis) -> UretimYaniti:
     """Zamanlayıcının (ST-027) yapacağı işin elle tetiklenmesi; idempotenttir."""
     eklenen, silinen = servis.generate(plan_id)
     return UretimYaniti(created=eklenen, deleted=silinen)
+
+
+@router.post("/scheduler/tick", tags=["zamanlayıcı"], summary="Zamanlayıcı turunu şimdi koş")
+def zamanlayici_turu(servis: ZamanlayiciServis) -> TurYaniti:
+    """Ayrı süreçte koşan zamanlayıcının (ST-027) elle tetiklenmesi.
+
+    Aynı iş mantığı; idempotent olduğu için zamanlayıcı çalışırken de
+    güvenle çağrılabilir.
+    """
+    sonuc = servis.tick()
+    return TurYaniti(at=sonuc.at, created=sonuc.created, deleted=sonuc.deleted, missed=sonuc.missed)
 
 
 @router.get("/runs", summary="Bir iş gününün çalıştırmaları")
