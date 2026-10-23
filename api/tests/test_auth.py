@@ -8,6 +8,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 
@@ -16,6 +17,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from conftest import TELEFON, oturum_ac
+from talimatname.api import bagimliliklar
 from talimatname.api.app import create_app
 from talimatname.api.errors import URN_PREFIX
 from talimatname.domain.auth import BLOCK_FOR, CODE_TTL, MAX_ATTEMPTS, RESEND_AFTER
@@ -28,10 +30,26 @@ from talimatname.services.auth import (
     UnknownPhone,
     UserInactive,
 )
-from talimatname.settings import Settings
+from talimatname.settings import Settings, get_settings
 
 KADIKOY = sabit_id("sube:KDK")
 BESIKTAS = sabit_id("sube:BSK")
+
+
+@pytest.fixture(autouse=True)
+def gelistirme_ortami(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
+    """Uç nokta testleri geliştirme ortamında koşsun: `dev_code` dolu olsun.
+
+    `create_app`e Settings geçirmek yetmiyor: bağımlılıklar servisleri
+    `get_settings()` ile kuruyor, o da süreç ortamını okuyor. CI
+    `ENVIRONMENT=test` verdiği için kod yanıtta yer almıyordu.
+    """
+    monkeypatch.setenv("ENVIRONMENT", "dev")
+    get_settings.cache_clear()
+    bagimliliklar._kimlik_servisi.cache_clear()
+    yield
+    get_settings.cache_clear()
+    bagimliliklar._kimlik_servisi.cache_clear()
 
 
 class Saat:
