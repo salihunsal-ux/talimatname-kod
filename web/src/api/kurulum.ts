@@ -94,16 +94,27 @@ export function sablonIndir(): Promise<void> {
   return dosyaIndir('/api/v1/setup/branches/template', 'subeler.xlsx');
 }
 
-export function hataRaporuIndir(dosya: File): Promise<void> {
-  const govde = new FormData();
-  govde.append('file', dosya);
-  return dosyaIndir('/api/v1/setup/branches/error-report', 'hatali-satirlar.xlsx', govde);
+export function personelSablonuIndir(): Promise<void> {
+  return dosyaIndir('/api/v1/setup/staff/template', 'personel.xlsx');
 }
 
-async function subeGonder(dosya: File, uc: 'preview' | 'import'): Promise<YuklemeRaporu> {
+export function hataRaporuIndir(dosya: File, tur: Yukleme = 'branches'): Promise<void> {
   const govde = new FormData();
   govde.append('file', dosya);
-  const yanit = await fetch(`/api/v1/setup/branches/${uc}`, {
+  return dosyaIndir(`/api/v1/setup/${tur}/error-report`, 'hatali-satirlar.xlsx', govde);
+}
+
+/** Hangi liste yükleniyor: şubeler mi personel mi. */
+export type Yukleme = 'branches' | 'staff';
+
+async function dosyaGonder(
+  dosya: File,
+  tur: Yukleme,
+  uc: 'preview' | 'import',
+): Promise<YuklemeRaporu> {
+  const govde = new FormData();
+  govde.append('file', dosya);
+  const yanit = await fetch(`/api/v1/setup/${tur}/${uc}`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${belirtecAl() ?? ''}` },
     body: govde,
@@ -115,9 +126,17 @@ async function subeGonder(dosya: File, uc: 'preview' | 'import'): Promise<Yuklem
 
 /** Kuru çalıştırma: ne olacağını yazmadan gösterir. */
 export function subeOnizle(dosya: File): Promise<YuklemeRaporu> {
-  return subeGonder(dosya, 'preview');
+  return dosyaGonder(dosya, 'branches', 'preview');
 }
 
 export function subeYukle(dosya: File): Promise<YuklemeRaporu> {
-  return subeGonder(dosya, 'import');
+  return dosyaGonder(dosya, 'branches', 'import');
+}
+
+export function personelOnizle(dosya: File): Promise<YuklemeRaporu> {
+  return dosyaGonder(dosya, 'staff', 'preview');
+}
+
+export function personelYukle(dosya: File): Promise<YuklemeRaporu> {
+  return dosyaGonder(dosya, 'staff', 'import');
 }

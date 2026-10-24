@@ -22,9 +22,11 @@ from talimatname.domain.setup import (
     AccountSettings,
     branch_row,
     duplicate_codes,
+    duplicate_phones,
     parse_closed_days,
     parse_time,
     progress,
+    staff_row,
 )
 from talimatname.domain.validation import ValidationError
 from talimatname.domain.window import Anchor, BusinessHours
@@ -38,6 +40,7 @@ from talimatname.infra.memory import (
 from talimatname.services.imports import (
     BRANCH_COLUMNS,
     HEADER_ROW,
+    STAFF_COLUMNS,
     ImportFailed,
     UnreadableFile,
     branch_template,
@@ -701,3 +704,172 @@ def test_uc_nokta_plan_olustur_ve_yayinla(tmp_path: Path) -> None:
     assert govde["runs_ready"] > 0
     assert govde["first_window"] is not None
     assert govde["status"]["completed_at"] is not None
+
+
+# --- adım 5: personel (FR-0105, FR-0106, BR-17) -----------------------
+
+
+def _personel_dosyasi(satirlar: list[dict[str, str]]) -> bytes:
+    kitap = Workbook()
+    sayfa = kitap.active
+    assert sayfa is not None
+    anahtarlar = list(STAFF_COLUMNS)
+    for sutun, anahtar in enumerate(anahtarlar, start=1):
+        sayfa.cell(row=HEADER_ROW, column=sutun, value=STAFF_COLUMNS[anahtar])
+    for sira, satir in enumerate(satirlar, start=HEADER_ROW + 1):
+        for sutun, anahtar in enumerate(anahtarlar, start=1):
+            sayfa.cell(row=sira, column=sutun, value=satir.get(anahtar, ""))
+    tampon = io.BytesIO()
+    kitap.save(tampon)
+    return tampon.getvalue()
+
+
+def _kisi(ad: str, telefon: str, rol: str = "Personel", sube: str = "KDK") -> dict[str, str]:
+    return {"ad": ad, "telefon": telefon, "rol": rol, "sube_kodu": sube}
+
+
+def test_personel_satiri_telefonu_e164e_cevirir() -> None:
+    sonuc = staff_row(
+        4,
+        {"ad": "Emre Yılmaz", "telefon": "0532 111 22 33", "rol": "Personel", "sube_kodu": "KDK"},
+        branch_codes={"KDK"},
+    )
+
+    assert not isinstance(sonuc, list)
+    assert sonuc.phone == "+905321112233"
+    assert sonuc.role == "staff"
+
+
+def test_personel_rolu_turkce_etiketle_de_yazilabilir() -> None:
+    for yazim in ("Şube müdürü", "branch_manager", "ŞUBE MÜDÜRÜ"):
+        sonuc = staff_row(
+            4,
+            {"ad": "Ayşe", "telefon": "+905321112233", "rol": yazim, "sube_kodu": "KDK"},
+            branch_codes={"KDK"},
+        )
+        assert not isinstance(sonuc, list), yazim
+        assert sonuc.role == "branch_manager"
+
+
+def test_olmayan_sube_kodu_hata() -> None:
+    """Yazım hatası yanlış şubeye personel bağlar: yanlış kişiye liste gider."""
+    sonuc = staff_row(
+        4,
+        {"ad": "Emre", "telefon": "+905321112233", "rol": "Personel", "sube_kodu": "XYZ"},
+        branch_codes={"KDK"},
+    )
+
+    assert isinstance(sonuc, list)
+    assert sonuc[0].field == "sube_kodu"
+
+
+def test_bolge_muduru_toplu_yuklemede_yok() -> None:
+    """Kapsamı şube koduyla anlatılamaz; panelden eklenir."""
+    sonuc = staff_row(
+        4,
+        {"ad": "Deniz", "telefon": "+905321112233", "rol": "Bölge müdürü", "sube_kodu": "KDK"},
+        branch_codes={"KDK"},
+    )
+
+    assert isinstance(sonuc, list)
+    assert sonuc[0].field == "rol"
+
+
+def test_dosyadaki_tekrar_eden_telefon_hata() -> None:
+    satirlar = [
+        staff_row(
+            sira,
+            {
+                "ad": f"Kişi {sira}",
+                "telefon": "+905321112233",
+                "rol": "Personel",
+                "sube_kodu": "KDK",
+            },
+            branch_codes={"KDK"},
+        )
+        for sira in (4, 5)
+    ]
+    hatalar = duplicate_phones([s for s in satirlar if not isinstance(s, list)])
+
+    assert len(hatalar) == 1
+    assert hatalar[0].row == 5
+
+
+def test_personel_yuklemesi_davet_kuyruga_alir(servis: SetupService) -> None:
+    servis.import_branches(_dosya([_sube("KDK", "Kadıköy"), _sube("USK", "Üsküdar")]))
+
+    rapor = servis.import_staff(
+        _personel_dosyasi(
+            [
+                _kisi("Emre Yılmaz", "0532 111 22 33"),
+                _kisi("Ayşe Demir", "0532 111 22 34", rol="Şube müdürü"),
+                _kisi("Can Kaya", "0532 111 22 35", sube="USK"),
+            ]
+        )
+    )
+
+    assert (rapor.created, rapor.updated, rapor.error_rows) == (3, 0, 0)
+    kullanicilar = servis._users.users()
+    assert len(kullanicilar) == 3
+    emre = servis._users.user_by_phone("+905321112233")
+    assert emre is not None
+    assert emre.invited_at is not None  # davet kuyrukta
+    assert emre.assignments[0].role == "staff"
+    mudur = servis._users.user_by_phone("+905321112234")
+    assert mudur is not None
+    assert mudur.assignments[0].role == "branch_manager"
+
+
+def test_ayni_telefon_ikinci_kez_gunceller(servis: SetupService) -> None:
+    """Telefon kişinin kimliği: ikinci kullanıcı açmak kişiyi ikiye bölerdi."""
+    servis.import_branches(_dosya([_sube("KDK", "Kadıköy")]))
+    servis.import_staff(_personel_dosyasi([_kisi("Emre Yılmaz", "0532 111 22 33")]))
+
+    ikinci = servis.import_staff(
+        _personel_dosyasi([_kisi("Emre Yılmaz Kaya", "0532 111 22 33", rol="Şube müdürü")])
+    )
+
+    assert (ikinci.created, ikinci.updated) == (0, 1)
+    assert len(servis._users.users()) == 1
+    kisi = servis._users.user_by_phone("+905321112233")
+    assert kisi is not None
+    assert kisi.full_name == "Emre Yılmaz Kaya"
+    assert kisi.assignments[0].role == "branch_manager"
+
+
+def test_personel_adimi_veriden_isaretlenir(servis: SetupService) -> None:
+    servis.import_branches(_dosya([_sube("KDK", "Kadıköy")]))
+    assert {a.step: a.done for a in servis.progress().steps}["staff"] is False
+
+    servis.import_staff(_personel_dosyasi([_kisi("Emre Yılmaz", "0532 111 22 33")]))
+
+    assert {a.step: a.done for a in servis.progress().steps}["staff"] is True
+
+
+def test_uc_nokta_personel_sablonu_sube_kodlarini_tasir(tmp_path: Path) -> None:
+    yanit = _istemci(tmp_path).get("/api/v1/setup/staff/template")
+
+    assert yanit.status_code == 200
+    kitap = load_workbook(io.BytesIO(yanit.content))
+    assert kitap.sheetnames == ["Personel", "Nasıl doldurulur"]
+    aciklama = kitap["Nasıl doldurulur"]
+    metinler = [str(aciklama.cell(row=s, column=1).value) for s in range(1, 20)]
+    assert any("KDK" in m for m in metinler)
+
+
+def test_uc_nokta_personel_onizleme_ve_yukleme(tmp_path: Path) -> None:
+    istemci = _istemci(tmp_path)
+    veri = _personel_dosyasi([_kisi("Yeni Kişi", "0532 999 88 77")])
+
+    onizleme = istemci.post(
+        "/api/v1/setup/staff/preview",
+        files={"file": ("personel.xlsx", veri, "application/vnd.ms-excel")},
+    ).json()
+    assert onizleme["accepted"] == 1
+    assert onizleme["created"] == 0
+
+    yukleme = istemci.post(
+        "/api/v1/setup/staff/import",
+        files={"file": ("personel.xlsx", veri, "application/vnd.ms-excel")},
+    ).json()
+    assert yukleme["created"] == 1

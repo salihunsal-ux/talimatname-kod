@@ -34,9 +34,10 @@ from talimatname.domain.setup import (
     ImportReport,
     SetupProgress,
     SetupStep,
+    StaffReport,
 )
 from talimatname.domain.window import WindowRule
-from talimatname.services.imports import error_report
+from talimatname.services.imports import STAFF_COLUMNS, error_report
 from talimatname.services.library import LibraryTemplate
 from talimatname.services.setup import SetupService
 
@@ -141,6 +142,19 @@ def _durum(durum: SetupProgress, ayar: AccountSettings | None) -> DurumCiktisi:
     )
 
 
+def _personel_raporu(rapor: StaffReport) -> YuklemeRaporu:
+    return YuklemeRaporu(
+        total=rapor.total,
+        accepted=len(rapor.rows),
+        error_rows=rapor.error_rows,
+        created=rapor.created,
+        updated=rapor.updated,
+        rejected=rapor.rejected,
+        errors=[SatirHatasi(row=h.row, field=h.field, message=h.message) for h in rapor.errors],
+        branches=[satir.phone for satir in rapor.rows],
+    )
+
+
 def _rapor(rapor: ImportReport) -> YuklemeRaporu:
     return YuklemeRaporu(
         total=rapor.total,
@@ -231,7 +245,7 @@ async def hata_raporu(
     """
     rapor = servis.import_branches(await file.read(), apply=False, raise_on_reject=False)
     return Response(
-        content=error_report(rapor),
+        content=error_report(rapor.errors),
         media_type=XLSX,
         headers={"Content-Disposition": 'attachment; filename="hatali-satirlar.xlsx"'},
     )
@@ -396,6 +410,59 @@ def yayinla(servis: Servis, kullanici: Yonetici) -> YayinSonucu:
         runs_ready=sonuc.runs_ready,
         first_window=sonuc.first_window,
         status=_durum(servis.progress(), servis.settings()),
+    )
+
+
+@router.get(
+    "/setup/staff/template",
+    summary="Adım 5 · personel Excel şablonu",
+    response_class=Response,
+    responses={200: {"content": {XLSX: {}}, "description": "Excel şablonu"}},
+)
+def personel_sablonu(servis: Servis, kullanici: Yonetici) -> Response:
+    """Şube kodları dosyanın ikinci sayfasında: panele dönmek gerekmesin."""
+    return Response(
+        content=servis.staff_template_file(),
+        media_type=XLSX,
+        headers={"Content-Disposition": 'attachment; filename="personel.xlsx"'},
+    )
+
+
+@router.post("/setup/staff/preview", summary="Adım 5 · dosyayı yazmadan dene")
+async def personel_onizleme(
+    servis: Servis,
+    kullanici: Yonetici,
+    file: Annotated[UploadFile, File()],
+) -> YuklemeRaporu:
+    return _personel_raporu(servis.import_staff(await file.read(), apply=False))
+
+
+@router.post("/setup/staff/import", summary="Adım 5 · personeli davet et")
+async def personel_yukle(
+    servis: Servis,
+    kullanici: Yonetici,
+    file: Annotated[UploadFile, File()],
+) -> YuklemeRaporu:
+    """Davetler **kuyruğa alınır**; SMS sağlayıcısı bağlı değil (ST-067)."""
+    return _personel_raporu(servis.import_staff(await file.read(), apply=True))
+
+
+@router.post(
+    "/setup/staff/error-report",
+    summary="Adım 5 · hatalı satır raporu (Excel)",
+    response_class=Response,
+    responses={200: {"content": {XLSX: {}}, "description": "Hatalı satırlar"}},
+)
+async def personel_hata_raporu(
+    servis: Servis,
+    kullanici: Yonetici,
+    file: Annotated[UploadFile, File()],
+) -> Response:
+    rapor = servis.import_staff(await file.read(), apply=False, raise_on_reject=False)
+    return Response(
+        content=error_report(rapor.errors, STAFF_COLUMNS),
+        media_type=XLSX,
+        headers={"Content-Disposition": 'attachment; filename="hatali-satirlar.xlsx"'},
     )
 
 

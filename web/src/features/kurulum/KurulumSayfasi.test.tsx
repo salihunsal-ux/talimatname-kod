@@ -8,6 +8,7 @@ import {
   kurulumYayinla,
   kutuphane,
   markaKaydet,
+  personelOnizle,
   planOlustur,
   planOnerisi,
   sablonKopyala,
@@ -27,6 +28,7 @@ const sablonSec = vi.mocked(sablonKopyala);
 const oneriGetir = vi.mocked(planOnerisi);
 const planYaz = vi.mocked(planOlustur);
 const yayinla = vi.mocked(kurulumYayinla);
+const personelOnizleme = vi.mocked(personelOnizle);
 
 const KUTUPHANE = [
   {
@@ -208,6 +210,32 @@ describe('KurulumSayfasi', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Yayınla' }));
 
     expect(await screen.findByText(/75 çalıştırma hazır/)).toBeInTheDocument();
+  });
+
+  it('personel adımı aynı yükleme akışını kullanır', async () => {
+    durumGetir.mockResolvedValue({ ...DURUM, current: 'staff' });
+    personelOnizleme.mockResolvedValue({
+      total: 3,
+      accepted: 3,
+      error_rows: 0,
+      created: 0,
+      updated: 0,
+      rejected: false,
+      errors: [],
+      branches: [],
+    });
+    kur();
+
+    const alan = await screen.findByLabelText('Doldurduğunuz dosya');
+    await userEvent.upload(
+      alan,
+      new File(['x'], 'personel.xlsx', { type: 'application/vnd.ms-excel' }),
+    );
+
+    expect(await screen.findByText('3 satır hazır')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '3 kişiyi davet et' })).toBeEnabled();
+    // Şube yükleyicisi çağrılmadı: adımlar birbirine karışmıyor.
+    expect(onizle).not.toHaveBeenCalled();
   });
 
   it('yayın için eksik varsa düğme kapalı ve sebebi yazılı', async () => {

@@ -30,10 +30,18 @@ from talimatname.domain.setup import (
     BranchRow,
     ImportReport,
     SetupProgress,
+    StaffReport,
     progress,
 )
+from talimatname.domain.users import RoleAssignment, User
 from talimatname.domain.window import BusinessHours, WindowRule
-from talimatname.services.imports import ImportFailed, branch_template, parse_branches
+from talimatname.services.imports import (
+    ImportFailed,
+    branch_template,
+    parse_branches,
+    parse_staff,
+    staff_template,
+)
 from talimatname.services.library import (
     CATALOG,
     LibraryTemplate,
@@ -44,7 +52,7 @@ from talimatname.services.library import (
 from talimatname.services.organization import OrganizationRepository
 from talimatname.services.plans import HORIZON_DAYS, PlanRepository, PlanService
 from talimatname.services.templates import TemplateRepository, TemplateService
-from talimatname.services.users import UserRepository
+from talimatname.services.users import UserRepository, UserService
 
 log = structlog.get_logger(__name__)
 
@@ -217,6 +225,79 @@ class SetupService:
                 guncel += 1
 
         log.info("kurulum.subeler_yuklendi", yeni=yeni, guncel=guncel, hatali=rapor.error_rows)
+        return replace(rapor, created=yeni, updated=guncel)
+
+    # --- adım 5: personel -------------------------------------------
+
+    def staff_template_file(self) -> bytes:
+        """Doldurulacak personel Excel'i; şube kodları dosyanın içinde."""
+        ayar = self._repo.settings()
+        return staff_template(
+            brand_name=ayar.brand_name if ayar else "Talimatname",
+            branch_codes=sorted(
+                sube.code for sube in self._org.branches() if sube.status == "active"
+            ),
+        )
+
+    def import_staff(
+        self,
+        data: bytes,
+        *,
+        apply: bool = True,
+        raise_on_reject: bool = True,
+    ) -> StaffReport:
+        """Adım 5. Davetleri kuyruğa alır; **SMS göndermez**.
+
+        Sağlayıcı bağlı değil (ST-067). Kullanıcıya "gönderildi" demek
+        yerine davetin kuyrukta olduğunu söylüyoruz — panelde de öyle
+        yazıyor.
+        """
+        subeler = {sube.code: sube for sube in self._org.branches()}
+        rapor = parse_staff(data, branch_codes=set(subeler))
+        if rapor.rejected and raise_on_reject:
+            log.warning(
+                "kurulum.personel_dosyasi_reddedildi",
+                toplam=rapor.total,
+                hatali=rapor.error_rows,
+            )
+            raise ImportFailed(
+                f"{rapor.total} satırın {rapor.error_rows} tanesi hatalı; dosya kabul edilmedi",
+                errors=[
+                    {"row": h.row, "field": h.field, "message": h.message} for h in rapor.errors
+                ],
+            )
+        if not apply or rapor.rejected:
+            return rapor
+
+        servis = UserService(self._users, self._org, now=self._now)
+        yeni, guncel = 0, 0
+        for satir in rapor.rows:
+            sube = subeler[satir.branch_code]
+            atama = RoleAssignment(role=satir.role, scope_id=sube.id)  # type: ignore[arg-type]
+            mevcut = self._users.user_by_phone(satir.phone)
+            if mevcut is None:
+                servis.invite(
+                    User(
+                        id=uuid4(),
+                        full_name=satir.full_name,
+                        phone=satir.phone,
+                        email=satir.email,
+                        assignments=(atama,),
+                    )
+                )
+                yeni += 1
+            else:
+                # Var olan numara **güncellenir**: telefon kişinin
+                # kimliği, ikinci kullanıcı açmak kişiyi ikiye bölerdi.
+                servis.update(
+                    mevcut.id,
+                    full_name=satir.full_name,
+                    email=satir.email or mevcut.email,
+                    assignments=(atama,),
+                )
+                guncel += 1
+
+        log.info("kurulum.personel_yuklendi", yeni=yeni, guncel=guncel, hatali=rapor.error_rows)
         return replace(rapor, created=yeni, updated=guncel)
 
     # --- adım 3: kütüphane ------------------------------------------

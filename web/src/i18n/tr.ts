@@ -66,6 +66,12 @@ export const tr = {
     planAdi: 'Plan adı',
     planSube: '{n} şube',
     planiOlustur: 'Planı oluştur',
+    personelBaslik: 'Adım 5 · Personel',
+    personelAciklama:
+      'Şablonu indirin, personeli doldurun ve yükleyin. Davetler kuyruğa ' +
+      'alınır; SMS sağlayıcısı bağlanana kadar gönderilmez.',
+    personelSablonu: 'Personel şablonunu indir',
+    personeliDavetEt: '{n} kişiyi davet et',
     panelden: 'Bu adım panelin kendi ekranından yapılıyor; buraya sihirbaz akışı eklenecek.',
     yayinSonucu: '{n} çalıştırma hazır',
     ilkPencere: 'İlk pencere: {t}',

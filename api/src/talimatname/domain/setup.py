@@ -28,6 +28,7 @@ from typing import Literal
 from uuid import UUID
 
 from talimatname.domain.organization import BRANCH_CODE, WEEKDAYS, check_timezone
+from talimatname.domain.users import normalize_phone
 from talimatname.domain.validation import ValidationError, clean_name
 from talimatname.domain.window import BusinessHours
 
@@ -231,6 +232,27 @@ class ImportReport:
         return len({hata.row for hata in self.errors})
 
 
+@dataclass(frozen=True, slots=True)
+class StaffReport:
+    """Personel yüklemesinin sonucu (FR-0106 ile aynı kabul sınırı)."""
+
+    rows: tuple[StaffRow, ...]
+    errors: tuple[RowError, ...]
+    total: int
+    created: int = 0
+    updated: int = 0
+
+    @property
+    def rejected(self) -> bool:
+        if self.total == 0:
+            return True
+        return len({hata.row for hata in self.errors}) / self.total > REJECT_RATIO
+
+    @property
+    def error_rows(self) -> int:
+        return len({hata.row for hata in self.errors})
+
+
 def parse_time(value: str, field_name: str) -> time:
     """ "09:00", "9:00", "0900" → time. Excel'den metin olarak gelir."""
     temiz = value.strip().replace(".", ":")
@@ -373,6 +395,104 @@ def duplicate_codes(rows: list[BranchRow]) -> list[RowError]:
             )
         else:
             gorulen[satir.code] = satir.row
+    return hatalar
+
+
+#: Sihirbazdan toplu eklenebilen roller. Bölge müdürü ve yönetici
+#: listede yok: onlar bir zincirde iki-üç kişidir ve kapsamları
+#: (bölge, hesap) şube koduyla anlatılamaz — panelden eklenirler.
+BULK_ROLES: dict[str, str] = {
+    "staff": "Personel",
+    "branch_manager": "Şube müdürü",
+}
+
+
+@dataclass(frozen=True, slots=True)
+class StaffRow:
+    """Doğrulanmış personel satırı. Telefon E.164'e çevrilmiş hâliyle."""
+
+    row: int
+    full_name: str
+    phone: str
+    role: str
+    branch_code: str
+    email: str | None = None
+
+
+def staff_row(
+    row: int,
+    values: dict[str, str],
+    *,
+    branch_codes: set[str],
+) -> StaffRow | list[RowError]:
+    """Personel satırını doğrular (FR-0105, FR-0106, BR-17).
+
+    Şube kodu **hesapta var olmalı**: yazım hatası yüzünden yanlış
+    şubeye personel bağlamak, yanlış kişiye liste göndermek demek.
+    """
+    hatalar: list[RowError] = []
+
+    ad = values.get("ad", "").strip()
+    if not ad:
+        hatalar.append(RowError(row, "ad", "Ad soyad zorunlu"))
+
+    ham_telefon = values.get("telefon", "").strip()
+    telefon = ""
+    if not ham_telefon:
+        hatalar.append(RowError(row, "telefon", "Telefon zorunlu"))
+    else:
+        try:
+            telefon = normalize_phone(ham_telefon)
+        except ValidationError as hata:
+            hatalar.append(RowError(row, "telefon", hata.message))
+
+    ham_rol = values.get("rol", "").strip()
+    rol = _rol_kodu(ham_rol)
+    if rol is None:
+        secenekler = " / ".join(BULK_ROLES.values())
+        hatalar.append(RowError(row, "rol", f"Rol {secenekler} olmalı"))
+
+    kod = values.get("sube_kodu", "").strip().upper()
+    if not kod:
+        hatalar.append(RowError(row, "sube_kodu", "Şube kodu zorunlu"))
+    elif kod not in branch_codes:
+        hatalar.append(RowError(row, "sube_kodu", f"Bu kodla şube yok: {kod}"))
+
+    eposta = values.get("eposta", "").strip() or None
+    if eposta and "@" not in eposta:
+        hatalar.append(RowError(row, "eposta", "Geçerli bir e-posta yazın"))
+
+    if hatalar:
+        return hatalar
+    assert rol is not None
+    return StaffRow(row=row, full_name=ad, phone=telefon, role=rol, branch_code=kod, email=eposta)
+
+
+def _rol_kodu(deger: str) -> str | None:
+    """Türkçe etiket ya da kod kabul edilir: "Personel" de "staff" de."""
+    temiz = deger.strip().casefold()
+    if not temiz:
+        return None
+    for kod, etiket in BULK_ROLES.items():
+        if temiz in (kod.casefold(), etiket.casefold()):
+            return kod
+    return None
+
+
+def duplicate_phones(rows: list[StaffRow]) -> list[RowError]:
+    """Dosyanın kendi içinde tekrar eden telefon (FR-0106).
+
+    Telefon kişinin kimliği (OTP ile giriyor); aynı numara iki satırda
+    olursa hangisinin kazanacağı belirsizdir.
+    """
+    gorulen: dict[str, int] = {}
+    hatalar: list[RowError] = []
+    for satir in rows:
+        onceki = gorulen.get(satir.phone)
+        if onceki is not None:
+            hatalar.append(RowError(satir.row, "telefon", f"Bu numara {onceki}. satırda da var"))
+        else:
+            gorulen[satir.phone] = satir.row
     return hatalar
 
 

@@ -2637,6 +2637,144 @@
         }
       }
     },
+    "/api/v1/setup/staff/template": {
+      "get": {
+        "tags": [
+          "kurulum"
+        ],
+        "summary": "Adım 5 · personel Excel şablonu",
+        "description": "Şube kodları dosyanın ikinci sayfasında: panele dönmek gerekmesin.",
+        "operationId": "personel_sablonu_api_v1_setup_staff_template_get",
+        "responses": {
+          "200": {
+            "description": "Excel şablonu",
+            "content": {
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {}
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/setup/staff/preview": {
+      "post": {
+        "tags": [
+          "kurulum"
+        ],
+        "summary": "Adım 5 · dosyayı yazmadan dene",
+        "operationId": "personel_onizleme_api_v1_setup_staff_preview_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_personel_onizleme_api_v1_setup_staff_preview_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/YuklemeRaporu"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/setup/staff/import": {
+      "post": {
+        "tags": [
+          "kurulum"
+        ],
+        "summary": "Adım 5 · personeli davet et",
+        "description": "Davetler **kuyruğa alınır**; SMS sağlayıcısı bağlı değil (ST-067).",
+        "operationId": "personel_yukle_api_v1_setup_staff_import_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_personel_yukle_api_v1_setup_staff_import_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/YuklemeRaporu"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/setup/staff/error-report": {
+      "post": {
+        "tags": [
+          "kurulum"
+        ],
+        "summary": "Adım 5 · hatalı satır raporu (Excel)",
+        "operationId": "personel_hata_raporu_api_v1_setup_staff_error_report_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_personel_hata_raporu_api_v1_setup_staff_error_report_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Hatalı satırlar",
+            "content": {
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {}
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/setup/complete": {
       "post": {
         "tags": [
@@ -3152,6 +3290,48 @@
           "file"
         ],
         "title": "Body_hata_raporu_api_v1_setup_branches_error_report_post"
+      },
+      "Body_personel_hata_raporu_api_v1_setup_staff_error_report_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "File"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_personel_hata_raporu_api_v1_setup_staff_error_report_post"
+      },
+      "Body_personel_onizleme_api_v1_setup_staff_preview_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "File"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_personel_onizleme_api_v1_setup_staff_preview_post"
+      },
+      "Body_personel_yukle_api_v1_setup_staff_import_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "File"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_personel_yukle_api_v1_setup_staff_import_post"
       },
       "Body_sube_onizleme_api_v1_setup_branches_preview_post": {
         "properties": {

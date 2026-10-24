@@ -199,6 +199,8 @@ POST /setup/branches/error-report → hatalı satırlar, Excel olarak (FR-0106)
 
 **Adım 4 · plan önerisi:** pencere şube saatine `anchor` ile bağlanır ("kapanıştan 60 dk önce"), sabit saatle değil — tek plan, 09:00 açılan şubeyle 11:00 açılan şubede kendi saatine göre çalışır. Öneri de durum tutmadan bulunur: **planı olmayan ilk yayınlanmış sürüm** zaten o adımın konusudur.
 
+**Adım 5 · personel:** aynı yükleme akışı (indir → doldur → önizle → yükle). Rol Türkçe etiketle de yazılabiliyor ("Personel" ya da `staff`), telefon E.164'e çevriliyor, şube kodu **hesapta var olmak zorunda** — yazım hatası yanlış kişiye liste göndermek demek. Bölge müdürü ve yönetici toplu yüklemede yok: bir zincirde iki-üç kişidirler ve kapsamları (bölge, hesap) şube koduyla anlatılamaz. Var olan numara **güncelleniyor**: telefon kişinin kimliği, ikinci kullanıcı açmak kişiyi ikiye bölerdi. Davetler kuyruğa giriyor, **SMS gönderilmiyor** (sağlayıcı bağlı değil, ST-067).
+
 **Yayın:** `runs_ready` döner, "kaç tane yazdım" değil. Üretim plan kaydedilirken zaten koşuyor; ikinci kez yayınlamak sıfır gösterirdi, oysa kullanıcının sorusu "liste hazır mı".
 
 Sütun **sırası değil başlığı** okunuyor (kullanıcılar sütun taşır), şablondaki gri örnek satır yalnızca yerinde ve birebir eşleşiyorsa atlanıyor, boş satırlar sayılmıyor. Açıklamalar ayrı sayfada: veri sayfasına yazılan yardım metni yükleme sırasında bir satır gibi okunuyordu.

@@ -22,6 +22,7 @@ altyapı ayrıntısı, kural değil.
 from __future__ import annotations
 
 import io
+from collections.abc import Sequence
 from typing import Any
 
 from openpyxl import Workbook, load_workbook
@@ -30,12 +31,17 @@ from openpyxl.utils import get_column_letter
 
 from talimatname.domain.errors import DomainError, ErrorKind
 from talimatname.domain.setup import (
+    BULK_ROLES,
     TEMPLATE_VERSION,
     BranchRow,
     ImportReport,
     RowError,
+    StaffReport,
+    StaffRow,
     branch_row,
     duplicate_codes,
+    duplicate_phones,
+    staff_row,
 )
 from talimatname.domain.window import BusinessHours
 
@@ -143,6 +149,99 @@ def branch_template(
     return tampon.getvalue()
 
 
+STAFF_COLUMNS: dict[str, str] = {
+    "ad": "Ad soyad*",
+    "telefon": "Telefon*",
+    "rol": "Rol*",
+    "sube_kodu": "Şube kodu*",
+    "eposta": "E-posta",
+}
+
+STAFF_HINTS: dict[str, str] = {
+    "ad": "Emre Yılmaz",
+    "telefon": "0532 111 00 05",
+    "rol": "Personel",
+    "sube_kodu": "KDK",
+    "eposta": "",
+}
+
+
+def staff_template(*, brand_name: str, branch_codes: list[str]) -> bytes:
+    """Personel Excel şablonu (FR-0105).
+
+    Şube kodları ikinci sayfada yazılı: yönetici "kodum neydi" diye
+    panele dönmesin, dosyanın içinde dursun.
+    """
+    kitap = Workbook()
+    sayfa = kitap.active
+    assert sayfa is not None
+    sayfa.title = "Personel"
+
+    sayfa.cell(row=1, column=1, value=f"{brand_name} · personel listesi")
+    sayfa.cell(row=1, column=1).font = Font(bold=True, size=14)
+    sayfa.cell(row=1, column=3, value=f"şablon sürümü: {TEMPLATE_VERSION}")
+
+    baslik_dolgu = PatternFill("solid", fgColor="EFE9DD")
+    for sutun, (anahtar, baslik) in enumerate(STAFF_COLUMNS.items(), start=1):
+        hucre = sayfa.cell(row=HEADER_ROW, column=sutun, value=baslik)
+        hucre.font = Font(bold=True)
+        hucre.fill = baslik_dolgu
+        hucre.alignment = Alignment(horizontal="left")
+        sayfa.column_dimensions[get_column_letter(sutun)].width = max(16, len(baslik) + 6)
+        ornek = sayfa.cell(row=HEADER_ROW + 1, column=sutun, value=STAFF_HINTS[anahtar])
+        ornek.font = Font(color="999999", italic=True)
+
+    aciklama = kitap.create_sheet("Nasıl doldurulur")
+    aciklama.column_dimensions["A"].width = 100
+    satirlar = [
+        "Yıldızlı sütunlar zorunludur.",
+        "Rol: " + " ya da ".join(BULK_ROLES.values()) + ".",
+        "Bölge müdürü ve yönetici panelden eklenir: kapsamları şube koduyla anlatılamaz.",
+        "Telefon kişinin kimliğidir (giriş SMS koduyla); aynı numara iki satırda olamaz.",
+        "Var olan numara güncellenir, ikinci kullanıcı açılmaz.",
+        "Şube kodları:",
+    ]
+    satirlar += [f"    {kod}" for kod in branch_codes] or ["    (henüz şube yok)"]
+    satirlar.append(f"Şablon sürümü: {TEMPLATE_VERSION}")
+    for sira, metin in enumerate(satirlar, start=1):
+        aciklama.cell(row=sira, column=1, value=metin)
+
+    tampon = io.BytesIO()
+    kitap.save(tampon)
+    return tampon.getvalue()
+
+
+def parse_staff(data: bytes, *, branch_codes: set[str]) -> StaffReport:
+    """Personel dosyasını okur ve doğrular; **yazmaz**."""
+    tum_satirlar, anahtarlar = _sayfa_ve_anahtarlar(data, STAFF_COLUMNS, ("ad", "telefon"))
+
+    satirlar: list[StaffRow] = []
+    hatalar: list[RowError] = []
+    toplam = 0
+    for sira, ham in enumerate(tum_satirlar[HEADER_ROW:], start=HEADER_ROW + 1):
+        degerler = {anahtarlar[i]: _metin(h) for i, h in enumerate(ham) if i in anahtarlar}
+        if not any(degerler.values()):
+            continue
+        if _ornek_satiri_mi(degerler, sira, STAFF_HINTS):
+            continue
+        toplam += 1
+        if toplam > MAX_ROWS:
+            raise ImportFailed(f"En çok {MAX_ROWS} satır yüklenebilir")
+        sonuc = staff_row(sira, degerler, branch_codes=branch_codes)
+        if isinstance(sonuc, StaffRow):
+            satirlar.append(sonuc)
+        else:
+            hatalar.extend(sonuc)
+
+    tekrar = duplicate_phones(satirlar)
+    if tekrar:
+        tekrar_satirlari = {hata.row for hata in tekrar}
+        satirlar = [s for s in satirlar if s.row not in tekrar_satirlari]
+        hatalar.extend(tekrar)
+
+    return StaffReport(rows=tuple(satirlar), errors=tuple(hatalar), total=toplam)
+
+
 def _metin(deger: Any) -> str:
     """Hücreyi metne çevirir. Excel sayıyı float yapar, saati time yapar."""
     if deger is None:
@@ -156,7 +255,7 @@ def _metin(deger: Any) -> str:
     return str(deger).strip()
 
 
-def _ornek_mi(degerler: dict[str, str], sira: int) -> bool:
+def _ornek_satiri_mi(degerler: dict[str, str], sira: int, ipuclari: dict[str, str]) -> bool:
     """Şablondaki örnek satır silinmemişse yok sayılır.
 
     Hem **yer** hem **içerik** aranıyor: yalnızca başlığın hemen
@@ -166,7 +265,39 @@ def _ornek_mi(degerler: dict[str, str], sira: int) -> bool:
     """
     if sira != HEADER_ROW + 1:
         return False
-    return all(degerler.get(anahtar, "") == ornek for anahtar, ornek in BRANCH_HINTS.items())
+    return all(degerler.get(anahtar, "") == ornek for anahtar, ornek in ipuclari.items())
+
+
+def _sayfa_ve_anahtarlar(
+    data: bytes,
+    sutunlar: dict[str, str],
+    zorunlu: tuple[str, ...],
+) -> tuple[list[tuple[Any, ...]], dict[int, str]]:
+    """Dosyayı açar, satırları ve sütun eşlemesini döner.
+
+    Salt-okunur sayfada akış **bir kez** okunur: iki ayrı `iter_rows`
+    çağrısı ikinci seferde boş döner (openpyxl tuzağı, testte ilk elde
+    yakalandı). Satırları bir kerede alıyoruz.
+    """
+    if len(data) > MAX_UPLOAD_BYTES:
+        raise ImportFailed(f"Dosya {MAX_UPLOAD_BYTES // 1024 // 1024} MB'tan büyük")
+    try:
+        kitap = load_workbook(io.BytesIO(data), read_only=True, data_only=True)
+    except Exception as hata:  # openpyxl çeşitli hatalar atar
+        raise UnreadableFile(str(hata)[:200]) from hata
+
+    tum_satirlar = list(kitap.worksheets[0].iter_rows(values_only=True))
+    if len(tum_satirlar) < HEADER_ROW:
+        raise ImportFailed("Dosyada başlık satırı yok")
+    basliklar = [_metin(h) for h in tum_satirlar[HEADER_ROW - 1]]
+    anahtarlar = _anahtarlar(basliklar, sutunlar)
+    eksik = [alan for alan in zorunlu if alan not in anahtarlar.values()]
+    if eksik:
+        raise ImportFailed(
+            "Başlık satırı tanınmadı. Şablonu panelden yeniden indirip "
+            f"doldurun (beklenen sürüm: {TEMPLATE_VERSION})."
+        )
+    return tum_satirlar, anahtarlar
 
 
 def parse_branches(
@@ -180,27 +311,7 @@ def parse_branches(
     Dönen rapor servis katmanında uygulanır: ayrı tutmak, "önce göster
     sonra uygula" akışını (kuru çalıştırma) mümkün kılıyor.
     """
-    if len(data) > MAX_UPLOAD_BYTES:
-        raise ImportFailed(f"Dosya {MAX_UPLOAD_BYTES // 1024 // 1024} MB'tan büyük")
-    try:
-        kitap = load_workbook(io.BytesIO(data), read_only=True, data_only=True)
-    except Exception as hata:  # openpyxl çeşitli hatalar atar
-        raise UnreadableFile(str(hata)[:200]) from hata
-
-    sayfa = kitap.worksheets[0]
-    # Salt-okunur sayfada akış **bir kez** okunur: iki ayrı
-    # `iter_rows` çağrısı ikinci seferde boş döner (openpyxl tuzağı,
-    # testte ilk elde yakalandı). Satırları bir kerede alıyoruz.
-    tum_satirlar = list(sayfa.iter_rows(values_only=True))
-    if len(tum_satirlar) < HEADER_ROW:
-        raise ImportFailed("Dosyada başlık satırı yok")
-    basliklar = [_metin(h) for h in tum_satirlar[HEADER_ROW - 1]]
-    anahtarlar = _anahtarlar(basliklar)
-    if "kod" not in anahtarlar.values() or "ad" not in anahtarlar.values():
-        raise ImportFailed(
-            "Başlık satırı tanınmadı. Şablonu panelden yeniden indirip "
-            f"doldurun (beklenen sürüm: {TEMPLATE_VERSION})."
-        )
+    tum_satirlar, anahtarlar = _sayfa_ve_anahtarlar(data, BRANCH_COLUMNS, ("kod", "ad"))
 
     satirlar: list[BranchRow] = []
     hatalar: list[RowError] = []
@@ -209,7 +320,7 @@ def parse_branches(
         degerler = {anahtarlar[i]: _metin(h) for i, h in enumerate(ham) if i in anahtarlar}
         if not any(degerler.values()):
             continue  # boş satır satır değildir
-        if _ornek_mi(degerler, sira):
+        if _ornek_satiri_mi(degerler, sira, BRANCH_HINTS):
             continue
         toplam += 1
         if toplam > MAX_ROWS:
@@ -234,16 +345,14 @@ def parse_branches(
     return ImportReport(rows=tuple(satirlar), errors=tuple(hatalar), total=toplam)
 
 
-def _anahtarlar(basliklar: list[str]) -> dict[int, str]:
+def _anahtarlar(basliklar: list[str], sutunlar: dict[str, str]) -> dict[int, str]:
     """Başlık metninden sütun anahtarına. Sütun sırası değişebilir.
 
     Kullanıcılar sütun taşır, gizler, araya sütun ekler. Sıraya
     güvenmek yerine başlığa bakmak, "kaymış sütun" hatalarının
     çoğunu baştan siler.
     """
-    ters = {
-        baslik.lower().rstrip("*").strip(): anahtar for anahtar, baslik in BRANCH_COLUMNS.items()
-    }
+    ters = {baslik.lower().rstrip("*").strip(): anahtar for anahtar, baslik in sutunlar.items()}
     eslesme: dict[int, str] = {}
     for sira, baslik in enumerate(basliklar):
         temiz = baslik.lower().rstrip("*").strip()
@@ -255,8 +364,15 @@ def _anahtarlar(basliklar: list[str]) -> dict[int, str]:
     return eslesme
 
 
-def error_report(report: ImportReport) -> bytes:
-    """Hatalı satırların indirilebilir raporu (FR-0106, UC-01/E2)."""
+def error_report(
+    errors: Sequence[RowError],
+    columns: dict[str, str] = BRANCH_COLUMNS,
+) -> bytes:
+    """Hatalı satırların indirilebilir raporu (FR-0106, UC-01/E2).
+
+    Sütun başlıkları dosyanın kendi başlıklarıyla yazılır: kullanıcı
+    "kod" değil "Şube kodu" arıyor.
+    """
     kitap = Workbook()
     sayfa = kitap.active
     assert sayfa is not None
@@ -265,9 +381,9 @@ def error_report(report: ImportReport) -> bytes:
         hucre = sayfa.cell(row=1, column=sutun, value=baslik)
         hucre.font = Font(bold=True)
         sayfa.column_dimensions[get_column_letter(sutun)].width = 24 if sutun == 3 else 14
-    for sira, hata in enumerate(report.errors, start=2):
+    for sira, hata in enumerate(errors, start=2):
         sayfa.cell(row=sira, column=1, value=hata.row)
-        sayfa.cell(row=sira, column=2, value=BRANCH_COLUMNS.get(hata.field, hata.field))
+        sayfa.cell(row=sira, column=2, value=columns.get(hata.field, hata.field))
         sayfa.cell(row=sira, column=3, value=hata.message)
     sayfa.column_dimensions["C"].width = 60
     tampon = io.BytesIO()

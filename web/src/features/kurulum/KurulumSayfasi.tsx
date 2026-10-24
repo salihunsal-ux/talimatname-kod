@@ -10,11 +10,15 @@ import {
   markaKaydet,
   planOlustur,
   planOnerisi,
+  personelOnizle,
+  personelSablonuIndir,
+  personelYukle,
   sablonIndir,
   sablonKopyala,
   subeOnizle,
   subeYukle,
   type KurulumDurumu,
+  type Yukleme,
   type YuklemeRaporu,
 } from '../../api/kurulum';
 import { Cip } from '../../bilesenler/Cip';
@@ -63,12 +67,35 @@ export function KurulumSayfasi() {
         }}
       >
         {secili === 'brand' && <MarkaAdimi durum={veri} onKaydedildi={yenile} />}
-        {secili === 'branches' && <SubeAdimi onYuklendi={yenile} />}
+        {secili === 'branches' && (
+          <YuklemeAdimi
+            tur="branches"
+            baslik={tr.kurulum.subeBaslik}
+            aciklama={tr.kurulum.subeAciklama}
+            sablonEtiketi={tr.kurulum.sablonIndir}
+            yukleEtiketi={tr.kurulum.subeleriYukle}
+            sablon={sablonIndir}
+            onizleyici={subeOnizle}
+            yukleyici={subeYukle}
+            onYuklendi={yenile}
+          />
+        )}
         {secili === 'template' && <SablonAdimi onSecildi={yenile} />}
         {secili === 'plan' && <PlanAdimi onKaydedildi={yenile} />}
-        {(secili === 'staff' || secili === 'review') && (
-          <SonrakiAdimlar adim={secili} durum={veri} onTamamla={yenile} />
+        {secili === 'staff' && (
+          <YuklemeAdimi
+            tur="staff"
+            baslik={tr.kurulum.personelBaslik}
+            aciklama={tr.kurulum.personelAciklama}
+            sablonEtiketi={tr.kurulum.personelSablonu}
+            yukleEtiketi={tr.kurulum.personeliDavetEt}
+            sablon={personelSablonuIndir}
+            onizleyici={personelOnizle}
+            yukleyici={personelYukle}
+            onYuklendi={yenile}
+          />
         )}
+        {secili === 'review' && <SonrakiAdimlar adim={secili} durum={veri} onTamamla={yenile} />}
       </section>
     </div>
   );
@@ -228,14 +255,38 @@ function MarkaAdimi({ durum, onKaydedildi }: { durum: KurulumDurumu; onKaydedild
   );
 }
 
-function SubeAdimi({ onYuklendi }: { onYuklendi: () => void }) {
+/**
+ * Excel ile toplu yükleme adımı: şubeler (adım 2) ve personel (adım 5)
+ * aynı akışı kullanıyor — indir, doldur, önizle, yükle.
+ */
+function YuklemeAdimi({
+  tur,
+  baslik,
+  aciklama,
+  sablonEtiketi,
+  yukleEtiketi,
+  sablon,
+  onizleyici,
+  yukleyici,
+  onYuklendi,
+}: {
+  tur: Yukleme;
+  baslik: string;
+  aciklama: string;
+  sablonEtiketi: string;
+  yukleEtiketi: string;
+  sablon: () => Promise<void>;
+  onizleyici: (dosya: File) => Promise<YuklemeRaporu>;
+  yukleyici: (dosya: File) => Promise<YuklemeRaporu>;
+  onYuklendi: () => void;
+}) {
   const [dosya, setDosya] = useState<File | null>(null);
   const [rapor, setRapor] = useState<YuklemeRaporu | null>(null);
   const [hata, setHata] = useState<string | null>(null);
   const [yuklendi, setYuklendi] = useState(false);
 
   const onizle = useMutation({
-    mutationFn: (secilen: File) => subeOnizle(secilen),
+    mutationFn: (secilen: File) => onizleyici(secilen),
     onSuccess: (sonuc) => {
       setRapor(sonuc);
       setHata(null);
@@ -247,7 +298,7 @@ function SubeAdimi({ onYuklendi }: { onYuklendi: () => void }) {
   });
 
   const yukle = useMutation({
-    mutationFn: () => subeYukle(dosya as File),
+    mutationFn: () => yukleyici(dosya as File),
     onSuccess: (sonuc) => {
       setRapor(sonuc);
       setYuklendi(true);
@@ -258,11 +309,11 @@ function SubeAdimi({ onYuklendi }: { onYuklendi: () => void }) {
 
   return (
     <div>
-      <h2 style={{ fontSize: 'var(--baslik-kart)', marginTop: 0 }}>{tr.kurulum.subeBaslik}</h2>
-      <p style={{ color: 'var(--renk-murekkep2)' }}>{tr.kurulum.subeAciklama}</p>
+      <h2 style={{ fontSize: 'var(--baslik-kart)', marginTop: 0 }}>{baslik}</h2>
+      <p style={{ color: 'var(--renk-murekkep2)' }}>{aciklama}</p>
 
-      <button type="button" onClick={() => void sablonIndir()} style={ikincilDugme}>
-        {tr.kurulum.sablonIndir}
+      <button type="button" onClick={() => void sablon()} style={ikincilDugme}>
+        {sablonEtiketi}
       </button>
 
       <label style={{ ...etiket, marginTop: 'var(--bosluk-5)' }}>
@@ -288,14 +339,18 @@ function SubeAdimi({ onYuklendi }: { onYuklendi: () => void }) {
         <div role="alert" style={{ color: 'var(--renk-kritik)', marginTop: 'var(--bosluk-4)' }}>
           <p>{hata}</p>
           {dosya && (
-            <button type="button" onClick={() => void hataRaporuIndir(dosya)} style={ikincilDugme}>
+            <button
+              type="button"
+              onClick={() => void hataRaporuIndir(dosya, tur)}
+              style={ikincilDugme}
+            >
               {tr.kurulum.hataRaporu}
             </button>
           )}
         </div>
       )}
 
-      {rapor && <RaporOzeti rapor={rapor} dosya={dosya} yuklendi={yuklendi} />}
+      {rapor && <RaporOzeti rapor={rapor} dosya={dosya} tur={tur} yuklendi={yuklendi} />}
 
       {rapor && !yuklendi && (
         <button
@@ -304,7 +359,7 @@ function SubeAdimi({ onYuklendi }: { onYuklendi: () => void }) {
           disabled={yukle.isPending || rapor.accepted === 0}
           style={birincilDugme}
         >
-          {tr.kurulum.subeleriYukle.replace('{n}', String(rapor.accepted))}
+          {yukleEtiketi.replace('{n}', String(rapor.accepted))}
         </button>
       )}
     </div>
@@ -314,10 +369,12 @@ function SubeAdimi({ onYuklendi }: { onYuklendi: () => void }) {
 function RaporOzeti({
   rapor,
   dosya,
+  tur,
   yuklendi,
 }: {
   rapor: YuklemeRaporu;
   dosya: File | null;
+  tur: Yukleme;
   yuklendi: boolean;
 }) {
   return (
@@ -367,7 +424,11 @@ function RaporOzeti({
             </tbody>
           </table>
           {dosya && (
-            <button type="button" onClick={() => void hataRaporuIndir(dosya)} style={ikincilDugme}>
+            <button
+              type="button"
+              onClick={() => void hataRaporuIndir(dosya, tur)}
+              style={ikincilDugme}
+            >
               {tr.kurulum.hataRaporu}
             </button>
           )}

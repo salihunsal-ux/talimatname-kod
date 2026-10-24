@@ -1085,6 +1085,80 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/setup/staff/template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Adım 5 · personel Excel şablonu
+         * @description Şube kodları dosyanın ikinci sayfasında: panele dönmek gerekmesin.
+         */
+        get: operations["personel_sablonu_api_v1_setup_staff_template_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/setup/staff/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Adım 5 · dosyayı yazmadan dene */
+        post: operations["personel_onizleme_api_v1_setup_staff_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/setup/staff/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Adım 5 · personeli davet et
+         * @description Davetler **kuyruğa alınır**; SMS sağlayıcısı bağlı değil (ST-067).
+         */
+        post: operations["personel_yukle_api_v1_setup_staff_import_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/setup/staff/error-report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Adım 5 · hatalı satır raporu (Excel) */
+        post: operations["personel_hata_raporu_api_v1_setup_staff_error_report_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/setup/complete": {
         parameters: {
             query?: never;
@@ -1316,6 +1390,21 @@ export interface components {
         };
         /** Body_hata_raporu_api_v1_setup_branches_error_report_post */
         Body_hata_raporu_api_v1_setup_branches_error_report_post: {
+            /** File */
+            file: string;
+        };
+        /** Body_personel_hata_raporu_api_v1_setup_staff_error_report_post */
+        Body_personel_hata_raporu_api_v1_setup_staff_error_report_post: {
+            /** File */
+            file: string;
+        };
+        /** Body_personel_onizleme_api_v1_setup_staff_preview_post */
+        Body_personel_onizleme_api_v1_setup_staff_preview_post: {
+            /** File */
+            file: string;
+        };
+        /** Body_personel_yukle_api_v1_setup_staff_import_post */
+        Body_personel_yukle_api_v1_setup_staff_import_post: {
             /** File */
             file: string;
         };
@@ -4920,6 +5009,125 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["YayinSonucu"];
+                };
+            };
+        };
+    };
+    personel_sablonu_api_v1_setup_staff_template_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Excel şablonu */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": unknown;
+                };
+            };
+        };
+    };
+    personel_onizleme_api_v1_setup_staff_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_personel_onizleme_api_v1_setup_staff_preview_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["YuklemeRaporu"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    personel_yukle_api_v1_setup_staff_import_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_personel_yukle_api_v1_setup_staff_import_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["YuklemeRaporu"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    personel_hata_raporu_api_v1_setup_staff_error_report_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_personel_hata_raporu_api_v1_setup_staff_error_report_post"];
+            };
+        };
+        responses: {
+            /** @description Hatalı satırlar */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
