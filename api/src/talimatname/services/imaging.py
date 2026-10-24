@@ -43,6 +43,11 @@ BAND_MAX_PX = 90
 TEXT_RATIO = 0.52
 TEXT_MIN_PX = 11
 
+#: Satır aralığı ve en çok kaç satır. Üç satırlık bir damga fotoğrafı
+#: değil kendini gösterir.
+LINE_SPACING = 1.3
+MAX_LINES = 2
+
 #: Bandın koyuluğu: altındaki fotoğraf seçilsin, yazı okunsun.
 BAND_ALPHA = 165
 
@@ -151,7 +156,7 @@ def _fitting_font(
     """Banda sığan en büyük yazı tipi.
 
     Şube adı uzun olabilir; sığmayan metni kırpmak yerine küçültüyoruz.
-    Kırpma, damganın taşıdığı tek bilgiyi (hangi şube) yok edebilirdi.
+    En küçük boyda da sığmıyorsa `_wrap` ikinci satıra taşır.
     """
     boy = max(TEXT_MIN_PX, int(band * TEXT_RATIO))
     font, yol = find_font(boy, preferred=preferred)
@@ -160,6 +165,77 @@ def _fitting_font(
         boy -= 1
         font = ImageFont.truetype(yol, boy)
     return font, yol
+
+
+def _kirp(metin: str, font: ImageFont.FreeTypeFont, width: int) -> str:
+    """Son çare: sığmayan metni "…" ile kısaltır.
+
+    Buraya ancak tek bir parça (ör. çok uzun bir şube adı) en küçük
+    boyda bile sığmazsa gelinir. Kırpma **sondan**: damganın ilk
+    bilgisi şube adıdır, en son kaybedilecek şey odur.
+    """
+    if font.getbbox(metin)[2] <= width:
+        return metin
+    kesik = metin
+    while kesik and font.getbbox(kesik + "…")[2] > width:
+        kesik = kesik[:-1]
+    return (kesik + "…") if kesik else metin
+
+
+def _wrap(text: str, font: ImageFont.FreeTypeFont, width: int) -> list[str]:
+    """Metni " · " sınırlarında en çok iki satıra böler.
+
+    Neden bölüyoruz: DejaVu, Segoe UI'dan geniş. Aynı metin bir yazı
+    tipinde sığarken diğerinde taşıyor; taşan metin sessizce kenardan
+    kesilir ve damga yalan söylemeye başlar. CI bunu ilk koşuda yakaladı.
+    """
+    if font.getbbox(text)[2] <= width:
+        return [text]
+
+    satirlar: list[str] = []
+    simdiki = ""
+    for parca in text.split(" · "):
+        aday = f"{simdiki} · {parca}" if simdiki else parca
+        if simdiki and font.getbbox(aday)[2] > width:
+            satirlar.append(simdiki)
+            simdiki = parca
+        else:
+            simdiki = aday
+    satirlar.append(simdiki)
+
+    if len(satirlar) > MAX_LINES:
+        # İki satırdan fazlası damgayı fotoğrafa çevirir: kalanı
+        # son satırda birleştirip gerekirse kırpıyoruz.
+        satirlar = [satirlar[0], " · ".join(satirlar[1:])]
+    return [_kirp(satir, font, width) for satir in satirlar]
+
+
+@dataclass(frozen=True, slots=True)
+class StampLayout:
+    """Damganın yerleşimi: hangi yazı tipi, hangi satırlar, ne kadar bant."""
+
+    font: ImageFont.FreeTypeFont
+    lines: tuple[str, ...]
+    band: int
+    padding: int
+
+
+def layout(
+    text: str,
+    size: tuple[int, int],
+    *,
+    font_path: str | None = None,
+) -> StampLayout:
+    """Damga yerleşimini hesaplar (çizmeden; test de bunu ölçüyor)."""
+    genislik, yukseklik = size
+    taban = band_height(yukseklik)
+    bosluk = _padding(taban)
+    kullanilabilir = genislik - 2 * bosluk
+    font, _ = _fitting_font(text, genislik, taban, preferred=font_path)
+    satirlar = _wrap(text, font, kullanilabilir)
+    satir_yuksekligi = int(font.size * LINE_SPACING)
+    band = max(taban, len(satirlar) * satir_yuksekligi + bosluk)
+    return StampLayout(font=font, lines=tuple(satirlar), band=band, padding=bosluk)
 
 
 def _padding(band: int) -> int:
@@ -179,23 +255,23 @@ def stamp(data: bytes, *, text: str, content_type: str, font_path: str | None = 
     """
     resim = _load(data).convert("RGBA")
     genislik, yukseklik = resim.size
-    band = band_height(yukseklik)
-    bosluk = _padding(band)
-    font, _ = _fitting_font(text, genislik, band, preferred=font_path)
+    yerlesim = layout(text, resim.size, font_path=font_path)
 
     katman = Image.new("RGBA", resim.size, (0, 0, 0, 0))
     cizim = ImageDraw.Draw(katman)
     cizim.rectangle(
-        [(0, yukseklik - band), (genislik, yukseklik)],
+        [(0, yukseklik - yerlesim.band), (genislik, yukseklik)],
         fill=(0, 0, 0, BAND_ALPHA),
     )
-    cizim.text(
-        (bosluk, yukseklik - band / 2),
-        text,
-        font=font,
-        fill=(255, 255, 255, 255),
-        anchor="lm",
-    )
+    satir_yuksekligi = yerlesim.band / len(yerlesim.lines)
+    for sira, satir in enumerate(yerlesim.lines):
+        cizim.text(
+            (yerlesim.padding, yukseklik - yerlesim.band + satir_yuksekligi * (sira + 0.5)),
+            satir,
+            font=yerlesim.font,
+            fill=(255, 255, 255, 255),
+            anchor="lm",
+        )
     return _save(Image.alpha_composite(resim, katman), content_type, quality=STAMP_QUALITY)
 
 

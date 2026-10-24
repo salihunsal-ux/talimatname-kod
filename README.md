@@ -172,6 +172,8 @@ Hangi kopyanın isteneceği `GET /evidence/{id}/url?variant=…` ile seçilir ve
 
 **Damga zamanı çekim zamanıdır** (düzeltilmiş hali, BR-13), senk anı değil: çevrimdışı çekilmiş bir fotoğrafa senk saatini basmak saatler sonrasını gösterirdi. Geçmişe çekilmiş bir çekim zamanı zaten bayraklıdır (FR-0615). Saat **şubenin diliminde** yazılır; damgayı okuyan denetçi yerel saat bekler.
 
+**Uzun metin kırpılmaz, ikinci satıra taşar.** DejaVu, Segoe UI'dan geniş: aynı damga bir yazı tipinde sığarken diğerinde taşıyordu (CI ilk koşuda yakaladı). Metin önce küçülür, sığmazsa ` · ` sınırlarında iki satıra bölünür ve bant büyür. Ancak tek bir parça (ör. 120 karakterlik bir şube adı) en küçük boyda da sığmazsa sondan `…` ile kırpılır — şube adı ilk bilgidir, en son kaybedilecek şey odur.
+
 **Yazı tipi şart ve sınanıyor.** Pillow'un gömülü yazı tipinde ş, ğ, İ yok: damga "Kadıköy" yerine kutu basardı. İşçi önce Türkçe harfleri çizebilen bir yazı tipi arar (Segoe UI, Arial, DejaVu, Liberation, Noto; ya da `STAMP_FONT_PATH`); bulamazsa **damga basmaz**, küçük resmi yine üretir ve uyarı yazar. Kayıt `stored` kalır, yazı tipi kurulunca sonraki tur damgayı basar. İnce üretim imajlarında yazı tipi paketi genelde yoktur — `fonts-dejavu-core` kurun ya da `STAMP_FONT_PATH` verin.
 
 Kopyalar ham dosyayla **aynı öbekte** (`evidence/{run}/…`): saklama süresi silmesi (BR-21) çalıştırma düzeyinde iş görsün, kopya arkada kalmasın. EXIF kopyalara geçmez (yeniden kodlanıyorlar): telefonun GPS'i dışarı giden dosyada ikinci kez taşınmaz.

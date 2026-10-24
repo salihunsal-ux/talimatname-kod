@@ -172,14 +172,69 @@ def test_damga_alt_bantta_yazi_birakir_ustu_bozmaz() -> None:
     assert yeni_resim.crop(alt).getextrema()[0][1] > 0
 
 
-def test_uzun_metin_kirpilmaz_kuculur() -> None:
-    uzun = "Çok Uzun Bir Şube Adı Burada · 02.11.2026 23:40 UTC+3 · Çağla Şubeci Yıldırım"
-    kisa_band = imaging.band_height(400)
-    buyuk, yol = imaging.find_font(int(kisa_band * imaging.TEXT_RATIO))
-    sigan, _ = imaging._fitting_font(uzun, 400, kisa_band, preferred=yol)
+UZUN_DAMGA = "Çok Uzun Bir Şube Adı Burada · 02.11.2026 23:40 UTC+3 · Çağla Şubeci Yıldırım"
 
-    assert sigan.size <= buyuk.size
-    assert sigan.getbbox(uzun)[2] <= 400
+
+def _en_kucuk_genislik(metin: str) -> int:
+    """Metnin en küçük boyda kapladığı genişlik.
+
+    Testler bunu yazı tipinden türetiyor: CI'daki DejaVu, buradaki
+    Segoe UI'dan geniş. Sabit bir piksel sayısı yazmak, testi makineye
+    bağlardı — ilk koşuda tam olarak bu oldu.
+    """
+    font, _ = imaging.find_font(imaging.TEXT_MIN_PX)
+    return int(font.getbbox(metin)[2])
+
+
+def test_sigan_metin_tek_satir_kalir() -> None:
+    genis = _en_kucuk_genislik(UZUN_DAMGA) * 2
+
+    yerlesim = imaging.layout(UZUN_DAMGA, (genis, 800))
+
+    assert yerlesim.lines == (UZUN_DAMGA,)
+    assert yerlesim.band == imaging.band_height(800)
+
+
+def test_sigmayan_metin_kirpilmaz_ikinci_satira_taşar() -> None:
+    """Taşan metin sessizce kenardan kesilmemeli: damga yalan söyler.
+
+    CI ilk koşuda yakaladı: DejaVu, Segoe UI'dan geniş; aynı metin bir
+    yazı tipinde sığarken diğerinde taşıyordu.
+    """
+    # Tek satıra sığmayacak, iki satıra rahat sığacak bir genişlik.
+    dar = _en_kucuk_genislik(UZUN_DAMGA) * 2 // 3
+
+    yerlesim = imaging.layout(UZUN_DAMGA, (dar, 300))
+
+    assert len(yerlesim.lines) == 2
+    assert " · ".join(yerlesim.lines) == UZUN_DAMGA  # hiçbir bilgi düşmedi
+    kullanilabilir = dar - 2 * yerlesim.padding
+    for satir in yerlesim.lines:
+        assert yerlesim.font.getbbox(satir)[2] <= kullanilabilir, satir
+    assert yerlesim.band > imaging.band_height(300)  # bant iki satıra büyüdü
+
+
+def test_hicbir_genislikte_bant_tasmiyor() -> None:
+    """Değişmez: her satır banda sığar, satır sayısı ikiyi geçmez."""
+    birim = _en_kucuk_genislik(UZUN_DAMGA)
+    for genislik in (birim // 4, birim // 2, birim, birim * 3):
+        yerlesim = imaging.layout(UZUN_DAMGA, (genislik, 400))
+        kullanilabilir = genislik - 2 * yerlesim.padding
+        assert len(yerlesim.lines) <= imaging.MAX_LINES
+        for satir in yerlesim.lines:
+            assert yerlesim.font.getbbox(satir)[2] <= kullanilabilir, (genislik, satir)
+
+
+def test_tek_parca_sigmazsa_sondan_kirpilir() -> None:
+    """Son çare. Şube adı ilk bilgi: en son kaybedilecek şey o."""
+    sube = "Ş" * 120
+    font, _ = imaging.find_font(imaging.TEXT_MIN_PX)
+    hedef = int(font.getbbox(sube)[2]) // 3
+
+    kesik = imaging._kirp(sube, font, hedef)
+
+    assert kesik.endswith("…")
+    assert font.getbbox(kesik)[2] <= hedef
 
 
 def test_kucuk_resim_oran_korur_uzun_kenar_320() -> None:
@@ -309,8 +364,11 @@ def test_acilamayan_dosya_her_turda_yeniden_denenmez(dunya: Dunya) -> None:
 
 
 def test_isci_parti_sinirina_uyar(dunya: Dunya) -> None:
-    for _ in range(3):
-        baytlar, ozet = _resim(renk=(uuid4().int % 255, 90, 140))
+    for sira in range(3):
+        # Her kare **farklı** olmalı: aynı baytlar tekillik denetimine
+        # takılırdı (FR-0614). Rastgele renk ara sıra çakışıyordu —
+        # testi kendi elimle kararsız yapmışım, boyut farkı kesin.
+        baytlar, ozet = _resim(900 + sira, 600)
         dunya.kanit_yukle(baytlar, ozet, answer_id=uuid4())
 
     sonuc = dunya.servis.stamp_pending(limit=2)
