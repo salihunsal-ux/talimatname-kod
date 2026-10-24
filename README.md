@@ -156,6 +156,24 @@ GET  /evidence/{id}/url                      → 15 dk imzalı bağlantı (FR-13
 
 **Depolama** port/adaptör (ADR-0012 md.4): geliştirmede yerel dizin (`EVIDENCE_DIR`), üretimde S3 uyumlu kova. Sağlayıcı kararı bu kodu değiştirmeden verilebilir; üretim kovası Türkiye'de olmalı (fotoğraf kişisel veri sayılabilir).
 
+## Çalıştırma okuma ve yazma: ölçülmüş kararlar
+
+Ufuk üretimi bir seferde onlarca satır yazıyor. Uzak veritabanında (uygulama Türkiye'de, Neon Frankfurt'ta) ölçüm:
+
+| İşlem | Önce | Sonra |
+|---|---|---|
+| 56 çalıştırma yazma | 14,0 sn (satır başına ayrı işlem) | **0,26 sn** (tek işlem + tek okuma) |
+| Tek çalıştırmayı id ile okuma | 1,42 sn (tüm tablo) | **0,29 sn** |
+| Bir planın ufkunu üretme (54 kayıt) | ~50 sn | **~3 sn** |
+
+Üç karar:
+
+* **`save_runs` / `delete_runs` tek iş birimi.** Satır başına `tenant_session` açmak, satır başına bağlantı + `SET LOCAL` + gidiş-dönüş demekti.
+* **Toplu yazmada var olanlar tek sorguda okunuyor.** Satır başına `session.get()` çağırmak 56 ayrı SELECT üretiyor ve kazancın çoğunu yiyordu (58 ms/kayıt → 5 ms/kayıt).
+* **Tek çalıştırma id ile okunuyor** (`run(id)`), tüm tabloyu tarayıp içinden seçerek değil. Cevap yazan her istek bu yoldan geçiyor; mobilin en sık çağrısı bu.
+
+Her sorguda ~250–300 ms sabit maliyet var ve bu **mesafenin** maliyeti: uygulama veritabanının yanında koştuğunda bu sayılar bir kat daha düşer.
+
 ## Kurulum sihirbazı (ST-008)
 
 Yeni bir zincirin **bir saat içinde** ilk listesini çalıştırabilmesi için (FR-1401, UC-01):

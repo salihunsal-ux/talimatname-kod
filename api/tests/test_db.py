@@ -7,6 +7,7 @@ yapar, sonra siler — paylaşılan geliştirme veritabanını kirletmez.
 
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import UTC, datetime, time, timedelta
 from uuid import UUID, uuid4, uuid5
 
@@ -419,3 +420,34 @@ def test_damga_bekleyenler_veritabaninda_suzuluyor(iki_kiraci: object) -> None:
     gelen = depo.stored_evidences(10)
 
     assert [k.id for k in gelen] == [bekleyen.id]
+
+
+def test_toplu_calistirma_yazma_tek_islemde(iki_kiraci: object) -> None:
+    """Ufuk üretimi onlarca satır yazıyor; satır başına işlem pahalı.
+
+    Ölçüm (Frankfurt, 56 kayıt): tek tek 14,0 sn — toplu 0,26 sn.
+    Test hızı değil **davranışı** sabitliyor: toplu yazma ve toplu
+    silme, tek tek olanla aynı sonucu vermeli.
+    """
+    run = _calistirma(A_KIRACI)
+    depo = SqlPlanRepository(A_KIRACI)
+    an = datetime.now(UTC)
+    yeni = [
+        replace(run, id=uuid4(), business_day=run.business_day + timedelta(days=gun))
+        for gun in range(1, 6)
+    ]
+
+    depo.save_runs(yeni)
+
+    kimlikler = {r.id for r in depo.runs()}
+    assert {r.id for r in yeni} <= kimlikler
+
+    # Aynı kayıtları ikinci kez yazmak güncelleme: kopya açmaz.
+    depo.save_runs([replace(r, status="cancelled", cancel_reason="deneme") for r in yeni])
+    geri = {r.id: r for r in depo.runs()}
+    assert all(geri[r.id].status == "cancelled" for r in yeni)
+    assert len(depo.runs()) == len(kimlikler)
+
+    depo.delete_runs([r.id for r in yeni])
+    assert {r.id for r in depo.runs()}.isdisjoint({r.id for r in yeni})
+    assert an is not None

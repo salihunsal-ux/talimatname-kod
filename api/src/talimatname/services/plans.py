@@ -50,9 +50,30 @@ class PlanRepository(Protocol):
 
     def runs(self) -> list[Run]: ...
 
+    def run(self, run_id: UUID) -> Run | None:
+        """Tek çalıştırma. Süzgeç **depoda**: cevap yazan her istek
+        tüm çalıştırma tablosunu okumamalı (mobilin en sık yolu)."""
+        ...
+
+    def runs_for_plan(self, plan_id: UUID, *, since: date | None = None) -> list[Run]: ...
+
+    def runs_for_day(self, business_day: date) -> list[Run]: ...
+
     def save_run(self, run: Run) -> None: ...
 
+    def save_runs(self, runs: list[Run]) -> None:
+        """Toplu yazma: **tek iş birimi**.
+
+        Ufuk üretimi bir seferde onlarca çalıştırma yazıyor; her birini
+        ayrı işlemde yazmak uzak veritabanında kayıt başına ~250 ms
+        demek (8 şube × 7 gün ≈ 14 sn). Bellek içi adaptörde döngü,
+        SQL adaptöründe tek işlem.
+        """
+        ...
+
     def delete_run(self, run_id: UUID) -> None: ...
+
+    def delete_runs(self, run_ids: list[UUID]) -> None: ...
 
 
 class PlanService:
@@ -96,7 +117,7 @@ class PlanService:
 
     def runs_for_day(self, business_day: date) -> list[Run]:
         return sorted(
-            (r for r in self._repo.runs() if r.business_day == business_day),
+            (r for r in self._repo.runs_for_day(business_day)),
             key=lambda r: (r.window_start, str(r.branch_id)),
         )
 
@@ -141,13 +162,15 @@ class PlanService:
         son = bugun + timedelta(days=days - 1)
 
         yeni = self._generate(plan, bugun, son) if plan.active else []
-        mevcut = [r for r in self._repo.runs() if r.plan_id == plan_id and r.business_day >= bugun]
+        mevcut = self._repo.runs_for_plan(plan_id, since=bugun)
         kaydedilecek, silinecek = merge_runs(mevcut, yeni)
 
-        for run in kaydedilecek:
-            self._repo.save_run(run)
-        for run in silinecek:
-            self._repo.delete_run(run.id)
+        # Toplu: üretim bir seferde onlarca satır yazıyor, her birini
+        # ayrı işlemde yazmak uzak veritabanında dakikalara çıkıyordu.
+        if kaydedilecek:
+            self._repo.save_runs(kaydedilecek)
+        if silinecek:
+            self._repo.delete_runs([run.id for run in silinecek])
         return len(kaydedilecek), len(silinecek)
 
     # --- yardımcılar --------------------------------------------------

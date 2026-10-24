@@ -275,7 +275,7 @@ class ExecutionService:
         }
 
     def _run(self, run_id: UUID) -> Run:
-        run = next((r for r in self._plans.runs() if r.id == run_id), None)
+        run = self._plans.run(run_id)
         if run is None:
             raise RunNotFound(f"Çalıştırma id: {run_id}")
         return run

@@ -214,7 +214,7 @@ class EvidenceService:
         tur = check_content_type(content_type)
         boyut = check_size(size_bytes)
 
-        run = next((r for r in self._plans.runs() if r.id == run_id), None)
+        run = self._plans.run(run_id)
         if run is None:
             raise EvidenceNotFound(f"çalıştırma: {run_id}")
 

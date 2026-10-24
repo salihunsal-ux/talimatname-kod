@@ -466,7 +466,7 @@ class SyncService:
 
     def _kapsam(self, run_id: UUID, branch_ids: set[UUID]) -> None:
         """Kapsam dışı şubenin çalıştırmasına senk yoluyla da yazılamaz."""
-        run = next((r for r in self._plans.runs() if r.id == run_id), None)
+        run = self._plans.run(run_id)
         if run is None:
             raise RunOutOfScope(f"Çalıştırma id: {run_id}")
         if run.branch_id not in branch_ids:

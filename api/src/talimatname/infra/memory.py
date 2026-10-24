@@ -467,6 +467,27 @@ class MemoryPlanRepository:
     def save_run(self, run: Run) -> None:
         self._runs[run.id] = run
 
+    def run(self, run_id: UUID) -> Run | None:
+        return self._runs.get(run_id)
+
+    def runs_for_plan(self, plan_id: UUID, *, since: date | None = None) -> list[Run]:
+        return [
+            r
+            for r in self._runs.values()
+            if r.plan_id == plan_id and (since is None or r.business_day >= since)
+        ]
+
+    def runs_for_day(self, business_day: date) -> list[Run]:
+        return [r for r in self._runs.values() if r.business_day == business_day]
+
+    def save_runs(self, runs: list[Run]) -> None:
+        for run in runs:
+            self.save_run(run)
+
+    def delete_runs(self, run_ids: list[UUID]) -> None:
+        for run_id in run_ids:
+            self.delete_run(run_id)
+
     def delete_run(self, run_id: UUID) -> None:
         self._runs.pop(run_id, None)
 
