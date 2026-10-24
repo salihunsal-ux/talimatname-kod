@@ -366,3 +366,56 @@ def test_kanit_silinebiliyor(iki_kiraci: object) -> None:
 
     assert depo.evidence_by_digest(ozet) is None
     depo.save_evidence(_kanit(run, ozet))  # aynı kare yeniden yüklenebilir
+
+
+def test_damga_anahtarlari_gidip_geliyor(iki_kiraci: object) -> None:
+    """Damgalı kopya ve küçük resmin anahtarları kalıcı (ST-040, FR-0606).
+
+    Ham dosyanın anahtarı ve özeti **değişmiyor**: damga bir kopyadır,
+    kanıtın kendisi yerinde durur (BR-12).
+    """
+    run = _calistirma(A_KIRACI)
+    depo = SqlEvidenceRepository(A_KIRACI)
+    kanit = _kanit(run, "d" * 64)
+    depo.save_evidence(kanit)
+
+    an = datetime.now(UTC)
+    depo.save_evidence(
+        kanit.stored(an).stamped(
+            an,
+            stamped_key=f"evidence/{run.id}/{kanit.id}.stamp.jpg",
+            thumbnail_key=f"evidence/{run.id}/{kanit.id}.thumb.jpg",
+        )
+    )
+
+    geri = depo.evidence(kanit.id)
+    assert geri is not None
+    assert geri.status == "stamped"
+    assert geri.stamped_at is not None
+    assert geri.stamped_key == f"evidence/{run.id}/{kanit.id}.stamp.jpg"
+    assert geri.thumbnail_key == f"evidence/{run.id}/{kanit.id}.thumb.jpg"
+    assert geri.storage_key == kanit.storage_key
+    assert geri.sha256 == kanit.sha256
+
+
+def test_damga_bekleyenler_veritabaninda_suzuluyor(iki_kiraci: object) -> None:
+    """İşçi tüm kanıt tablosunu okumaz: süzgeç sorguda (ST-040).
+
+    Kanıt en hızlı büyüyen tablo; her turda tam tarama yapmak işçiyi
+    birkaç ay sonra kullanılamaz hale getirirdi.
+    """
+    run = _calistirma(A_KIRACI)
+    depo = SqlEvidenceRepository(A_KIRACI)
+    an = datetime.now(UTC)
+    bekleyen = _kanit(run, "e" * 64).stored(an)
+    depo.save_evidence(bekleyen)
+    depo.save_evidence(_kanit(run, "f" * 64))  # pending: işçinin işi değil
+    depo.save_evidence(
+        _kanit(run, "0" * 64)
+        .stored(an)
+        .stamped(an, stamped_key="a.jpg", thumbnail_key="b.jpg")  # bitmiş
+    )
+
+    gelen = depo.stored_evidences(10)
+
+    assert [k.id for k in gelen] == [bekleyen.id]

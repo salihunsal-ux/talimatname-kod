@@ -14,6 +14,9 @@ dependencies = [
   "psycopg[binary]>=3.2",
   # Belirteç imzası RS256: PyJWT asimetrik algoritmalar için cryptography ister.
   "pyjwt[crypto]>=2.9",
+  # Kanıt damgası ve küçük resmi (ST-040, FR-0606). 10.1+: gömülü
+  # yazı tipi `load_default(size=...)` ile ölçeklenebiliyor.
+  "pillow>=10.3",
 ]
 
 [project.optional-dependencies]

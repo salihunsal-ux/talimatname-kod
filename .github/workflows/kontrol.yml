@@ -55,6 +55,14 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
 
+      - name: Yazı tipi (kanıt damgası)
+        # Damga Türkçe harf çizebilen bir yazı tipi ister (ST-040);
+        # gömülü yazı tipinde ş/ğ/İ yok. Üretim imajında da gerekiyor,
+        # bu yüzden burada **açıkça** kuruyoruz: koşucunun imajında
+        # ne olduğuna güvenmek, sessizce damgasız kalmak demekti.
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq fonts-dejavu-core
+        working-directory: .
+
       - name: Bağımlılıklar
         run: pip install -e ".[dev]"
 

@@ -231,6 +231,7 @@ def zamanlayici_servisi() -> SchedulerService:
         bildirim_servisi(),
         eskalasyon_servisi(),
         ozet_servisi(),
+        kanit_servisi(),
     )
 
 
@@ -257,11 +258,13 @@ def yurutme_servisi() -> ExecutionService:
 
 
 def kanit_servisi() -> EvidenceService:
+    """Kullanıcı deposu damga metni için: damgada kişinin adı yazılı (FR-0606)."""
     return EvidenceService(
         _kanit_deposu(),
         _plan_deposu(),
         _org_deposu(),
         _nesne_deposu(),
+        _kullanici_deposu(),
         settings=ayarlar(),
     )
 

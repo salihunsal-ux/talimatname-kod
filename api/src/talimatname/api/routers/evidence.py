@@ -32,7 +32,13 @@ from talimatname.api.bagimliliklar import (
     yurutme_servisi,
 )
 from talimatname.api.guvenlik import Kullanici, sube_erisimi_zorunlu
-from talimatname.domain.evidence import FLAG_LABELS, MAX_BYTES, MAX_PER_ITEM, Evidence
+from talimatname.domain.evidence import (
+    FLAG_LABELS,
+    MAX_BYTES,
+    MAX_PER_ITEM,
+    Evidence,
+    EvidenceVariant,
+)
 from talimatname.services.evidence import EvidenceService
 from talimatname.services.execution import ExecutionService
 from talimatname.services.organization import OrganizationService
@@ -78,6 +84,11 @@ class KanitOzet(BaseModel):
     created_at: datetime
     captured_at: datetime | None = None
     distance_meters: int | None = None
+    stamped_at: datetime | None = Field(
+        default=None, description="Görünür damgalı kopyanın üretildiği an (FR-0606)"
+    )
+    has_stamp: bool = Field(default=False, description="Damgalı kopya hazır mı")
+    has_thumbnail: bool = Field(default=False, description="Küçük resim hazır mı")
     flags: list[BayrakCiktisi] = Field(
         default_factory=list, description="Bayrak suçlama değil, incelemeye çağrıdır"
     )
@@ -102,6 +113,7 @@ class YuklemeIzni(BaseModel):
 class GoruntulemeBaglantisi(BaseModel):
     url: str
     expires_in_minutes: int
+    variant: EvidenceVariant = Field(default="raw", description="Bağlantının hangi kopyayı verdiği")
 
 
 def _ozet(kanit: Evidence) -> KanitOzet:
@@ -117,6 +129,9 @@ def _ozet(kanit: Evidence) -> KanitOzet:
         created_at=kanit.created_at,
         captured_at=kanit.captured_at,
         distance_meters=kanit.distance_meters,
+        stamped_at=kanit.stamped_at,
+        has_stamp=kanit.stamped_key is not None,
+        has_thumbnail=kanit.thumbnail_key is not None,
         flags=[BayrakCiktisi(code=b, label=FLAG_LABELS[b]) for b in kanit.flags],
     )
 
@@ -196,14 +211,21 @@ def kanit_baglantisi(
     org: OrgServis,
     kullanici: Kullanici,
     request: Request,
+    variant: EvidenceVariant = "raw",
 ) -> GoruntulemeBaglantisi:
-    """15 dakikalık bağlantı (FR-1305). Kapsam denetimi **burada** yapılır."""
+    """15 dakikalık bağlantı (FR-1305). Kapsam denetimi **burada** yapılır.
+
+    `variant`: `thumbnail` ızgara için, `stamped` dışarı giden kopya,
+    `raw` özeti tutulan dosya. İstenen kopya henüz üretilmediyse ham
+    dosya döner (damgalama turlu bir iştir, ST-040).
+    """
     kanit = servis.get(evidence_id)
     sube_erisimi_zorunlu(kullanici, kanit.branch_id, org)
-    belirtec = servis.view_token(evidence_id)
+    belirtec = servis.view_token(evidence_id, variant)
     return GoruntulemeBaglantisi(
         url=request.url_for("kanit_dosyasi", token=belirtec).path,
         expires_in_minutes=15,
+        variant=variant,
     )
 
 

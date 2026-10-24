@@ -10,7 +10,10 @@ Zamanlayıcı **iki** iş yapar ve ikisi de idempotenttir:
 3. **Hatırlatma ve gönderim** — yaklaşan çalıştırmalar için iki sabit
    hatırlatma kuyruğa girer (FR-0509), zamanı gelenler kanala verilir
    (FR-1001). İkisi de idempotent: aynı dilim ikinci kez üretilmez.
-4. **Kapanış** — toleransı dolmuş, hâlâ başlanmamış ya da yarım kalmış
+4. **Damgalama** — doğrulanmış kanıtlara görünür damga ve küçük
+   resim (FR-0606, ST-040). Yükleme yolunda değil burada: görsel
+   işleme yüklemenin yanıt süresine eklenmemeli.
+5. **Kapanış** — toleransı dolmuş, hâlâ başlanmamış ya da yarım kalmış
    çalıştırmaları `missed` olarak **kalıcı** işaretler (FR-0514), ve
    kaçırılan her liste için aksiyon açar (FR-0902; idempotent).
 
@@ -32,6 +35,7 @@ from datetime import UTC, datetime
 from talimatname.services.actions import ActionService
 from talimatname.services.digest import DigestService
 from talimatname.services.escalation import EscalationService
+from talimatname.services.evidence import EvidenceService
 from talimatname.services.notifications import NotificationService
 from talimatname.services.organization import OrganizationRepository
 from talimatname.services.plans import HORIZON_DAYS, PlanRepository, PlanService
@@ -53,6 +57,7 @@ class TickResult:
     digests_queued: int = 0
     sent: int = 0
     failed: int = 0
+    stamped: int = 0
 
     @property
     def quiet(self) -> bool:
@@ -66,6 +71,7 @@ class TickResult:
             and self.digests_queued == 0
             and self.sent == 0
             and self.failed == 0
+            and self.stamped == 0
         )
 
 
@@ -80,6 +86,7 @@ class SchedulerService:
         notifications: NotificationService | None = None,
         escalation: EscalationService | None = None,
         digest: DigestService | None = None,
+        evidence: EvidenceService | None = None,
         *,
         now: Callable[[], datetime] = lambda: datetime.now(UTC),
     ) -> None:
@@ -90,6 +97,7 @@ class SchedulerService:
         self._bildirim = notifications
         self._eskalasyon = escalation
         self._ozet = digest
+        self._kanit = evidence
         self._now = now
 
     def tick(self, *, days: int = HORIZON_DAYS) -> TickResult:
@@ -105,6 +113,7 @@ class SchedulerService:
         merdiven = self._eskalasyon.run(an) if self._eskalasyon else {}
         ozet = self._ozet.schedule(an) if self._ozet else 0
         gonderim = self._bildirim.dispatch(an) if self._bildirim else {}
+        damga = self._kanit.stamp_pending() if self._kanit else {}
         return TickResult(
             at=an,
             created=eklenen,
@@ -118,6 +127,7 @@ class SchedulerService:
             digests_queued=ozet,
             sent=gonderim.get("sent", 0),
             failed=gonderim.get("failed", 0),
+            stamped=damga.get("stamped", 0),
         )
 
     def close_expired(self, now: datetime) -> int:

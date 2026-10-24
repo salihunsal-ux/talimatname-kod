@@ -491,6 +491,9 @@ class MemoryEvidenceRepository:
     def evidence(self, evidence_id: UUID) -> Evidence | None:
         return self._evidences.get(evidence_id)
 
+    def stored_evidences(self, limit: int) -> list[Evidence]:
+        return [k for k in self._evidences.values() if k.status == "stored"][:limit]
+
     def evidence_by_digest(self, sha256: str) -> Evidence | None:
         kimlik = self._by_digest.get(sha256)
         return self._evidences.get(kimlik) if kimlik else None

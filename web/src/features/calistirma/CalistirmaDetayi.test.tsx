@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -22,6 +22,8 @@ const KANIT: Kanit = {
   content_type: 'image/jpeg',
   size_bytes: 250_000,
   sha256: 'a'.repeat(64),
+  has_stamp: true,
+  has_thumbnail: true,
   created_at: '2026-11-02T21:30:00Z',
   captured_at: '2026-11-02T21:29:00Z',
   distance_meters: 1800,
@@ -208,7 +210,8 @@ describe('Çalıştırma detayı', () => {
 
     const gorsel = await screen.findByAltText('Kanıt fotoğrafı');
     expect(gorsel).toHaveAttribute('src', '/api/v1/evidence/file/belirtec');
-    expect(baglantiGetir).toHaveBeenCalledWith('k-1');
+    // Izgara küçük resmi ister; damgalı kopya tıklamayla gelir (FR-0606).
+    expect(baglantiGetir).toHaveBeenCalledWith('k-1', 'thumbnail');
   });
 
   it('kanıt bayrağı metniyle birlikte gösterilir', async () => {
@@ -228,6 +231,26 @@ describe('Çalıştırma detayı', () => {
 
     await screen.findByText('Kapanış (kafe)');
     expect(screen.queryByAltText('Kanıt fotoğrafı')).not.toBeInTheDocument();
+  });
+
+  it('damgasız kanıt bunu söyler', async () => {
+    // Damgalama turlu bir iş: hazır olmadığında kullanıcı bilsin.
+    kanitlariGetir.mockResolvedValue([{ ...KANIT, has_stamp: false }]);
+
+    kur();
+
+    expect(await screen.findByText('Damga bekliyor')).toBeInTheDocument();
+  });
+
+  it('açılamayan görsel kırık simge değil metin gösterir', async () => {
+    kanitlariGetir.mockResolvedValue([KANIT]);
+
+    kur();
+
+    const gorsel = await screen.findByAltText('Kanıt fotoğrafı');
+    fireEvent.error(gorsel);
+
+    expect(await screen.findByText('Görsel açılamadı')).toBeInTheDocument();
   });
 
   it('bayraksız kanıt bunu açıkça söyler', async () => {

@@ -156,6 +156,26 @@ GET  /evidence/{id}/url                      → 15 dk imzalı bağlantı (FR-13
 
 **Depolama** port/adaptör (ADR-0012 md.4): geliştirmede yerel dizin (`EVIDENCE_DIR`), üretimde S3 uyumlu kova. Sağlayıcı kararı bu kodu değiştirmeden verilebilir; üretim kovası Türkiye'de olmalı (fotoğraf kişisel veri sayılabilir).
 
+## Damga ve küçük resim (ST-040)
+
+Doğrulanmış her kanıt için **turlu bir işçi** iki kopya üretir (FR-0606, zamanlayıcı turunda, ST-027):
+
+| Kopya | Ne için | Not |
+|---|---|---|
+| `raw` | Kanıtın kendisi | Baytı değişmez, SHA-256'sı kayıtta (BR-12) |
+| `stamped` | Dışarı giden kopya | Alt bantta **şube · tarih-saat · kullanıcı** |
+| `thumbnail` | Panel ızgarası | 320 px uzun kenar, **damgasız** (okunmaz boyut) |
+
+Hangi kopyanın isteneceği `GET /evidence/{id}/url?variant=…` ile seçilir ve **belirtecin içine** yazılır: bağlantıyı alan adresi değiştirip başka kopyayı isteyemez. Kopya hazır değilse ham dosya döner — damgalanmamış kanıt panelde boş kare değil, fotoğraf olarak görünür.
+
+**Neden yükleme yolunda değil?** Görsel işleme yüz milisaniyeler alır; kanıt yüklemenin yanıt süresine eklemek, sahada en çok tekrar edilen işi yavaşlatırdı.
+
+**Damga zamanı çekim zamanıdır** (düzeltilmiş hali, BR-13), senk anı değil: çevrimdışı çekilmiş bir fotoğrafa senk saatini basmak saatler sonrasını gösterirdi. Geçmişe çekilmiş bir çekim zamanı zaten bayraklıdır (FR-0615). Saat **şubenin diliminde** yazılır; damgayı okuyan denetçi yerel saat bekler.
+
+**Yazı tipi şart ve sınanıyor.** Pillow'un gömülü yazı tipinde ş, ğ, İ yok: damga "Kadıköy" yerine kutu basardı. İşçi önce Türkçe harfleri çizebilen bir yazı tipi arar (Segoe UI, Arial, DejaVu, Liberation, Noto; ya da `STAMP_FONT_PATH`); bulamazsa **damga basmaz**, küçük resmi yine üretir ve uyarı yazar. Kayıt `stored` kalır, yazı tipi kurulunca sonraki tur damgayı basar. İnce üretim imajlarında yazı tipi paketi genelde yoktur — `fonts-dejavu-core` kurun ya da `STAMP_FONT_PATH` verin.
+
+Kopyalar ham dosyayla **aynı öbekte** (`evidence/{run}/…`): saklama süresi silmesi (BR-21) çalıştırma düzeyinde iş görsün, kopya arkada kalmasın. EXIF kopyalara geçmez (yeniden kodlanıyorlar): telefonun GPS'i dışarı giden dosyada ikinci kez taşınmaz.
+
 ## Senk: çevrimdışı kuyruk (ST-054)
 
 Mobil çevrimdışı çalışır; liste doldurulurken de fotoğraf çekilirken de bağlantı olmayabilir. Sunucu yüzeyi iki çağrı (FR-0701, FR-0703):

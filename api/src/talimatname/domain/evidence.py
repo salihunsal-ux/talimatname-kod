@@ -33,6 +33,11 @@ from talimatname.domain.validation import ValidationError
 
 EvidenceStatus = Literal["pending", "stored", "stamped"]
 
+#: Dosyanın hangi kopyası isteniyor (FR-0606, FR-1202, FR-1208).
+#: `raw` özeti tutulan dosyadır ve doğrulamanın dayanağıdır; `stamped`
+#: dışarı giden kopya; `thumbnail` ızgara için.
+EvidenceVariant = Literal["raw", "stamped", "thumbnail"]
+
 #: Bayraklar (FR-0615). Sıra önemli: panelde bu sırayla gösterilir.
 EvidenceFlag = Literal["gallery", "no_location", "far_location", "clock_skew", "late_sync"]
 
@@ -188,6 +193,26 @@ class Evidence:
     def stored(self, at: datetime) -> Evidence:
         return replace(self, status="stored", stored_at=at)
 
+    def with_thumbnail(self, thumbnail_key: str) -> Evidence:
+        """Küçük resim hazır; durum değişmiyor.
+
+        Damga ayrı adım: yazı tipi olmayan bir sunucuda küçük resim
+        üretilebilir ama damga basılamaz (bkz. services/imaging).
+        """
+        return replace(self, thumbnail_key=thumbnail_key)
+
+    def key_for(self, variant: EvidenceVariant) -> str:
+        """İstenen kopyanın anahtarı; hazır değilse **ham dosya**.
+
+        Geri düşmek kasıtlı: damgalanmamış bir kanıt panelde görünmeli.
+        Boş kare göstermek, kanıtın yokluğuyla karışırdı.
+        """
+        if variant == "stamped":
+            return self.stamped_key or self.storage_key
+        if variant == "thumbnail":
+            return self.thumbnail_key or self.storage_key
+        return self.storage_key
+
     def stamped(self, at: datetime, *, stamped_key: str, thumbnail_key: str) -> Evidence:
         return replace(
             self,
@@ -203,6 +228,16 @@ def storage_key(run_id: UUID, evidence_id: UUID, content_type: str) -> str:
     saklama süresi (BR-21) çalıştırma düzeyinde işler."""
     uzanti = "png" if content_type == "image/png" else "jpg"
     return f"evidence/{run_id}/{evidence_id}.{uzanti}"
+
+
+def derived_key(run_id: UUID, evidence_id: UUID, content_type: str, suffix: str) -> str:
+    """Türetilmiş kopyanın anahtarı: ham dosyanın yanında, aynı öbekte.
+
+    Ham dosyayla aynı uzantı: damgalı kopya da aynı türde servis edilir,
+    istemci tek bir `content_type` ile çalışır.
+    """
+    uzanti = "png" if content_type == "image/png" else "jpg"
+    return f"evidence/{run_id}/{evidence_id}.{suffix}.{uzanti}"
 
 
 def stamp_text(branch_name: str, user_name: str | None, at: datetime, zone_label: str) -> str:

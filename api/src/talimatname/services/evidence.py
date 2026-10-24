@@ -21,6 +21,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from datetime import UTC, datetime
 from uuid import UUID, uuid4
+from zoneinfo import ZoneInfo
 
 import structlog
 
@@ -29,23 +30,32 @@ from talimatname.domain.evidence import (
     MAX_PER_ITEM,
     URL_TTL,
     Evidence,
+    EvidenceVariant,
     check_content_type,
     check_digest,
     check_size,
+    derived_key,
     distance_meters,
     evidence_flags,
+    stamp_text,
     storage_key,
 )
+from talimatname.services.imaging import FontMissing, find_font, stamp, thumbnail
 from talimatname.services.organization import OrganizationRepository
 from talimatname.services.plans import PlanRepository
 from talimatname.services.storage import ObjectMissing, ObjectStore, digest
 from talimatname.services.tokens import coz, imzala
+from talimatname.services.users import UserRepository
 from talimatname.settings import Settings, get_settings
 
 log = structlog.get_logger(__name__)
 
 UPLOAD_SCOPE = "evidence-upload"
 VIEW_SCOPE = "evidence-view"
+
+#: Bir turda kaç kanıt damgalanır. İşçi turludur (ST-027): yüklemenin
+#: yanıt süresini görsel işlemeye bağlamak, kanıt yüklemeyi yavaşlatırdı.
+STAMP_BATCH = 50
 
 
 class EvidenceNotFound(DomainError):
@@ -90,6 +100,11 @@ class EvidenceRepository:
     def evidence_by_digest(self, sha256: str) -> Evidence | None:  # pragma: no cover
         raise NotImplementedError
 
+    def stored_evidences(self, limit: int) -> list[Evidence]:  # pragma: no cover
+        """Damgalanmayı bekleyenler. Süzgeç **depoda**: işçi her turda
+        tüm kanıt tablosunu okumamalı — tablo en hızlı büyüyen tablo."""
+        raise NotImplementedError
+
     def save_evidence(self, evidence: Evidence) -> None:  # pragma: no cover
         raise NotImplementedError
 
@@ -104,6 +119,7 @@ class EvidenceService:
         plans: PlanRepository,
         org: OrganizationRepository,
         store: ObjectStore,
+        users: UserRepository | None = None,
         *,
         settings: Settings | None = None,
         now: Callable[[], datetime] = lambda: datetime.now(UTC),
@@ -112,8 +128,14 @@ class EvidenceService:
         self._plans = plans
         self._org = org
         self._store = store
+        self._kullanicilar = users
         self._ayar = settings or get_settings()
         self._now = now
+        #: Açılamayan dosyalar: her turda yeniden denemek günlüğü boğar
+        #: ve hiçbir şey değiştirmez. Süreç içinde tutuluyor — yeniden
+        #: başlatma bir kez daha dener, bu da zararsız. Kalıcı işaret
+        #: için `evidence.status`a yeni bir değer ve göçüm gerekir.
+        self._damgalanamayan: set[UUID] = set()
 
     # --- okuma -------------------------------------------------------
 
@@ -303,6 +325,116 @@ class EvidenceService:
         self._repo.save_evidence(tamam)
         return tamam
 
+    # --- damgalama işçisi (ST-040) -------------------------------------
+
+    def stamp_pending(self, *, limit: int = STAMP_BATCH) -> dict[str, int]:
+        """Doğrulanmış kanıtlara küçük resim ve damgalı kopya üretir.
+
+        Tur işi, yükleme yolunun parçası değil: görsel işleme yüz
+        milisaniyeler alır ve yüklemenin yanıt süresine eklenmemeli.
+        Ham dosyaya dokunulmaz (BR-12), kopyalar yanına yazılır.
+
+        **Yazı tipi yoksa damga basılmaz** ama küçük resim üretilir:
+        kutu kutu bir şube adı denetim kopyasına basmaktansa damgasız
+        kalmak iyidir, ve kayıt `stored` kaldığı için yazı tipi
+        kurulduğunda sonraki tur işini yapar.
+        """
+        an = self._now()
+        # Atlananları saymak için biraz fazla çekiyoruz: hepsi atlanmışsa
+        # tur boş döner, az sayıda atlama turu boşa harcamaz.
+        aday = self._repo.stored_evidences(limit + len(self._damgalanamayan))
+        bekleyen = [k for k in aday if k.id not in self._damgalanamayan][:limit]
+        sonuc = {"stamped": 0, "thumbnails": 0, "skipped": 0, "failed": 0}
+        if not bekleyen:
+            return sonuc
+
+        try:
+            find_font(20, preferred=self._ayar.stamp_font_path)
+            damga_mumkun = True
+        except FontMissing as hata:
+            # Tur başına **bir** uyarı: kayıt başına yazmak günlüğü boğar.
+            log.warning("kanit.damga_yazi_tipi_yok", aciklama=str(hata), bekleyen=len(bekleyen))
+            damga_mumkun = False
+
+        for kanit in bekleyen:
+            try:
+                sonuc_kayit = self._tek_kanidi_isle(kanit, an, damga_mumkun=damga_mumkun)
+            except ObjectMissing as hata:
+                # Dosya henüz depoda olmayabilir (yarış); sonraki tur dener.
+                log.warning("kanit.damga_dosya_yok", kanit=str(kanit.id), sebep=str(hata))
+                sonuc["failed"] += 1
+                continue
+            except OSError as hata:
+                # Açılamayan görsel: tekrar denemek aynı sonucu verir.
+                # Kayıt `stored` kalıyor (ham dosya kanıttır ve duruyor),
+                # ama bu süreçte bir daha denenmiyor.
+                log.warning("kanit.damga_basarisiz", kanit=str(kanit.id), sebep=str(hata))
+                self._damgalanamayan.add(kanit.id)
+                sonuc["failed"] += 1
+                continue
+            for anahtar, deger in sonuc_kayit.items():
+                sonuc[anahtar] += deger
+        return sonuc
+
+    def _tek_kanidi_isle(
+        self,
+        kanit: Evidence,
+        an: datetime,
+        *,
+        damga_mumkun: bool,
+    ) -> dict[str, int]:
+        ham = self._store.get(kanit.storage_key)
+        sayac = {"stamped": 0, "thumbnails": 0, "skipped": 0, "failed": 0}
+
+        kucuk_anahtar = kanit.thumbnail_key
+        if kucuk_anahtar is None:
+            kucuk_anahtar = derived_key(kanit.run_id, kanit.id, kanit.content_type, "thumb")
+            self._store.put(kucuk_anahtar, thumbnail(ham, content_type=kanit.content_type))
+            kanit = kanit.with_thumbnail(kucuk_anahtar)
+            sayac["thumbnails"] += 1
+
+        if not damga_mumkun:
+            self._repo.save_evidence(kanit)
+            sayac["skipped"] += 1
+            return sayac
+
+        damga_anahtar = derived_key(kanit.run_id, kanit.id, kanit.content_type, "stamp")
+        self._store.put(
+            damga_anahtar,
+            stamp(
+                ham,
+                text=self._damga_metni(kanit),
+                content_type=kanit.content_type,
+                font_path=self._ayar.stamp_font_path,
+            ),
+        )
+        self._repo.save_evidence(
+            kanit.stamped(an, stamped_key=damga_anahtar, thumbnail_key=kucuk_anahtar)
+        )
+        sayac["stamped"] += 1
+        return sayac
+
+    def _damga_metni(self, kanit: Evidence) -> str:
+        """Damganın metni: şube · tarih-saat · kullanıcı (FR-0606).
+
+        Zaman **şubenin saat diliminde** yazılır: damgayı okuyan denetçi
+        yerel saat bekler, UTC değil. Hangi an? Çekim zamanı — düzeltilmiş
+        hali (BR-13) — yoksa dosyanın sunucuya ulaştığı an. Çevrimdışı
+        bir fotoğrafa senk anını basmak, saatler sonrasını gösterirdi;
+        geçmişe çekilmiş bir çekim zamanı ise zaten bayraklıdır (FR-0615).
+        """
+        sube = self._org.branch(kanit.branch_id)
+        dilim = ZoneInfo(sube.timezone) if sube else ZoneInfo("Europe/Istanbul")
+        an = kanit.captured_at or kanit.stored_at or kanit.created_at
+        yerel = an.astimezone(dilim)
+        fark = yerel.utcoffset()
+        saat_etiketi = f"UTC{int(fark.total_seconds() // 3600):+d}" if fark else "UTC"
+        kisi = None
+        if kanit.user_id is not None and self._kullanicilar is not None:
+            kullanici = self._kullanicilar.user(kanit.user_id)
+            kisi = kullanici.full_name if kullanici else None
+        return stamp_text(sube.name if sube else "—", kisi, yerel, saat_etiketi)
+
     # --- bağlantılar ---------------------------------------------------
 
     def _yukleme_belirteci(self, kanit: Evidence, an: datetime) -> str:
@@ -314,8 +446,12 @@ class EvidenceService:
             now=an,
         )
 
-    def view_token(self, evidence_id: UUID) -> str:
-        """15 dakikalık imzalı görüntüleme belirteci (FR-1305)."""
+    def view_token(self, evidence_id: UUID, variant: EvidenceVariant = "raw") -> str:
+        """15 dakikalık imzalı görüntüleme belirteci (FR-1305).
+
+        Kopya türü **belirtecin içinde**: bağlantıyı alan, başka bir
+        kopyayı isteyecek şekilde adresi değiştiremez.
+        """
         kanit = self.get(evidence_id)
         return imzala(
             self._ayar,
@@ -323,12 +459,15 @@ class EvidenceService:
             scope=VIEW_SCOPE,
             ttl=URL_TTL,
             now=self._now(),
+            variant=variant,
         )
 
     def read(self, token: str) -> tuple[Evidence, bytes]:
         govde = coz(self._ayar, token, scope=VIEW_SCOPE)
         kanit = self.get(UUID(govde["sub"]))
+        tur: EvidenceVariant = govde.get("variant", "raw")
+        anahtar = kanit.key_for(tur)
         try:
-            return kanit, self._store.get(kanit.storage_key)
+            return kanit, self._store.get(anahtar)
         except ObjectMissing as hata:
-            raise EvidenceNotStored(f"anahtar: {kanit.storage_key}") from hata
+            raise EvidenceNotStored(f"anahtar: {anahtar}") from hata

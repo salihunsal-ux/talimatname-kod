@@ -772,6 +772,10 @@ export interface paths {
         /**
          * İmzalı görüntüleme bağlantısı
          * @description 15 dakikalık bağlantı (FR-1305). Kapsam denetimi **burada** yapılır.
+         *
+         *     `variant`: `thumbnail` ızgara için, `stamped` dışarı giden kopya,
+         *     `raw` özeti tutulan dosya. İstenen kopya henüz üretilmediyse ham
+         *     dosya döner (damgalama turlu bir iştir, ST-040).
          */
         get: operations["kanit_baglantisi_api_v1_evidence__evidence_id__url_get"];
         put?: never;
@@ -1358,6 +1362,13 @@ export interface components {
             url: string;
             /** Expires In Minutes */
             expires_in_minutes: number;
+            /**
+             * Variant
+             * @description Bağlantının hangi kopyayı verdiği
+             * @default raw
+             * @enum {string}
+             */
+            variant?: "raw" | "stamped" | "thumbnail";
         };
         /** Gostergeler */
         Gostergeler: {
@@ -1540,6 +1551,23 @@ export interface components {
             captured_at?: string | null;
             /** Distance Meters */
             distance_meters?: number | null;
+            /**
+             * Stamped At
+             * @description Görünür damgalı kopyanın üretildiği an (FR-0606)
+             */
+            stamped_at?: string | null;
+            /**
+             * Has Stamp
+             * @description Damgalı kopya hazır mı
+             * @default false
+             */
+            has_stamp?: boolean;
+            /**
+             * Has Thumbnail
+             * @description Küçük resim hazır mı
+             * @default false
+             */
+            has_thumbnail?: boolean;
             /**
              * Flags
              * @description Bayrak suçlama değil, incelemeye çağrıdır
@@ -2462,6 +2490,12 @@ export interface components {
              * @default 0
              */
             failed?: number;
+            /**
+             * Stamped
+             * @description Damgalanan kanıt sayısı (ST-040)
+             * @default 0
+             */
+            stamped?: number;
         };
         /** UretimYaniti */
         UretimYaniti: {
@@ -3958,7 +3992,9 @@ export interface operations {
     };
     kanit_baglantisi_api_v1_evidence__evidence_id__url_get: {
         parameters: {
-            query?: never;
+            query?: {
+                variant?: "raw" | "stamped" | "thumbnail";
+            };
             header?: never;
             path: {
                 evidence_id: string;

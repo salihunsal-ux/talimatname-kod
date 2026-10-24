@@ -665,6 +665,17 @@ class SqlEvidenceRepository(_TenantRepository):
             satir = o.scalars(select(m.Evidence).where(m.Evidence.sha256 == sha256)).first()
             return _kanit(satir) if satir else None
 
+    def stored_evidences(self, limit: int) -> list[Evidence]:
+        """Eskiden yeniye: kuyruk birikirse önce bekleyen damgalanır."""
+        with tenant_session(self._tenant) as o:
+            satirlar = o.scalars(
+                select(m.Evidence)
+                .where(m.Evidence.status == "stored")
+                .order_by(m.Evidence.created_at)
+                .limit(limit)
+            ).all()
+            return [_kanit(k) for k in satirlar]
+
     def save_evidence(self, evidence: Evidence) -> None:
         with tenant_session(self._tenant) as o:
             satir = o.get(m.Evidence, evidence.id) or m.Evidence(

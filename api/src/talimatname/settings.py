@@ -34,6 +34,10 @@ class Settings(BaseSettings):
     #: S3 yokken kanıtların yazıldığı yerel dizin. Üretimde
     #: kullanılmaz: tek makineye bağlı, yedeği ve şifrelemesi yok.
     evidence_dir: str = "var/evidence"
+    #: Damgada kullanılacak yazı tipi (ST-040). Boşsa sunucudaki bilinen
+    #: yollar denenir; Türkçe harfleri olan bir yazı tipi bulunamazsa
+    #: damga basılmaz (bkz. services/imaging).
+    stamp_font_path: str | None = None
 
     access_token_minutes: int = Field(default=30, ge=5, le=240)
 

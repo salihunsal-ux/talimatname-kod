@@ -244,6 +244,9 @@ export const tr = {
     gorselAlt: 'Kanıt fotoğrafı',
     acilamadi: 'Görsel açılamadı',
     bayraksiz: 'Bayrak yok',
+    damgaliAc: 'Damgalı kopyayı aç',
+    hamAc: 'Fotoğrafı aç',
+    damgaBekliyor: 'Damga bekliyor',
   },
   hata: {
     genel: 'Bir şey ters gitti',

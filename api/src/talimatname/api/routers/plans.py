@@ -276,6 +276,7 @@ class TurYaniti(BaseModel):
     failed: int = Field(
         default=0, description="Gönderilemeyen bildirim: sürücü yoksa hepsi buraya düşer"
     )
+    stamped: int = Field(default=0, description="Damgalanan kanıt sayısı (ST-040)")
 
 
 @router.post("/plans/{plan_id}/generate", summary="Çalıştırmaları şimdi üret")
@@ -302,6 +303,7 @@ def zamanlayici_turu(servis: ZamanlayiciServis, _: Yonetici) -> TurYaniti:
         reminders_queued=sonuc.reminders_queued,
         sent=sonuc.sent,
         failed=sonuc.failed,
+        stamped=sonuc.stamped,
     )
 
 

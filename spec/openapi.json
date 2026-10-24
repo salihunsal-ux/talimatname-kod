@@ -2053,7 +2053,7 @@
           "kanıt"
         ],
         "summary": "İmzalı görüntüleme bağlantısı",
-        "description": "15 dakikalık bağlantı (FR-1305). Kapsam denetimi **burada** yapılır.",
+        "description": "15 dakikalık bağlantı (FR-1305). Kapsam denetimi **burada** yapılır.\n\n`variant`: `thumbnail` ızgara için, `stamped` dışarı giden kopya,\n`raw` özeti tutulan dosya. İstenen kopya henüz üretilmediyse ham\ndosya döner (damgalama turlu bir iştir, ST-040).",
         "operationId": "kanit_baglantisi_api_v1_evidence__evidence_id__url_get",
         "parameters": [
           {
@@ -2064,6 +2064,21 @@
               "type": "string",
               "format": "uuid",
               "title": "Evidence Id"
+            }
+          },
+          {
+            "name": "variant",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "raw",
+                "stamped",
+                "thumbnail"
+              ],
+              "type": "string",
+              "default": "raw",
+              "title": "Variant"
             }
           }
         ],
@@ -3402,6 +3417,17 @@
           "expires_in_minutes": {
             "type": "integer",
             "title": "Expires In Minutes"
+          },
+          "variant": {
+            "type": "string",
+            "enum": [
+              "raw",
+              "stamped",
+              "thumbnail"
+            ],
+            "title": "Variant",
+            "description": "Bağlantının hangi kopyayı verdiği",
+            "default": "raw"
           }
         },
         "type": "object",
@@ -3809,6 +3835,31 @@
               }
             ],
             "title": "Distance Meters"
+          },
+          "stamped_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stamped At",
+            "description": "Görünür damgalı kopyanın üretildiği an (FR-0606)"
+          },
+          "has_stamp": {
+            "type": "boolean",
+            "title": "Has Stamp",
+            "description": "Damgalı kopya hazır mı",
+            "default": false
+          },
+          "has_thumbnail": {
+            "type": "boolean",
+            "title": "Has Thumbnail",
+            "description": "Küçük resim hazır mı",
+            "default": false
           },
           "flags": {
             "items": {
@@ -5895,6 +5946,12 @@
             "type": "integer",
             "title": "Failed",
             "description": "Gönderilemeyen bildirim: sürücü yoksa hepsi buraya düşer",
+            "default": 0
+          },
+          "stamped": {
+            "type": "integer",
+            "title": "Stamped",
+            "description": "Damgalanan kanıt sayısı (ST-040)",
             "default": 0
           }
         },
