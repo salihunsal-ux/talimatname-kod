@@ -14,11 +14,12 @@ import pytest
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 
+from talimatname.domain.answers import Answer
 from talimatname.domain.evidence import Evidence
 from talimatname.domain.notifications import Notification
 from talimatname.domain.organization import Branch, uniform_hours
 from talimatname.domain.plans import Plan, Run
-from talimatname.domain.templates import Template, TemplateVersion
+from talimatname.domain.templates import Item, Section, Template, TemplateVersion
 from talimatname.domain.users import RoleAssignment, User
 from talimatname.domain.window import WindowRule
 from talimatname.settings import get_settings
@@ -33,6 +34,7 @@ if get_settings().database_url is None:  # pragma: no cover - ortam bağımlı
     )
 
 from talimatname.infra.db.adapters import (  # noqa: E402
+    SqlAnswerRepository,
     SqlEvidenceRepository,
     SqlNotificationRepository,
     SqlOrganizationRepository,
@@ -241,8 +243,13 @@ def _calistirma(kiraci: UUID) -> Run:
     sablonlar = SqlTemplateRepository(kiraci)
     sablon = Template(id=uuid4(), name="Kanıt denemesi")
     sablonlar.save_template(sablon)
+    madde = Item(id=uuid4(), order=1, type="confirm", title="Kapı kilidi")
     surum = TemplateVersion(
-        id=uuid4(), template_id=sablon.id, version_no=1, status="published"
+        id=uuid4(),
+        template_id=sablon.id,
+        version_no=1,
+        status="published",
+        sections=(Section(id=uuid4(), order=1, title="Açılış", items=(madde,)),),
     ).validated()
     sablonlar.save_version(surum)
 
@@ -290,6 +297,36 @@ def _kanit(run: Run, ozet: str) -> Evidence:
         storage_key=f"evidence/{run.id}/{uuid4()}.jpg",
         created_at=datetime.now(UTC),
     ).validated()
+
+
+def test_yapilamadi_sebebi_gidip_geliyor(iki_kiraci: object) -> None:
+    """Sebep **kod** olarak saklanıyor (BR-09, FR-0805).
+
+    Etiket ("Malzeme yok") değişebilir; kod değişmez. Sebep dağılımı
+    raporu dönemler arasında karşılaştırılabilir kalsın diye.
+    """
+    run = _calistirma(A_KIRACI)
+    sablonlar = SqlTemplateRepository(A_KIRACI)
+    surum = sablonlar.version(run.template_version_id)
+    assert surum is not None
+    madde = surum.items[0]
+
+    depo = SqlAnswerRepository(A_KIRACI)
+    cevap = Answer(
+        id=uuid4(),
+        run_id=run.id,
+        item_id=madde.id,
+        state="not_done",
+        note="Tedarik gelmedi",
+        answered_at=datetime.now(UTC),
+        not_done_reason="no_material",
+    ).validated()
+    depo.save_answer(cevap)
+
+    geri = depo.answer(cevap.id)
+    assert geri is not None
+    assert geri.not_done_reason == "no_material"
+    assert geri.state == "not_done"
 
 
 def test_fr0614_ayni_ozet_veritabaninda_da_engellenir(iki_kiraci: object) -> None:

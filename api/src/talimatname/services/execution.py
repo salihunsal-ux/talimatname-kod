@@ -61,6 +61,12 @@ class ItemNotInTemplate(DomainError):
     kind: ErrorKind = "not_found"
 
 
+class NotDoneNotAllowed(DomainError):
+    code = "kritik-maddede-yapilamadi-yok"
+    title = "Kritik maddede 'yapılamadı' seçilemez"
+    kind: ErrorKind = "invalid"
+
+
 class SubmissionIncomplete(DomainError):
     code = "gonderim-eksik"
     title = "Liste eksik: gönderilemez"
@@ -98,12 +104,14 @@ class ExecutionService:
         templates: TemplateRepository,
         actions: ActionRepository | None = None,
         *,
+        verified_evidence: Callable[[UUID], dict[UUID, int]] | None = None,
         now: Callable[[], datetime] = lambda: datetime.now(UTC),
     ) -> None:
         self._answers = answers
         self._plans = plans
         self._templates = templates
         self._actions = actions
+        self._verified = verified_evidence
         self._now = now
 
     # --- okuma -------------------------------------------------------
@@ -111,7 +119,7 @@ class ExecutionService:
     def view(self, run_id: UUID) -> RunView:
         run = self._run(run_id)
         surum = self._version(run)
-        cevaplar = {a.item_id: a for a in self._answers.answers(run_id)}
+        cevaplar = self._cevaplar(run_id)
         return RunView(
             run=run,
             version=surum,
@@ -135,14 +143,26 @@ class ExecutionService:
         device_id: UUID | None = None,
         device_reported_at: datetime | None = None,
         evidence_count: int = 0,
+        not_done_reason: str | None = None,
+        clock_skew_minutes: int | None = None,
     ) -> Answer:
-        """Cevabı yazar (idempotent). Kimlik cihazdan gelir."""
+        """Cevabı yazar (idempotent). Kimlik cihazdan gelir.
+
+        `clock_skew_minutes` **yalnızca senk yolundan** dolu gelir
+        (ST-054): kuyruktaki bir cevabın cihaz zamanı geçmişte olduğu
+        için sapma o değerden türetilemez — türetilse saatler sapma
+        gösterirdi. Senk anında ölçülen fark buradan geçirilir.
+        """
         an = self._now()
         run = self._run(run_id)
         self._ensure_open(run, an)
         surum = self._version(run)
-        if all(madde.id != item_id for madde in surum.items):
+        madde = next((m for m in surum.items if m.id == item_id), None)
+        if madde is None:
             raise ItemNotInTemplate(f"Madde id: {item_id}")
+        if madde.critical and state == "not_done":
+            # BR-09: kritik madde atlanamaz, sebebi de olmaz.
+            raise NotDoneNotAllowed(f"Madde: {madde.title}")
 
         kilit = ensure_writable(self._answers.lock(run_id), user_id, an)
         self._answers.save_lock(run_id, kilit)
@@ -158,8 +178,13 @@ class ExecutionService:
             device_id=device_id,
             answered_at=an,
             device_reported_at=device_reported_at,
-            clock_skew_minutes=clock_skew(an, device_reported_at),
+            clock_skew_minutes=(
+                clock_skew_minutes
+                if clock_skew_minutes is not None
+                else clock_skew(an, device_reported_at)
+            ),
             evidence_count=evidence_count,
+            not_done_reason=not_done_reason,  # type: ignore[arg-type]
         ).validated()
         self._answers.save_answer(cevap)
 
@@ -173,7 +198,7 @@ class ExecutionService:
         run = self._run(run_id)
         self._ensure_open(run, an)
         surum = self._version(run)
-        cevaplar = {a.item_id: a for a in self._answers.answers(run_id)}
+        cevaplar = self._cevaplar(run_id)
 
         eksikler = submission_blockers(items=self._items(surum), answers=cevaplar)
         if eksikler:
@@ -231,6 +256,23 @@ class ExecutionService:
                 self._actions.save_action(aksiyon)
 
     # --- yardımcılar --------------------------------------------------
+
+    def _cevaplar(self, run_id: UUID) -> dict[UUID, Answer]:
+        """Cevaplar, kanıt sayısı **doğrulanmış** hale getirilerek.
+
+        Cevaptaki `evidence_count` cihazın beyanıdır; gönderimi ona
+        bakarak açmak, "fotoğraf var" iddiasını istemciye bırakmak
+        olurdu — çevrimdışı yolda beyan dosyadan saatler önce gelir
+        (ST-054). Depoda doğrulanmış kanıt varsa onun sayısı geçer.
+        """
+        cevaplar = {a.item_id: a for a in self._answers.answers(run_id)}
+        if self._verified is None:
+            return cevaplar
+        dogrulanmis = self._verified(run_id)
+        return {
+            madde: replace(cevap, evidence_count=dogrulanmis.get(madde, 0))
+            for madde, cevap in cevaplar.items()
+        }
 
     def _run(self, run_id: UUID) -> Run:
         run = next((r for r in self._plans.runs() if r.id == run_id), None)

@@ -129,6 +129,36 @@ class EvidenceService:
     def for_run(self, run_id: UUID) -> list[Evidence]:
         return [k for k in self._repo.evidences() if k.run_id == run_id]
 
+    def verified_counts(self, run_id: UUID) -> dict[UUID, int]:
+        """Madde başına **doğrulanmış** kanıt sayısı (FR-0607'nin dayanağı).
+
+        Yalnızca baytları depoda olan ve özeti tutan kayıtlar sayılır.
+        Niyet beyanı (`pending`) sayılmaz: cihazın "fotoğraf çektim"
+        demesi, fotoğrafın var olduğu anlamına gelmiyor — çevrimdışı
+        kuyrukta beyan ile dosya arasında saatler olabilir.
+        """
+        sayilar: dict[UUID, int] = {}
+        for kanit in self.for_run(run_id):
+            if kanit.status in ("stored", "stamped"):
+                sayilar[kanit.item_id] = sayilar.get(kanit.item_id, 0) + 1
+        return sayilar
+
+    def find(self, evidence_id: UUID) -> Evidence | None:
+        """Varsa getirir, yoksa None. Senk yolunun idempotans denetimi."""
+        return self._repo.evidence(evidence_id)
+
+    def resume(self, evidence_id: UUID) -> tuple[Evidence, str | None]:
+        """Yarım kalan yüklemeyi sürdürür (FR-0707, UC-09/E3).
+
+        Dönen belirteç `None` ise yapacak bir şey yok: baytlar zaten
+        depoda ve doğrulanmış. Doğrulanmış kanıta ikinci kez yazma
+        izni vermek, değişmezliği (BR-12) kendi elimizle bozmak olurdu.
+        """
+        kanit = self.get(evidence_id)
+        if kanit.status != "pending":
+            return kanit, None
+        return kanit, self._yukleme_belirteci(kanit, self._now())
+
     # --- yazma -------------------------------------------------------
 
     def start(
@@ -147,8 +177,16 @@ class EvidenceService:
         device_reported_at: datetime | None = None,
         latitude: float | None = None,
         longitude: float | None = None,
+        evidence_id: UUID | None = None,
+        clock_skew_minutes: int | None = None,
     ) -> tuple[Evidence, str]:
-        """Yükleme izni verir. Dönen: (kanıt kaydı, yükleme belirteci)."""
+        """Yükleme izni verir. Dönen: (kanıt kaydı, yükleme belirteci).
+
+        `evidence_id` **senk yolundan** gelir (ST-054, FR-0707): kimliği
+        cihaz ürettiği için aynı fotoğraf iki kez gönderilse de tek
+        kayıt olur. `clock_skew_minutes` de senk anında ölçülen farktır;
+        kuyruktaki kaydın cihaz zamanından türetilemez.
+        """
         an = self._now()
         ozet = check_digest(sha256)
         tur = check_content_type(content_type)
@@ -175,9 +213,13 @@ class EvidenceService:
 
         sube = self._org.branch(run.branch_id)
         sapma = (
-            round((device_reported_at - an).total_seconds() / 60)
-            if device_reported_at is not None
-            else None
+            clock_skew_minutes
+            if clock_skew_minutes is not None
+            else (
+                round((device_reported_at - an).total_seconds() / 60)
+                if device_reported_at is not None
+                else None
+            )
         )
         bayraklar = evidence_flags(
             from_gallery=from_gallery,
@@ -199,7 +241,7 @@ class EvidenceService:
             else None
         )
 
-        kanit_id = uuid4()
+        kanit_id = evidence_id or uuid4()
         kanit = Evidence(
             id=kanit_id,
             run_id=run_id,

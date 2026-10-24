@@ -162,10 +162,25 @@ def test_bayraklar_olculere_dayanir() -> None:
         branch_latitude=SUBE_KONUM[0],
         branch_longitude=SUBE_KONUM[1],
         clock_skew_minutes=45,
-        captured_at=an - timedelta(hours=30),
+        # Geç senk eşiği cihaz kuyruğunun ömrüdür: 72 saat (FR-0706).
+        captured_at=an - timedelta(hours=80),
         received_at=an,
     )
     assert set(supheli) == {"gallery", "far_location", "clock_skew", "late_sync"}
+
+    # 30 saat bekleyen kanıt geç değil: uçak modunda geçen bir gün
+    # normaldir, bayrağın anlamı seyrek olmasından geliyor.
+    bir_gun_bekledi = evidence_flags(
+        from_gallery=False,
+        latitude=SUBE_KONUM[0],
+        longitude=SUBE_KONUM[1],
+        branch_latitude=SUBE_KONUM[0],
+        branch_longitude=SUBE_KONUM[1],
+        clock_skew_minutes=None,
+        captured_at=an - timedelta(hours=30),
+        received_at=an,
+    )
+    assert bir_gun_bekledi == ()
 
 
 def test_konumsuz_kanit_bayraklanir_ama_uzak_denmez() -> None:

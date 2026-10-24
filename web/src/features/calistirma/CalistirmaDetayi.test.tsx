@@ -107,6 +107,25 @@ const GORUNUM: CalistirmaGorunumu = {
           type: 'confirm',
           answer: null,
         },
+        {
+          ...MADDE,
+          item_id: 'i-4',
+          title: 'Zemin paspası',
+          type: 'confirm',
+          answer: {
+            id: 'a-4',
+            item_id: 'i-4',
+            state: 'not_done',
+            value: null,
+            note: null,
+            evidence_count: 0,
+            answered_at: '2026-11-02T21:10:00Z',
+            clock_skew_minutes: 0,
+            clock_flagged: false,
+            not_done_reason: 'no_material',
+            not_done_reason_label: 'Malzeme yok',
+          },
+        },
       ],
     },
   ],
@@ -175,6 +194,13 @@ describe('Çalıştırma detayı', () => {
     expect(onKapat).toHaveBeenCalled();
   });
 
+  it('yapılamadı sebebi madde yanında yazılı', async () => {
+    // Sebep kodu değil etiketi gösterilir; renk tek başına yetmez.
+    kur();
+
+    expect(await screen.findByText('Malzeme yok')).toBeInTheDocument();
+  });
+
   it('kanıt görseli imzalı bağlantıyla gösterilir', async () => {
     kanitlariGetir.mockResolvedValue([KANIT]);
 
@@ -192,6 +218,16 @@ describe('Çalıştırma detayı', () => {
     kur();
 
     expect(await screen.findByText('Konum şube dışında')).toBeInTheDocument();
+  });
+
+  it('yüklenmemiş kanıt gösterilmez', async () => {
+    // "pending" bir niyet beyanı: baytları depoda değil, görseli yok.
+    kanitlariGetir.mockResolvedValue([{ ...KANIT, status: 'pending' }]);
+
+    kur();
+
+    await screen.findByText('Kapanış (kafe)');
+    expect(screen.queryByAltText('Kanıt fotoğrafı')).not.toBeInTheDocument();
   });
 
   it('bayraksız kanıt bunu açıkça söyler', async () => {

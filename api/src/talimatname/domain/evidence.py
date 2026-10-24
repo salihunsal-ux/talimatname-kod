@@ -28,6 +28,7 @@ from math import asin, cos, radians, sin, sqrt
 from typing import Literal
 from uuid import UUID
 
+from talimatname.domain.sync import QUEUE_HOURS, clock_flagged
 from talimatname.domain.validation import ValidationError
 
 EvidenceStatus = Literal["pending", "stored", "stamped"]
@@ -53,10 +54,13 @@ MAX_BYTES = 3 * 1024 * 1024
 
 ALLOWED_TYPES: frozenset[str] = frozenset({"image/jpeg", "image/png"})
 
-#: Parametre tablosu (03-is-kurallari): uzak konum 500 m, saat farkı 10 dk.
+#: Parametre tablosu (03-is-kurallari): uzak konum 500 m.
 FAR_LOCATION_METERS = 500
-CLOCK_SKEW_MINUTES = 10
-LATE_SYNC_HOURS = 24
+
+#: "Geç senklendi" eşiği (FR-0706: cihaz kuyruğu 72 saat). Daha kısa
+#: bir eşik, uçak modunda geçirilen normal bir hafta sonunu şüpheli
+#: gösterirdi; bayrağın anlamı seyrek olmasından geliyor.
+LATE_SYNC_HOURS = QUEUE_HOURS
 
 #: İmzalı kanıt bağlantısının ömrü (FR-1305).
 URL_TTL = timedelta(minutes=15)
@@ -129,7 +133,7 @@ def evidence_flags(
         if uzaklik > FAR_LOCATION_METERS:
             bayraklar.append("far_location")
 
-    if clock_skew_minutes is not None and abs(clock_skew_minutes) > CLOCK_SKEW_MINUTES:
+    if clock_flagged(clock_skew_minutes):
         bayraklar.append("clock_skew")
 
     if captured_at is not None and received_at - captured_at > timedelta(hours=LATE_SYNC_HOURS):

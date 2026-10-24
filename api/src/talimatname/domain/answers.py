@@ -21,14 +21,13 @@ from datetime import datetime, timedelta
 from typing import Any, Literal
 from uuid import UUID
 
+from talimatname.domain.errors import RunLocked
 from talimatname.domain.scoring import AnswerState, ItemOutcome
+from talimatname.domain.sync import NotDoneReason, check_not_done_reason, clock_flagged
 from talimatname.domain.validation import ValidationError
 
 #: Kilit bu süre yenilenmezse düşer: cihaz kapanırsa liste kilitli kalmasın.
 LOCK_MINUTES = 30
-
-#: Cihaz saati sapması bu eşiği aşarsa kanıt bayrağı konur (BR-13).
-CLOCK_SKEW_FLAG_MINUTES = 15
 
 
 @dataclass(frozen=True, slots=True)
@@ -47,20 +46,23 @@ class Answer:
     device_reported_at: datetime | None = None
     clock_skew_minutes: int | None = None
     evidence_count: int = 0
+    not_done_reason: NotDoneReason | None = None
 
     def validated(self) -> Answer:
         if self.state not in ("passed", "failed", "not_done", "not_applicable"):
             raise ValidationError("state", f"Bilinmeyen cevap durumu: {self.state}")
         if self.note is not None and not self.note.strip():
             raise ValidationError("note", "Not boş bırakılamaz")
-        return replace(self, note=" ".join(self.note.split()) if self.note else None)
+        not_temiz = " ".join(self.note.split()) if self.note else None
+        return replace(
+            self,
+            note=not_temiz,
+            not_done_reason=check_not_done_reason(self.state, self.not_done_reason, not_temiz),
+        )
 
     @property
     def clock_flagged(self) -> bool:
-        return (
-            self.clock_skew_minutes is not None
-            and abs(self.clock_skew_minutes) >= CLOCK_SKEW_FLAG_MINUTES
-        )
+        return clock_flagged(self.clock_skew_minutes)
 
 
 def clock_skew(server_now: datetime, device_time: datetime | None) -> int | None:
@@ -85,14 +87,6 @@ class RunLock:
         return self.user_id == user_id and not self.expired(now)
 
 
-class RunLocked(ValidationError):
-    """Başkasının kilidi varken yazma denemesi."""
-
-    def __init__(self, user_id: UUID) -> None:
-        super().__init__("lock", "Çalıştırmayı başka bir kullanıcı yapıyor")
-        self.holder = user_id
-
-
 def ensure_writable(lock: RunLock | None, user_id: UUID | None, now: datetime) -> RunLock | None:
     """Yazma öncesi kilit denetimi; gerekiyorsa kilidi tazeler.
 
@@ -104,7 +98,9 @@ def ensure_writable(lock: RunLock | None, user_id: UUID | None, now: datetime) -
     if lock is None or lock.expired(now):
         return RunLock(user_id=user_id, acquired_at=now, renewed_at=now)
     if lock.user_id != user_id:
-        raise RunLocked(lock.user_id)
+        # Alan hatası, doğrulama hatası değil: istemci "istek bozuk" ile
+        # "listeyi başkası yapıyor"u ayırt edebilsin (409, kendi kodu).
+        raise RunLocked(f"Kilit sahibi: {lock.user_id}", holder=str(lock.user_id))
     return replace(lock, renewed_at=now)
 
 

@@ -39,6 +39,7 @@ from talimatname.services.plans import PlanRepository, PlanService
 from talimatname.services.reminders import ReminderService
 from talimatname.services.scheduler import SchedulerService
 from talimatname.services.storage import LocalObjectStore, ObjectStore
+from talimatname.services.sync import SyncService
 from talimatname.services.templates import TemplateRepository, TemplateService
 from talimatname.services.users import UserRepository, UserService
 from talimatname.settings import Settings, get_settings
@@ -239,8 +240,20 @@ def plan_servisi() -> PlanService:
 
 
 def yurutme_servisi() -> ExecutionService:
+    """Gönderim kapısı kanıtı **sayar**, beyana bakmaz (FR-0607).
+
+    Kanıt servisini buradan geçiriyoruz ki gönderim "fotoğraf var mı"
+    sorusunu depoya sorsun; cihazın gönderdiği sayıya güvenmek
+    çevrimdışı yolda fotoğrafsız gönderime kapı açardı (ST-054).
+    """
     _ilk_tur()
-    return ExecutionService(_cevap_deposu(), _plan_deposu(), _sablon_deposu(), _aksiyon_deposu())
+    return ExecutionService(
+        _cevap_deposu(),
+        _plan_deposu(),
+        _sablon_deposu(),
+        _aksiyon_deposu(),
+        verified_evidence=lambda run_id: kanit_servisi().verified_counts(run_id),
+    )
 
 
 def kanit_servisi() -> EvidenceService:
@@ -250,6 +263,20 @@ def kanit_servisi() -> EvidenceService:
         _org_deposu(),
         _nesne_deposu(),
         settings=ayarlar(),
+    )
+
+
+def senk_servisi() -> SyncService:
+    """Senk, yazma için kendi yolunu kurmaz: yürütme ve kanıt servislerini
+    kullanır (ST-054). Böylece çevrimdışı gelen cevap, panelden gelenle
+    aynı kuralları geçer."""
+    _ilk_tur()
+    return SyncService(
+        _plan_deposu(),
+        _org_deposu(),
+        _sablon_deposu(),
+        yurutme_servisi(),
+        kanit_servisi(),
     )
 
 

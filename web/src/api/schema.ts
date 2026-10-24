@@ -802,6 +802,61 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/sync/manifest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Çevrimdışı önbellek manifesti
+         * @description Cihazın indireceği liste: kapsamındaki şubelerin çalıştırmaları.
+         *
+         *     Kapsam **kullanıcıdan** okunur: personel yalnızca kendi şubesini
+         *     indirir. Şablon sürümlerinin yalnızca kimliği döner; içeriği
+         *     değişmediği için cihaz bir kez indirip saklar.
+         *
+         *     Cihaz saati **başlıkta** (`X-Device-Time`), sorgu dizesinde değil:
+         *     ISO zamanın `+00:00` eki sorgu dizesinde boşluğa çözülüyor ve istek
+         *     422 dönüyordu. Denemede ilk elde yakalandı; mobil de aynı tuzağa
+         *     düşecekti. POST'ta aynı değer gövdede taşınıyor.
+         */
+        get: operations["senk_manifesti_api_v1_sync_manifest_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sync/batch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cihaz kuyruğunu gönder (kısmi başarı)
+         * @description Kuyruğu işler ve **her kayıt için** ayrı sonuç döner.
+         *
+         *     Kayıt kimlikleri cihazda üretildiği için aynı kuyruğu iki kez
+         *     göndermek ikinci kayıt açmaz (FR-0707): cevap güncellenir, kanıt
+         *     `resumed` döner ve yükleme kaldığı yerden devam eder.
+         *
+         *     Cevapları yazan oturumdaki kullanıcıdır; gövdede kullanıcı alanı yok.
+         */
+        post: operations["senk_kuyrugu_api_v1_sync_batch_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1169,6 +1224,13 @@ export interface components {
              * @default false
              */
             clock_flagged?: boolean;
+            /** Not Done Reason */
+            not_done_reason?: string | null;
+            /**
+             * Not Done Reason Label
+             * @description Sebebin Türkçe karşılığı; kod sözleşme, etiket değişebilir
+             */
+            not_done_reason_label?: string | null;
         };
         /** CevapGirdisi */
         CevapGirdisi: {
@@ -1200,6 +1262,25 @@ export interface components {
              * @default 0
              */
             evidence_count?: number;
+            /**
+             * Not Done Reason
+             * @description Yapılamadı sebebi; 'yapılamadı' ile zorunlu (BR-09)
+             */
+            not_done_reason?: ("no_material" | "equipment_broken" | "no_time" | "not_authorized" | "other") | null;
+        };
+        /** CevapSonucu */
+        CevapSonucu: {
+            /**
+             * Answer Id
+             * Format: uuid
+             */
+            answer_id: string;
+            /**
+             * Outcome
+             * @enum {string}
+             */
+            outcome: "accepted" | "rejected";
+            error?: components["schemas"]["KayitHatasi"] | null;
         };
         /**
          * DavetYaniti
@@ -1466,6 +1547,33 @@ export interface components {
             flags?: components["schemas"]["BayrakCiktisi"][];
         };
         /**
+         * KanitSonucu
+         * @description `resumed`: kayıt vardı, yükleme sürüyor. `duplicate`: fotoğraf tekrarı.
+         */
+        KanitSonucu: {
+            /**
+             * Evidence Id
+             * Format: uuid
+             */
+            evidence_id: string;
+            /**
+             * Outcome
+             * @enum {string}
+             */
+            outcome: "accepted" | "resumed" | "duplicate" | "rejected";
+            /** Upload Url */
+            upload_url?: string | null;
+            /**
+             * Upload Method
+             * @default PUT
+             * @constant
+             */
+            upload_method?: "PUT";
+            /** Expires In Minutes */
+            expires_in_minutes?: number | null;
+            error?: components["schemas"]["KayitHatasi"] | null;
+        };
+        /**
          * KapanisGirdisi
          * @description Kapanış notu zorunlu (FR-0904): ne yapıldığı yazılmadan kapanmaz.
          */
@@ -1477,6 +1585,23 @@ export interface components {
             note: string;
             /** Closed By */
             closed_by?: string | null;
+        };
+        /**
+         * KayitHatasi
+         * @description Tek kaydın reddi. İstemci `type`a göre davranır, metne göre değil.
+         */
+        KayitHatasi: {
+            /** Type */
+            type: string;
+            /** Title */
+            title: string;
+            /** Detail */
+            detail?: string | null;
+            /**
+             * Retryable
+             * @description Sonra denemek işe yarar mı (ör. kilit süresi dolunca)
+             */
+            retryable: boolean;
         };
         /** KodIstegi */
         KodIstegi: {
@@ -1555,6 +1680,142 @@ export interface components {
              * @default false
              */
             pin_set?: boolean;
+        };
+        /** KuyrukCiktisi */
+        KuyrukCiktisi: {
+            clock: components["schemas"]["SaatCiktisi"];
+            /** Accepted */
+            accepted: number;
+            /** Rejected */
+            rejected: number;
+            /** Answers */
+            answers: components["schemas"]["CevapSonucu"][];
+            /** Evidence */
+            evidence: components["schemas"]["KanitSonucu"][];
+        };
+        /** KuyrukGirdisi */
+        KuyrukGirdisi: {
+            /**
+             * Device Time
+             * @description Cihazın isteği gönderdiği andaki saati (FR-0704)
+             */
+            device_time?: string | null;
+            /** Answers */
+            answers?: components["schemas"]["KuyruktakiCevap"][];
+            /** Evidence */
+            evidence?: components["schemas"]["KuyruktakiKanit"][];
+        };
+        /**
+         * KuyrukPolitikasi
+         * @description Cihazın uygulayacağı sınırlar (FR-0604, FR-0605, FR-0706).
+         */
+        KuyrukPolitikasi: {
+            /** Max Evidence Per Item */
+            max_evidence_per_item: number;
+            /** Max Evidence Bytes */
+            max_evidence_bytes: number;
+            /** Queue Evidence Limit */
+            queue_evidence_limit: number;
+            /** Queue Hours */
+            queue_hours: number;
+        };
+        /**
+         * KuyruktakiCevap
+         * @description Cihazda verilmiş bir cevap. `answer_id` **cihazda** üretildi.
+         */
+        KuyruktakiCevap: {
+            /**
+             * Answer Id
+             * Format: uuid
+             */
+            answer_id: string;
+            /**
+             * Run Id
+             * Format: uuid
+             */
+            run_id: string;
+            /**
+             * Item Id
+             * Format: uuid
+             */
+            item_id: string;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "passed" | "failed" | "not_done" | "not_applicable";
+            /** Value */
+            value?: unknown;
+            /** Note */
+            note?: string | null;
+            /**
+             * Not Done Reason
+             * @description Yapılamadı sebebi; zorunlu (BR-09)
+             */
+            not_done_reason?: ("no_material" | "equipment_broken" | "no_time" | "not_authorized" | "other") | null;
+            /** Device Id */
+            device_id?: string | null;
+            /**
+             * Answered At
+             * @description Cihaz saatiyle cevap zamanı; ham olarak saklanır
+             */
+            answered_at?: string | null;
+            /**
+             * Evidence Count
+             * @default 0
+             */
+            evidence_count?: number;
+        };
+        /**
+         * KuyruktakiKanit
+         * @description Cihazda çekilmiş bir fotoğrafın niyeti; baytlar ayrı istekte.
+         */
+        KuyruktakiKanit: {
+            /**
+             * Evidence Id
+             * Format: uuid
+             */
+            evidence_id: string;
+            /**
+             * Run Id
+             * Format: uuid
+             */
+            run_id: string;
+            /**
+             * Answer Id
+             * Format: uuid
+             */
+            answer_id: string;
+            /**
+             * Item Id
+             * Format: uuid
+             */
+            item_id: string;
+            /** Sha256 */
+            sha256: string;
+            /**
+             * Content Type
+             * @enum {string}
+             */
+            content_type: "image/jpeg" | "image/png";
+            /** Size Bytes */
+            size_bytes: number;
+            /**
+             * From Gallery
+             * @default false
+             */
+            from_gallery?: boolean;
+            /**
+             * Captured At
+             * @description Cihaz saatiyle çekim zamanı; sunucu düzeltir
+             */
+            captured_at?: string | null;
+            /** Device Id */
+            device_id?: string | null;
+            /** Latitude */
+            latitude?: number | null;
+            /** Longitude */
+            longitude?: number | null;
         };
         /** MaddeCiktisi */
         MaddeCiktisi: {
@@ -1672,6 +1933,98 @@ export interface components {
             max_value?: number | null;
             /** Unit */
             unit?: string | null;
+        };
+        /** ManifestCalistirmasi */
+        ManifestCalistirmasi: {
+            /**
+             * Run Id
+             * Format: uuid
+             */
+            run_id: string;
+            /**
+             * Plan Id
+             * Format: uuid
+             */
+            plan_id: string;
+            /** Plan Name */
+            plan_name: string;
+            /**
+             * Branch Id
+             * Format: uuid
+             */
+            branch_id: string;
+            /** Branch Code */
+            branch_code: string;
+            /** Branch Name */
+            branch_name: string;
+            /**
+             * Template Version Id
+             * Format: uuid
+             */
+            template_version_id: string;
+            /**
+             * Business Day
+             * Format: date
+             */
+            business_day: string;
+            /** Status */
+            status: string;
+            /**
+             * Window Start
+             * Format: date-time
+             */
+            window_start: string;
+            /**
+             * Window End
+             * Format: date-time
+             */
+            window_end: string;
+            /**
+             * Tolerance End
+             * Format: date-time
+             */
+            tolerance_end: string;
+        };
+        /** ManifestCiktisi */
+        ManifestCiktisi: {
+            clock: components["schemas"]["SaatCiktisi"];
+            /** Horizon Hours */
+            horizon_hours: number;
+            /** Refresh After Minutes */
+            refresh_after_minutes: number;
+            /** Runs */
+            runs: components["schemas"]["ManifestCalistirmasi"][];
+            /** Template Versions */
+            template_versions: components["schemas"]["ManifestSurumu"][];
+            /** Not Done Reasons */
+            not_done_reasons: components["schemas"]["SebepCiktisi"][];
+            policy: components["schemas"]["KuyrukPolitikasi"];
+        };
+        /**
+         * ManifestSurumu
+         * @description Şablon sürümünün kimliği. İçeriği `GET /template-versions/{id}`.
+         *
+         *     Sürüm yayınlandıktan sonra **değişmez**: cihaz bir kez indirir ve
+         *     süresiz önbelleğe alır. Manifest her 15 dakikada tazelenirken
+         *     şablon ağacını yeniden göndermek mobil veriyi boşa harcardı.
+         */
+        ManifestSurumu: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Template Id
+             * Format: uuid
+             */
+            template_id: string;
+            /** Version No */
+            version_no: number;
+            /** Published At */
+            published_at?: string | null;
+            /** Item Count */
+            item_count: number;
         };
         /**
          * OnizlemeYaniti
@@ -1826,6 +2179,32 @@ export interface components {
             /** Scope Id */
             scope_id?: string | null;
         };
+        /**
+         * SaatCiktisi
+         * @description Senk anındaki saat ölçümü (FR-0704, BR-13).
+         *
+         *     `skew_minutes` pozitifse cihaz **ileri**. Çekim zamanları bu farkla
+         *     düzeltilerek saklanır; ham cihaz değeri de kaydın içinde kalır.
+         *     Olay zamanı (cevabın yazıldığı an) **sunucununkidir**: düzeltme
+         *     yalnızca çekim zamanına uygulanır, yoksa saati geri alan bir cihaz
+         *     kapanmış pencereye yazabilirdi.
+         */
+        SaatCiktisi: {
+            /**
+             * Server Time
+             * Format: date-time
+             */
+            server_time: string;
+            /** Device Time */
+            device_time?: string | null;
+            /** Skew Minutes */
+            skew_minutes?: number | null;
+            /**
+             * Flagged
+             * @description Fark eşiği aştı mı (10 dk; BR-13)
+             */
+            flagged: boolean;
+        };
         /** SablonGirdisi */
         SablonGirdisi: {
             /**
@@ -1865,6 +2244,13 @@ export interface components {
             cells: components["schemas"]["Hucre"][];
             /** Exception */
             exception: boolean;
+        };
+        /** SebepCiktisi */
+        SebepCiktisi: {
+            /** Code */
+            code: string;
+            /** Label */
+            label: string;
         };
         /** SecenekGirdisi */
         SecenekGirdisi: {
@@ -3619,6 +4005,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    senk_manifesti_api_v1_sync_manifest_get: {
+        parameters: {
+            query?: {
+                horizon_hours?: number;
+            };
+            header?: {
+                "X-Device-Time"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManifestCiktisi"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    senk_kuyrugu_api_v1_sync_batch_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["KuyrukGirdisi"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KuyrukCiktisi"];
                 };
             };
             /** @description Validation Error */

@@ -457,6 +457,7 @@ def _answer(satir: m.Answer) -> Answer:
         device_reported_at=satir.device_reported_at,
         clock_skew_minutes=satir.clock_skew_minutes,
         evidence_count=satir.evidence_count,
+        not_done_reason=satir.not_done_reason,  # type: ignore[arg-type]
     )
 
 
@@ -497,6 +498,7 @@ class SqlAnswerRepository(_TenantRepository):
             satir.device_reported_at = answer.device_reported_at
             satir.clock_skew_minutes = answer.clock_skew_minutes
             satir.evidence_count = answer.evidence_count
+            satir.not_done_reason = answer.not_done_reason
             o.add(satir)
 
     def lock(self, run_id: UUID) -> RunLock | None:

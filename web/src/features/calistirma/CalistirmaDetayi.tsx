@@ -126,7 +126,11 @@ export function CalistirmaDetayi({ runId, onKapat }: { runId: string; onKapat: (
               <MaddeSatiri
                 key={madde.item_id}
                 madde={madde}
-                kanitlar={(kanitlar.data ?? []).filter((k) => k.item_id === madde.item_id)}
+                // Yalnızca doğrulanmış kanıt gösterilir: "pending" bir
+                // niyet beyanıdır, baytları henüz depoda değil (ST-054).
+                kanitlar={(kanitlar.data ?? []).filter(
+                  (k) => k.item_id === madde.item_id && k.status !== 'pending',
+                )}
               />
             ))}
           </ul>
@@ -168,6 +172,7 @@ function MaddeSatiri({ madde, kanitlar }: { madde: MaddeDurumu; kanitlar: Kanit[
       ) : gorunum ? (
         <>
           <Cip renk={gorunum.renk} ikon={gorunum.ikon} metin={gorunum.ad} />
+          {cevap?.not_done_reason_label && <Cip renk="uyari" metin={cevap.not_done_reason_label} />}
           {cevap?.evidence_count ? (
             <Cip renk="nötr" ikon="📷" metin={`${cevap.evidence_count}`} />
           ) : null}

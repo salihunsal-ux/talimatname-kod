@@ -152,9 +152,30 @@ GET  /evidence/{id}/url                      → 15 dk imzalı bağlantı (FR-13
 
 **Tekillik** (FR-0614) hem serviste hem şemada: `(tenant_id, sha256)` tekil indeksi. Servis denetimi iki eşzamanlı yüklemede kaçabilir, indeks kaçmaz. Geçen haftanın fotoğrafını yeniden göndermek listeyi doldurmanın en kolay yolu olurdu.
 
-**Bayraklar** (FR-0615) ölçüye dayanır ve **suçlama değil, incelemeye çağrıdır**: galeriden yükleme, konum şubeden 500 m'den uzak (BR-15 parametresi), konum yok, cihaz saati 10 dk'dan farklı, 24 saatten geç senk. Şubenin koordinatı tanımlı değilse "uzak" bayrağı **verilmez** — ölçüsüz bir şüphe işareti bayrağın anlamını boşaltır.
+**Bayraklar** (FR-0615) ölçüye dayanır ve **suçlama değil, incelemeye çağrıdır**: galeriden yükleme, konum şubeden 500 m'den uzak (BR-15 parametresi), konum yok, cihaz saati 10 dk'dan farklı, 72 saatten geç senk (cihaz kuyruğunun ömrü, FR-0706). Şubenin koordinatı tanımlı değilse "uzak" bayrağı **verilmez** — ölçüsüz bir şüphe işareti bayrağın anlamını boşaltır.
 
 **Depolama** port/adaptör (ADR-0012 md.4): geliştirmede yerel dizin (`EVIDENCE_DIR`), üretimde S3 uyumlu kova. Sağlayıcı kararı bu kodu değiştirmeden verilebilir; üretim kovası Türkiye'de olmalı (fotoğraf kişisel veri sayılabilir).
+
+## Senk: çevrimdışı kuyruk (ST-054)
+
+Mobil çevrimdışı çalışır; liste doldurulurken de fotoğraf çekilirken de bağlantı olmayabilir. Sunucu yüzeyi iki çağrı (FR-0701, FR-0703):
+
+```
+GET  /sync/manifest   → ne indireceğim? 48 saatin çalıştırmaları, sürüm kimlikleri, sebep seti, sınırlar
+POST /sync/batch      → kuyruğumu al: cevaplar + kanıt niyetleri (kanıt baytları ayrı)
+```
+
+**Manifest sürümün içeriğini değil kimliğini taşır.** Şablon sürümü yayınlandıktan sonra değişmez; cihaz `GET /template-versions/{id}` ile bir kez indirip süresiz önbelleğe alır. Manifest 15 dakikada bir tazelenirken şablon ağacını yeniden göndermek mobil veriyi boşa harcardı.
+
+**`/sync/batch` 200 döner ve her kayıt kendi sonucunu taşır** (FR-0703). Tek bozuk kayıt yüzünden 4xx dönmek cihazın kuyruğunu sonsuza kadar tıkardı. Hata kayıt başına geliyor ve `retryable` cihaza ne yapacağını söylüyor: tek yeniden denenebilir alan hatası çalıştırma kilidi (30 dk'da düşer), gerisi belirlenimli — "pencere kapandı" bir daha denemekle düzelmez, cihaz kaydı bırakıp kullanıcıya söylemeli.
+
+**Idempotans** (FR-0707): cevabın ve kanıtın kimliği **cihazda** üretilir. Aynı kuyruk iki kez gidince cevap güncellenir, kanıt `resumed` döner ve yükleme kaldığı yerden devam eder. Doğrulanmış kanıta ikinci yazma belirteci **verilmez** (BR-12 değişmezlik). Aynı fotoğraf başka bir kimlikle gelirse `duplicate`: cihaz kaydı bırakır, kullanıcı yeniden çeker.
+
+**Saat düzeltmesi** (FR-0704, BR-13): cihaz senk anında kendi saatini söyler, sunucu farkı hesaplar. Fark **çekim zamanına** uygulanır; ham cihaz değeri ve fark kayıtta kalır, 10 dk'yı aşarsa kanıt bayrak alır. Olay zamanı (cevabın yazıldığı an) **sunucununkidir**: düzeltmeyi olay zamanına da uygulamak, saatini geri alan bir cihaza kapanmış pencereye yazma imkânı verirdi.
+
+Kuyruk sınırlarını (500 kanıt / 72 saat, FR-0706) sunucu **söyler**, cihaz uygular: manifestteki `policy`. Sunucu tarafı zorlaması ST-060'ta.
+
+**Yazma yolu ayrı değil:** senk cevabı `ExecutionService`e, kanıtı `EvidenceService`e indirir. Senk için ikinci bir yazma yolu yazmak, iki yolun kurallarının zamanla ayrışması demekti.
 
 ## Sürekli tümleştirme
 

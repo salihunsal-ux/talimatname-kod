@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import hashlib
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 from uuid import UUID, uuid4
 
 import pytest
@@ -11,7 +13,8 @@ from fastapi.testclient import TestClient
 from conftest import oturum_ac
 from talimatname.api.app import create_app
 from talimatname.domain.actions import from_critical_item
-from talimatname.domain.answers import RunLocked, clock_skew
+from talimatname.domain.answers import clock_skew
+from talimatname.domain.errors import RunLocked
 from talimatname.infra.memory import (
     MemoryActionRepository,
     MemoryAnswerRepository,
@@ -239,8 +242,9 @@ def test_gonderim_kilidi_birakir() -> None:
 
 
 @pytest.fixture
-def istemci() -> TestClient:
-    return oturum_ac(TestClient(create_app(Settings())))
+def istemci(tmp_path: Path) -> TestClient:
+    """Kanıt dosyaları geçici dizine: depo testten kirlenmesin."""
+    return oturum_ac(TestClient(create_app(Settings(evidence_dir=str(tmp_path)))))
 
 
 def test_uc_nokta_gorunum_maddeleri_ve_eksikleri_doner(istemci: TestClient) -> None:
@@ -258,21 +262,56 @@ def test_uc_nokta_gorunum_maddeleri_ve_eksikleri_doner(istemci: TestClient) -> N
 
 
 def test_uc_nokta_cevap_ve_gonderim(istemci: TestClient) -> None:
+    """Gönderim kanıtı **sayar**, cihazın beyanına bakmaz (FR-0607).
+
+    Cevapta "1 fotoğraf var" yazması yetmiyor: fotoğraf depoda ve
+    özeti doğrulanmış olmalı. Çevrimdışı yolda beyan dosyadan saatler
+    önce geliyor (ST-054); gönderimi beyana açmak, kanıtlı listenin
+    tek iddiasını istemciye bırakmak olurdu.
+    """
     run = istemci.get("/api/v1/runs").json()[0]
     gorunum = istemci.get(f"/api/v1/runs/{run['id']}").json()
 
+    cevap_idleri: dict[str, str] = {}
+    fotograf_isteyen: list[str] = []
     for bolum in gorunum["sections"]:
         for madde in bolum["items"]:
             if madde["type"] == "instruction":
                 continue
+            cevap_id = str(uuid4())
+            cevap_idleri[madde["item_id"]] = cevap_id
+            if madde["photo_required"]:
+                fotograf_isteyen.append(madde["item_id"])
             istemci.put(
-                f"/api/v1/runs/{run['id']}/answers/{uuid4()}",
+                f"/api/v1/runs/{run['id']}/answers/{cevap_id}",
                 json={
                     "item_id": madde["item_id"],
                     "state": "passed",
+                    # Beyan: cihaz "fotoğraf çektim" diyor, henüz yüklemedi.
                     "evidence_count": 1 if madde["photo_required"] else 0,
                 },
             )
+
+    assert fotograf_isteyen, "tohumda fotoğraf zorunlu madde yok"
+    erken = istemci.post(f"/api/v1/runs/{run['id']}/submit", json={})
+    assert erken.status_code == 422
+    assert {e["kind"] for e in erken.json()["missing"]} == {"evidence"}
+
+    for madde_id in fotograf_isteyen:
+        icerik = f"sahte-jpeg-{madde_id}".encode()
+        izin = istemci.post(
+            f"/api/v1/runs/{run['id']}/answers/{cevap_idleri[madde_id]}/evidence",
+            json={
+                "item_id": madde_id,
+                "sha256": hashlib.sha256(icerik).hexdigest(),
+                "content_type": "image/jpeg",
+                "size_bytes": len(icerik),
+            },
+        ).json()
+        assert istemci.put(izin["upload_url"], content=icerik).status_code == 200
+        assert (
+            istemci.post(f"/api/v1/evidence/{izin['evidence']['id']}/complete").status_code == 200
+        )
 
     yanit = istemci.post(f"/api/v1/runs/{run['id']}/submit", json={})
 

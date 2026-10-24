@@ -20,6 +20,7 @@ from talimatname.api.bagimliliklar import (
     yurutme_servisi,
 )
 from talimatname.api.guvenlik import Kullanici, sube_erisimi_zorunlu
+from talimatname.domain.sync import NOT_DONE_REASON_LABELS
 from talimatname.domain.templates import ITEM_TYPE_LABELS
 from talimatname.services.execution import ExecutionService, RunView
 from talimatname.services.organization import OrganizationService
@@ -30,6 +31,9 @@ router = APIRouter(tags=["yürütme"])
 Servis = Annotated[ExecutionService, Depends(yurutme_servisi)]
 SablonServis = Annotated[TemplateService, Depends(sablon_servisi)]
 OrgServis = Annotated[OrganizationService, Depends(organizasyon_servisi)]
+
+
+NotDoneSebebi = Literal["no_material", "equipment_broken", "no_time", "not_authorized", "other"]
 
 
 class CevapGirdisi(BaseModel):
@@ -44,6 +48,9 @@ class CevapGirdisi(BaseModel):
         description="Cihazın saati. Kaydedilir ama karar için kullanılmaz (BR-13).",
     )
     evidence_count: int = Field(default=0, ge=0, le=3)
+    not_done_reason: NotDoneSebebi | None = Field(
+        default=None, description="Yapılamadı sebebi; 'yapılamadı' ile zorunlu (BR-09)"
+    )
 
 
 class CevapCiktisi(BaseModel):
@@ -56,6 +63,10 @@ class CevapCiktisi(BaseModel):
     answered_at: datetime | None
     clock_skew_minutes: int | None = None
     clock_flagged: bool = False
+    not_done_reason: str | None = None
+    not_done_reason_label: str | None = Field(
+        default=None, description="Sebebin Türkçe karşılığı; kod sözleşme, etiket değişebilir"
+    )
 
 
 class MaddeDurumu(BaseModel):
@@ -101,6 +112,10 @@ class BolumDurumu(BaseModel):
     items: list[MaddeDurumu]
 
 
+def _sebep_etiketi(kod: str | None) -> str | None:
+    return NOT_DONE_REASON_LABELS[kod] if kod else None  # type: ignore[index]
+
+
 def _cevap(gorunum: RunView, item_id: UUID) -> CevapCiktisi | None:
     cevap = gorunum.answers.get(item_id)
     if cevap is None:
@@ -115,6 +130,8 @@ def _cevap(gorunum: RunView, item_id: UUID) -> CevapCiktisi | None:
         answered_at=cevap.answered_at,
         clock_skew_minutes=cevap.clock_skew_minutes,
         clock_flagged=cevap.clock_flagged,
+        not_done_reason=cevap.not_done_reason,
+        not_done_reason_label=_sebep_etiketi(cevap.not_done_reason),
     )
 
 
@@ -199,6 +216,7 @@ def cevap_yaz(
         device_id=girdi.device_id,
         device_reported_at=girdi.device_reported_at,
         evidence_count=girdi.evidence_count,
+        not_done_reason=girdi.not_done_reason,
     )
     return CevapCiktisi(
         id=cevap.id,
@@ -210,6 +228,8 @@ def cevap_yaz(
         answered_at=cevap.answered_at,
         clock_skew_minutes=cevap.clock_skew_minutes,
         clock_flagged=cevap.clock_flagged,
+        not_done_reason=cevap.not_done_reason,
+        not_done_reason_label=_sebep_etiketi(cevap.not_done_reason),
     )
 
 

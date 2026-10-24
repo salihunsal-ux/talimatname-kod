@@ -260,6 +260,9 @@ class Answer(Base):
     device_reported_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     clock_skew_minutes: Mapped[int | None] = mapped_column(Integer)
     evidence_count: Mapped[int] = mapped_column(Integer, default=0)
+    #: Yapılamadı sebebi (BR-09). Kod saklanır, etiket değil: etiket
+    #: değişince geçmiş raporun kırılmaması için (FR-0805).
+    not_done_reason: Mapped[str | None] = mapped_column(String(20))
 
 
 class Action(Base):

@@ -2131,6 +2131,111 @@
           }
         }
       }
+    },
+    "/api/v1/sync/manifest": {
+      "get": {
+        "tags": [
+          "senk"
+        ],
+        "summary": "Çevrimdışı önbellek manifesti",
+        "description": "Cihazın indireceği liste: kapsamındaki şubelerin çalıştırmaları.\n\nKapsam **kullanıcıdan** okunur: personel yalnızca kendi şubesini\nindirir. Şablon sürümlerinin yalnızca kimliği döner; içeriği\ndeğişmediği için cihaz bir kez indirip saklar.\n\nCihaz saati **başlıkta** (`X-Device-Time`), sorgu dizesinde değil:\nISO zamanın `+00:00` eki sorgu dizesinde boşluğa çözülüyor ve istek\n422 dönüyordu. Denemede ilk elde yakalandı; mobil de aynı tuzağa\ndüşecekti. POST'ta aynı değer gövdede taşınıyor.",
+        "operationId": "senk_manifesti_api_v1_sync_manifest_get",
+        "parameters": [
+          {
+            "name": "horizon_hours",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 168,
+              "minimum": 1,
+              "default": 48,
+              "title": "Horizon Hours"
+            }
+          },
+          {
+            "name": "X-Device-Time",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Device-Time"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManifestCiktisi"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/sync/batch": {
+      "post": {
+        "tags": [
+          "senk"
+        ],
+        "summary": "Cihaz kuyruğunu gönder (kısmi başarı)",
+        "description": "Kuyruğu işler ve **her kayıt için** ayrı sonuç döner.\n\nKayıt kimlikleri cihazda üretildiği için aynı kuyruğu iki kez\ngöndermek ikinci kayıt açmaz (FR-0707): cevap güncellenir, kanıt\n`resumed` döner ve yükleme kaldığı yerden devam eder.\n\nCevapları yazan oturumdaki kullanıcıdır; gövdede kullanıcı alanı yok.",
+        "operationId": "senk_kuyrugu_api_v1_sync_batch_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KuyrukGirdisi"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KuyrukCiktisi"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2971,6 +3076,29 @@
             "type": "boolean",
             "title": "Clock Flagged",
             "default": false
+          },
+          "not_done_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Not Done Reason"
+          },
+          "not_done_reason_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Not Done Reason Label",
+            "description": "Sebebin Türkçe karşılığı; kod sözleşme, etiket değişebilir"
           }
         },
         "type": "object",
@@ -3057,6 +3185,25 @@
             "minimum": 0.0,
             "title": "Evidence Count",
             "default": 0
+          },
+          "not_done_reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "no_material",
+                  "equipment_broken",
+                  "no_time",
+                  "not_authorized",
+                  "other"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Not Done Reason",
+            "description": "Yapılamadı sebebi; 'yapılamadı' ile zorunlu (BR-09)"
           }
         },
         "type": "object",
@@ -3065,6 +3212,39 @@
           "state"
         ],
         "title": "CevapGirdisi"
+      },
+      "CevapSonucu": {
+        "properties": {
+          "answer_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Answer Id"
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "accepted",
+              "rejected"
+            ],
+            "title": "Outcome"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/KayitHatasi"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "answer_id",
+          "outcome"
+        ],
+        "title": "CevapSonucu"
       },
       "DavetYaniti": {
         "properties": {
@@ -3653,6 +3833,70 @@
         ],
         "title": "KanitOzet"
       },
+      "KanitSonucu": {
+        "properties": {
+          "evidence_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Evidence Id"
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "accepted",
+              "resumed",
+              "duplicate",
+              "rejected"
+            ],
+            "title": "Outcome"
+          },
+          "upload_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Upload Url"
+          },
+          "upload_method": {
+            "type": "string",
+            "const": "PUT",
+            "title": "Upload Method",
+            "default": "PUT"
+          },
+          "expires_in_minutes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires In Minutes"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/KayitHatasi"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "evidence_id",
+          "outcome"
+        ],
+        "title": "KanitSonucu",
+        "description": "`resumed`: kayıt vardı, yükleme sürüyor. `duplicate`: fotoğraf tekrarı."
+      },
       "KapanisGirdisi": {
         "properties": {
           "note": {
@@ -3683,6 +3927,42 @@
         ],
         "title": "KapanisGirdisi",
         "description": "Kapanış notu zorunlu (FR-0904): ne yapıldığı yazılmadan kapanmaz."
+      },
+      "KayitHatasi": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "title": "Type"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detail"
+          },
+          "retryable": {
+            "type": "boolean",
+            "title": "Retryable",
+            "description": "Sonra denemek işe yarar mı (ör. kilit süresi dolunca)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "type",
+          "title",
+          "retryable"
+        ],
+        "title": "KayitHatasi",
+        "description": "Tek kaydın reddi. İstemci `type`a göre davranır, metne göre değil."
       },
       "KodIstegi": {
         "properties": {
@@ -3872,6 +4152,323 @@
           "assignments"
         ],
         "title": "KullaniciOzet"
+      },
+      "KuyrukCiktisi": {
+        "properties": {
+          "clock": {
+            "$ref": "#/components/schemas/SaatCiktisi"
+          },
+          "accepted": {
+            "type": "integer",
+            "title": "Accepted"
+          },
+          "rejected": {
+            "type": "integer",
+            "title": "Rejected"
+          },
+          "answers": {
+            "items": {
+              "$ref": "#/components/schemas/CevapSonucu"
+            },
+            "type": "array",
+            "title": "Answers"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/KanitSonucu"
+            },
+            "type": "array",
+            "title": "Evidence"
+          }
+        },
+        "type": "object",
+        "required": [
+          "clock",
+          "accepted",
+          "rejected",
+          "answers",
+          "evidence"
+        ],
+        "title": "KuyrukCiktisi"
+      },
+      "KuyrukGirdisi": {
+        "properties": {
+          "device_time": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Device Time",
+            "description": "Cihazın isteği gönderdiği andaki saati (FR-0704)"
+          },
+          "answers": {
+            "items": {
+              "$ref": "#/components/schemas/KuyruktakiCevap"
+            },
+            "type": "array",
+            "maxItems": 200,
+            "title": "Answers"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/KuyruktakiKanit"
+            },
+            "type": "array",
+            "maxItems": 50,
+            "title": "Evidence"
+          }
+        },
+        "type": "object",
+        "title": "KuyrukGirdisi"
+      },
+      "KuyrukPolitikasi": {
+        "properties": {
+          "max_evidence_per_item": {
+            "type": "integer",
+            "title": "Max Evidence Per Item"
+          },
+          "max_evidence_bytes": {
+            "type": "integer",
+            "title": "Max Evidence Bytes"
+          },
+          "queue_evidence_limit": {
+            "type": "integer",
+            "title": "Queue Evidence Limit"
+          },
+          "queue_hours": {
+            "type": "integer",
+            "title": "Queue Hours"
+          }
+        },
+        "type": "object",
+        "required": [
+          "max_evidence_per_item",
+          "max_evidence_bytes",
+          "queue_evidence_limit",
+          "queue_hours"
+        ],
+        "title": "KuyrukPolitikasi",
+        "description": "Cihazın uygulayacağı sınırlar (FR-0604, FR-0605, FR-0706)."
+      },
+      "KuyruktakiCevap": {
+        "properties": {
+          "answer_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Answer Id"
+          },
+          "run_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Run Id"
+          },
+          "item_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Item Id"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "passed",
+              "failed",
+              "not_done",
+              "not_applicable"
+            ],
+            "title": "State"
+          },
+          "value": {
+            "title": "Value"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "not_done_reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "no_material",
+                  "equipment_broken",
+                  "no_time",
+                  "not_authorized",
+                  "other"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Not Done Reason",
+            "description": "Yapılamadı sebebi; zorunlu (BR-09)"
+          },
+          "device_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Device Id"
+          },
+          "answered_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Answered At",
+            "description": "Cihaz saatiyle cevap zamanı; ham olarak saklanır"
+          },
+          "evidence_count": {
+            "type": "integer",
+            "maximum": 3.0,
+            "minimum": 0.0,
+            "title": "Evidence Count",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "answer_id",
+          "run_id",
+          "item_id",
+          "state"
+        ],
+        "title": "KuyruktakiCevap",
+        "description": "Cihazda verilmiş bir cevap. `answer_id` **cihazda** üretildi."
+      },
+      "KuyruktakiKanit": {
+        "properties": {
+          "evidence_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Evidence Id"
+          },
+          "run_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Run Id"
+          },
+          "answer_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Answer Id"
+          },
+          "item_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Item Id"
+          },
+          "sha256": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 64,
+            "title": "Sha256"
+          },
+          "content_type": {
+            "type": "string",
+            "enum": [
+              "image/jpeg",
+              "image/png"
+            ],
+            "title": "Content Type"
+          },
+          "size_bytes": {
+            "type": "integer",
+            "maximum": 3145728.0,
+            "exclusiveMinimum": 0.0,
+            "title": "Size Bytes"
+          },
+          "from_gallery": {
+            "type": "boolean",
+            "title": "From Gallery",
+            "default": false
+          },
+          "captured_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Captured At",
+            "description": "Cihaz saatiyle çekim zamanı; sunucu düzeltir"
+          },
+          "device_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Device Id"
+          },
+          "latitude": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 90.0,
+                "minimum": -90.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latitude"
+          },
+          "longitude": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 180.0,
+                "minimum": -180.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Longitude"
+          }
+        },
+        "type": "object",
+        "required": [
+          "evidence_id",
+          "run_id",
+          "answer_id",
+          "item_id",
+          "sha256",
+          "content_type",
+          "size_bytes"
+        ],
+        "title": "KuyruktakiKanit",
+        "description": "Cihazda çekilmiş bir fotoğrafın niyeti; baytlar ayrı istekte."
       },
       "MaddeCiktisi": {
         "properties": {
@@ -4180,6 +4777,175 @@
           "title"
         ],
         "title": "MaddeGirdisi"
+      },
+      "ManifestCalistirmasi": {
+        "properties": {
+          "run_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Run Id"
+          },
+          "plan_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Plan Id"
+          },
+          "plan_name": {
+            "type": "string",
+            "title": "Plan Name"
+          },
+          "branch_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Branch Id"
+          },
+          "branch_code": {
+            "type": "string",
+            "title": "Branch Code"
+          },
+          "branch_name": {
+            "type": "string",
+            "title": "Branch Name"
+          },
+          "template_version_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Template Version Id"
+          },
+          "business_day": {
+            "type": "string",
+            "format": "date",
+            "title": "Business Day"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "window_start": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Window Start"
+          },
+          "window_end": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Window End"
+          },
+          "tolerance_end": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Tolerance End"
+          }
+        },
+        "type": "object",
+        "required": [
+          "run_id",
+          "plan_id",
+          "plan_name",
+          "branch_id",
+          "branch_code",
+          "branch_name",
+          "template_version_id",
+          "business_day",
+          "status",
+          "window_start",
+          "window_end",
+          "tolerance_end"
+        ],
+        "title": "ManifestCalistirmasi"
+      },
+      "ManifestCiktisi": {
+        "properties": {
+          "clock": {
+            "$ref": "#/components/schemas/SaatCiktisi"
+          },
+          "horizon_hours": {
+            "type": "integer",
+            "title": "Horizon Hours"
+          },
+          "refresh_after_minutes": {
+            "type": "integer",
+            "title": "Refresh After Minutes"
+          },
+          "runs": {
+            "items": {
+              "$ref": "#/components/schemas/ManifestCalistirmasi"
+            },
+            "type": "array",
+            "title": "Runs"
+          },
+          "template_versions": {
+            "items": {
+              "$ref": "#/components/schemas/ManifestSurumu"
+            },
+            "type": "array",
+            "title": "Template Versions"
+          },
+          "not_done_reasons": {
+            "items": {
+              "$ref": "#/components/schemas/SebepCiktisi"
+            },
+            "type": "array",
+            "title": "Not Done Reasons"
+          },
+          "policy": {
+            "$ref": "#/components/schemas/KuyrukPolitikasi"
+          }
+        },
+        "type": "object",
+        "required": [
+          "clock",
+          "horizon_hours",
+          "refresh_after_minutes",
+          "runs",
+          "template_versions",
+          "not_done_reasons",
+          "policy"
+        ],
+        "title": "ManifestCiktisi"
+      },
+      "ManifestSurumu": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "template_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Template Id"
+          },
+          "version_no": {
+            "type": "integer",
+            "title": "Version No"
+          },
+          "published_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Published At"
+          },
+          "item_count": {
+            "type": "integer",
+            "title": "Item Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "template_id",
+          "version_no",
+          "item_count"
+        ],
+        "title": "ManifestSurumu",
+        "description": "Şablon sürümünün kimliği. İçeriği `GET /template-versions/{id}`.\n\nSürüm yayınlandıktan sonra **değişmez**: cihaz bir kez indirir ve\nsüresiz önbelleğe alır. Manifest her 15 dakikada tazelenirken\nşablon ağacını yeniden göndermek mobil veriyi boşa harcardı."
       },
       "OnizlemeYaniti": {
         "properties": {
@@ -4520,6 +5286,50 @@
         "title": "RolGirdisi",
         "description": "Rol atama gövdesi. Kapsam türü rolden belirlenir, ayrıca gönderilmez."
       },
+      "SaatCiktisi": {
+        "properties": {
+          "server_time": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Server Time"
+          },
+          "device_time": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Device Time"
+          },
+          "skew_minutes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Skew Minutes"
+          },
+          "flagged": {
+            "type": "boolean",
+            "title": "Flagged",
+            "description": "Fark eşiği aştı mı (10 dk; BR-13)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "server_time",
+          "flagged"
+        ],
+        "title": "SaatCiktisi",
+        "description": "Senk anındaki saat ölçümü (FR-0704, BR-13).\n\n`skew_minutes` pozitifse cihaz **ileri**. Çekim zamanları bu farkla\ndüzeltilerek saklanır; ham cihaz değeri de kaydın içinde kalır.\nOlay zamanı (cevabın yazıldığı an) **sunucununkidir**: düzeltme\nyalnızca çekim zamanına uygulanır, yoksa saati geri alan bir cihaz\nkapanmış pencereye yazabilirdi."
+      },
       "SablonGirdisi": {
         "properties": {
           "name": {
@@ -4629,6 +5439,24 @@
           "exception"
         ],
         "title": "Satir"
+      },
+      "SebepCiktisi": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "label"
+        ],
+        "title": "SebepCiktisi"
       },
       "SecenekGirdisi": {
         "properties": {
