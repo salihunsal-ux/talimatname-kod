@@ -2455,6 +2455,188 @@
         }
       }
     },
+    "/api/v1/setup/library": {
+      "get": {
+        "tags": [
+          "kurulum"
+        ],
+        "summary": "Adım 3 · hazır şablonlar",
+        "description": "Ürün kütüphanesi (02-urun/07). Seçilen şablon hesaba kopyalanır.",
+        "operationId": "kutuphane_api_v1_setup_library_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/KutuphaneSablonu"
+                  },
+                  "type": "array",
+                  "title": "Response Kutuphane Api V1 Setup Library Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/setup/template": {
+      "post": {
+        "tags": [
+          "kurulum"
+        ],
+        "summary": "Adım 3 · şablonu hesaba kopyala",
+        "operationId": "sablon_kopyala_api_v1_setup_template_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SablonSecimi"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SablonSonucu"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/setup/plan-proposal": {
+      "get": {
+        "tags": [
+          "kurulum"
+        ],
+        "summary": "Adım 4 · plan önerisi",
+        "description": "Şube çalışma saatinden türetilir; kaydedilmez, gösterilir.\n\n`version_id` verilmezse **planı olmayan ilk yayınlanmış sürüm**\nseçilir: sihirbaz \"hangi şablonu seçmiştim\" diye durum tutmuyor.",
+        "operationId": "plan_onerisi_api_v1_setup_plan_proposal_get",
+        "parameters": [
+          {
+            "name": "version_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Version Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanOnerisi"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/setup/plan": {
+      "post": {
+        "tags": [
+          "kurulum"
+        ],
+        "summary": "Adım 4 · planı oluştur",
+        "description": "Öneriyi (yöneticinin düzenlediği hâliyle) kaydeder.",
+        "operationId": "plan_olustur_api_v1_setup_plan_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlanOnayi"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DurumCiktisi"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/setup/publish": {
+      "post": {
+        "tags": [
+          "kurulum"
+        ],
+        "summary": "Yayınla: çalıştırmaları üret ve sihirbazı kapat",
+        "description": "Üretim idempotent: düğmeye iki kez basmak ikinci pencere açmaz.",
+        "operationId": "yayinla_api_v1_setup_publish_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/YayinSonucu"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/setup/complete": {
       "post": {
         "tags": [
@@ -4599,6 +4781,56 @@
         ],
         "title": "KullaniciOzet"
       },
+      "KutuphaneSablonu": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "category": {
+            "type": "string",
+            "title": "Category"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary"
+          },
+          "item_count": {
+            "type": "integer",
+            "title": "Item Count"
+          },
+          "critical_count": {
+            "type": "integer",
+            "title": "Critical Count"
+          },
+          "photo_count": {
+            "type": "integer",
+            "title": "Photo Count"
+          },
+          "window": {
+            "type": "string",
+            "title": "Window",
+            "description": "Önerilen pencere, insan diliyle"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "name",
+          "category",
+          "summary",
+          "item_count",
+          "critical_count",
+          "photo_count",
+          "window"
+        ],
+        "title": "KutuphaneSablonu",
+        "description": "Kütüphanedeki hazır şablon (ürün içeriği, hesap verisi değil)."
+      },
       "KuyrukCiktisi": {
         "properties": {
           "clock": {
@@ -5644,6 +5876,137 @@
         ],
         "title": "PlanGirdisi"
       },
+      "PlanOnayi": {
+        "properties": {
+          "version_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version Id"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "branch_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Branch Ids"
+          },
+          "duration_minutes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Minutes"
+          },
+          "tolerance_minutes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tolerance Minutes"
+          }
+        },
+        "type": "object",
+        "title": "PlanOnayi",
+        "description": "Hepsi isteğe bağlı: boş gövde öneriyi olduğu gibi kaydeder."
+      },
+      "PlanOnerisi": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "template_version_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Template Version Id"
+          },
+          "branch_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Branch Ids"
+          },
+          "recurrence": {
+            "type": "string",
+            "title": "Recurrence"
+          },
+          "anchor_reference": {
+            "type": "string",
+            "enum": [
+              "open",
+              "close"
+            ],
+            "title": "Anchor Reference"
+          },
+          "anchor_offset_minutes": {
+            "type": "integer",
+            "title": "Anchor Offset Minutes"
+          },
+          "duration_minutes": {
+            "type": "integer",
+            "title": "Duration Minutes"
+          },
+          "tolerance_minutes": {
+            "type": "integer",
+            "title": "Tolerance Minutes"
+          },
+          "window": {
+            "type": "string",
+            "title": "Window",
+            "description": "Pencerenin insan diliyle özeti"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "template_version_id",
+          "branch_ids",
+          "recurrence",
+          "anchor_reference",
+          "anchor_offset_minutes",
+          "duration_minutes",
+          "tolerance_minutes",
+          "window"
+        ],
+        "title": "PlanOnerisi",
+        "description": "Şube saatlerinden türetilmiş öneri; kaydedilmeden gösterilir."
+      },
       "PlanOzet": {
         "properties": {
           "id": {
@@ -5911,6 +6274,39 @@
           "versions"
         ],
         "title": "SablonOzet"
+      },
+      "SablonSecimi": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key"
+        ],
+        "title": "SablonSecimi"
+      },
+      "SablonSonucu": {
+        "properties": {
+          "template_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Template Id"
+          },
+          "version_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Version Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "template_id",
+          "version_id"
+        ],
+        "title": "SablonSonucu"
       },
       "Satir": {
         "properties": {
@@ -6509,6 +6905,36 @@
           "type"
         ],
         "title": "ValidationError"
+      },
+      "YayinSonucu": {
+        "properties": {
+          "runs_ready": {
+            "type": "integer",
+            "title": "Runs Ready"
+          },
+          "first_window": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Window"
+          },
+          "status": {
+            "$ref": "#/components/schemas/DurumCiktisi"
+          }
+        },
+        "type": "object",
+        "required": [
+          "runs_ready",
+          "status"
+        ],
+        "title": "YayinSonucu",
+        "description": "Yayın özeti. **Hazır** çalıştırma sayısı, \"yeni yazılan\" değil:\nplan kaydedilirken üretim zaten koşuyor ve ikinci kez yayınlamak\nsıfır gösterirdi."
       },
       "YayinSorunu": {
         "properties": {

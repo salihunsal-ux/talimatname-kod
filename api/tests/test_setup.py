@@ -27,7 +27,7 @@ from talimatname.domain.setup import (
     progress,
 )
 from talimatname.domain.validation import ValidationError
-from talimatname.domain.window import BusinessHours
+from talimatname.domain.window import Anchor, BusinessHours
 from talimatname.infra.memory import (
     MemoryOrganizationRepository,
     MemoryPlanRepository,
@@ -43,7 +43,13 @@ from talimatname.services.imports import (
     branch_template,
     parse_branches,
 )
-from talimatname.services.setup import SetupService
+from talimatname.services.library import find
+from talimatname.services.setup import (
+    LibraryTemplateNotFound,
+    NoBranches,
+    NoPendingTemplate,
+    SetupService,
+)
 from talimatname.settings import Settings
 
 STANDART = {gun: BusinessHours(time(9, 0), time(23, 30)) for gun in range(7)}
@@ -67,7 +73,11 @@ def _dosya(satirlar: list[dict[str, str]], *, basliklar: list[str] | None = None
 
 
 def _sube(kod: str, ad: str, **ek: str) -> dict[str, str]:
-    return {"kod": kod, "ad": ad, **ek}
+    """Saat varsayılan olarak dolu: markanın varsayılanı yoksa satırda
+    saat zorunlu (saatsiz şube hiç açılmaz, hiç çalıştırma üretmez)."""
+    alanlar = {"kod": kod, "ad": ad, "acilis": "09:00", "kapanis": "23:30"}
+    alanlar.update(ek)
+    return alanlar
 
 
 @pytest.fixture
@@ -119,6 +129,21 @@ def test_satirin_tum_hatalari_birden_doner() -> None:
     assert isinstance(sonuc, list)
     assert {hata.field for hata in sonuc} == {"kod", "ad", "saat_dilimi", "enlem"}
     assert all(hata.row == 5 for hata in sonuc)
+
+
+def test_saatsiz_satir_marka_varsayilani_yoksa_hata() -> None:
+    """Saatsiz şube hiç açılmaz: sessizce kabul etmek, kullanıcıyı
+    "neden hiç liste gelmiyor" sorusuyla baş başa bırakırdı."""
+    sonuc = branch_row(
+        4,
+        {"kod": "KDK", "ad": "Kadıköy"},
+        default_timezone="Europe/Istanbul",
+        default_hours={},
+    )
+
+    assert isinstance(sonuc, list)
+    assert sonuc[0].field == "acilis"
+    assert "varsayılan çalışma saati" in sonuc[0].message
 
 
 def test_bos_saat_markanin_varsayilanini_alir() -> None:
@@ -362,7 +387,8 @@ def test_marka_saatleri_sube_satirina_varsayilan_olur(servis: SetupService) -> N
         closed_days=(6,),
     )
 
-    servis.import_branches(_dosya([_sube("KDK", "Kadıköy")]))
+    # Satırda saat **yok**: markanın varsayılanı geçerli.
+    servis.import_branches(_dosya([_sube("KDK", "Kadıköy", acilis="", kapanis="")]))
 
     sube = servis._org.branch_by_code("KDK")
     assert sube is not None
@@ -487,3 +513,191 @@ def test_uc_nokta_hata_raporu_excel_doner(tmp_path: Path) -> None:
 def test_uc_nokta_personel_kurulumu_goremez(tmp_path: Path) -> None:
     """Kurulum hesabın kendisini şekillendiriyor: yönetici işi."""
     assert _istemci(tmp_path, "staff").get("/api/v1/setup").status_code == 403
+
+
+# --- adım 3: kütüphane (FR-1401, Ş-6) ---------------------------------
+
+
+def test_kutuphane_sablonlari_urun_belgesinden() -> None:
+    """02-urun/07: kapanış 15 cevaplı madde, 4 kritik, 4 fotoğraf."""
+    kapanis = find("kapanis-kafe")
+    assert kapanis is not None
+    assert kapanis.item_count == 15
+    assert kapanis.critical_count == 4
+    assert kapanis.photo_count == 4
+    assert kapanis.plan.anchor == Anchor("close", -60)
+
+    acilis = find("acilis-kafe")
+    assert acilis is not None
+    assert acilis.plan.anchor == Anchor("open", -45)
+
+
+def test_kutuphane_kopyasi_bagimsiz() -> None:
+    """Kopya yeni kimlik alır: bizim güncellememiz zinciri etkilemez."""
+    kapanis = find("kapanis-kafe")
+    assert kapanis is not None
+
+    birinci, surum1 = kapanis.copy_for_account()
+    ikinci, surum2 = kapanis.copy_for_account()
+
+    assert birinci.id != ikinci.id
+    assert surum1.id != surum2.id
+    kimlikler1 = {m.id for b in surum1.sections for m in b.items}
+    kimlikler2 = {m.id for b in surum2.sections for m in b.items}
+    assert kimlikler1.isdisjoint(kimlikler2)
+
+
+def test_sablon_kopyalaninca_yayinlanir(servis: SetupService) -> None:
+    """Sihirbazın amacı çalışan liste: taslak bırakmak ikinci tur demek."""
+    sablon_id, surum_id = servis.use_template("kapanis-kafe")
+
+    surum = servis._templates.version(surum_id)
+    assert surum is not None
+    assert surum.status == "published"
+    assert surum.template_id == sablon_id
+    assert servis.progress().steps[2].done is True
+
+
+def test_bilinmeyen_sablon_404(servis: SetupService) -> None:
+    with pytest.raises(LibraryTemplateNotFound):
+        servis.use_template("olmayan-sablon")
+
+
+def test_plansiz_surum_veriden_bulunur(servis: SetupService) -> None:
+    """Sihirbaz "hangi şablonu seçmiştim" diye durum tutmuyor (TC-004).
+
+    Hesapta yayınlanmış ama planı olmayan sürüm zaten odur; tarayıcı
+    kapanıp açılsa da adım 4 aynı yeri gösteriyor.
+    """
+    servis.import_branches(_dosya([_sube("KDK", "Kadıköy")]))
+    assert servis.pending_version() is None
+
+    _, surum_id = servis.use_template("kapanis-kafe")
+    assert servis.pending_version() == surum_id
+
+    servis.create_plan(servis.plan_proposal())
+    assert servis.pending_version() is None
+
+
+def test_plansiz_surum_yoksa_oneri_yok(servis: SetupService) -> None:
+    servis.import_branches(_dosya([_sube("KDK", "Kadıköy")]))
+
+    with pytest.raises(NoPendingTemplate):
+        servis.plan_proposal()
+
+
+# --- adım 4: plan önerisi ---------------------------------------------
+
+
+def test_plan_onerisi_sube_saatine_baglanir(servis: SetupService) -> None:
+    """Tek plan, her şubede kendi kapanışına göre: sabit saat olmaz."""
+    servis.import_branches(_dosya([_sube("KDK", "Kadıköy"), _sube("USK", "Üsküdar")]))
+    _, surum_id = servis.use_template("kapanis-kafe")
+
+    oneri = servis.plan_proposal(surum_id)
+
+    assert oneri.rule.anchor == Anchor("close", -60)
+    assert oneri.rule.start_time is None
+    assert oneri.rule.tolerance_minutes == 120
+    assert len(oneri.branch_ids) == 2
+    assert servis._plans.plans() == []  # öneri kaydedilmez
+
+
+def test_plan_onerisi_subesiz_reddedilir(servis: SetupService) -> None:
+    _, surum_id = servis.use_template("kapanis-kafe")
+
+    with pytest.raises(NoBranches):
+        servis.plan_proposal(surum_id)
+
+
+def test_plan_kaydedilince_adim_biter(servis: SetupService) -> None:
+    servis.import_branches(_dosya([_sube("KDK", "Kadıköy")]))
+    _, surum_id = servis.use_template("kapanis-kafe")
+
+    servis.create_plan(servis.plan_proposal(surum_id))
+
+    durum = servis.progress()
+    assert {a.step: a.done for a in durum.steps}["plan"] is True
+    assert durum.publishable is True
+
+
+# --- yayın (UC-01 son koşul) ------------------------------------------
+
+
+def test_yayin_calistirmalari_uretir_ve_kapatir(servis: SetupService) -> None:
+    servis.save_brand(brand_name="Kahve Durağı", timezone="Europe/Istanbul")
+    servis.import_branches(_dosya([_sube("KDK", "Kadıköy"), _sube("USK", "Üsküdar")]))
+    _, surum_id = servis.use_template("kapanis-kafe")
+    servis.create_plan(servis.plan_proposal(surum_id))
+
+    ayar, sonuc = servis.publish()
+
+    assert sonuc.runs_ready > 0
+    assert sonuc.first_window is not None
+    assert ayar.completed_at is not None
+    assert len(servis._plans.runs()) == sonuc.runs_ready
+    # İki şube × 7 gün: her şubeye kendi penceresi.
+    assert {r.branch_id for r in servis._plans.runs()} == {s.id for s in servis._org.branches()}
+
+
+def test_yayin_idempotent(servis: SetupService) -> None:
+    """Düğmeye iki kez basmak ikinci pencere açmaz.
+
+    Üretim plan kaydedilirken zaten koşuyor; yayın **hazır olanı**
+    sayıyor, "yeni yazılanı" değil.
+    """
+    servis.import_branches(_dosya([_sube("KDK", "Kadıköy")]))
+    _, surum_id = servis.use_template("kapanis-kafe")
+    servis.create_plan(servis.plan_proposal(surum_id))
+
+    _, ilk = servis.publish()
+    _, ikinci = servis.publish()
+
+    assert ilk.runs_ready == 7  # 7 günlük ufuk, tek şube
+    assert ikinci.runs_ready == ilk.runs_ready
+    assert len(servis._plans.runs()) == 7
+
+
+# --- uç noktalar: adım 3-4 ve yayın -----------------------------------
+
+
+def test_uc_nokta_kutuphane_listelenir(tmp_path: Path) -> None:
+    yanit = _istemci(tmp_path).get("/api/v1/setup/library")
+
+    assert yanit.status_code == 200
+    govde = yanit.json()
+    assert {s["key"] for s in govde} == {"kapanis-kafe", "acilis-kafe"}
+    kapanis = next(s for s in govde if s["key"] == "kapanis-kafe")
+    assert kapanis["item_count"] == 15
+    assert "kapanış saatinden 60 dk önce" in kapanis["window"]
+
+
+def test_uc_nokta_sablon_kopyala_ve_plan_onerisi(tmp_path: Path) -> None:
+    istemci = _istemci(tmp_path)
+
+    yanit = istemci.post("/api/v1/setup/template", json={"key": "acilis-kafe"})
+    assert yanit.status_code == 200, yanit.json()
+    oneri = istemci.get("/api/v1/setup/plan-proposal").json()
+
+    assert oneri["anchor_reference"] == "open"
+    assert oneri["anchor_offset_minutes"] == -45
+    assert oneri["branch_ids"]
+    assert "açılış saatinden 45 dk önce" in oneri["window"]
+
+
+def test_uc_nokta_plan_olustur_ve_yayinla(tmp_path: Path) -> None:
+    istemci = _istemci(tmp_path)
+    kopya = istemci.post("/api/v1/setup/template", json={"key": "kapanis-kafe"}).json()
+
+    plan = istemci.post(
+        "/api/v1/setup/plan",
+        json={"version_id": kopya["version_id"], "name": "Kapanış · deneme"},
+    )
+    assert plan.status_code == 200
+
+    yayin = istemci.post("/api/v1/setup/publish")
+    assert yayin.status_code == 200
+    govde = yayin.json()
+    assert govde["runs_ready"] > 0
+    assert govde["first_window"] is not None
+    assert govde["status"]["completed_at"] is not None

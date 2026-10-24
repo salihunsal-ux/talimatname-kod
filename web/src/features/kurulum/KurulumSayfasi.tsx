@@ -5,9 +5,13 @@ import { problemCoz } from '../../api/client';
 import {
   hataRaporuIndir,
   kurulumDurumu,
-  kurulumTamamla,
+  kurulumYayinla,
+  kutuphane,
   markaKaydet,
+  planOlustur,
+  planOnerisi,
   sablonIndir,
+  sablonKopyala,
   subeOnizle,
   subeYukle,
   type KurulumDurumu,
@@ -60,7 +64,9 @@ export function KurulumSayfasi() {
       >
         {secili === 'brand' && <MarkaAdimi durum={veri} onKaydedildi={yenile} />}
         {secili === 'branches' && <SubeAdimi onYuklendi={yenile} />}
-        {secili !== 'brand' && secili !== 'branches' && (
+        {secili === 'template' && <SablonAdimi onSecildi={yenile} />}
+        {secili === 'plan' && <PlanAdimi onKaydedildi={yenile} />}
+        {(secili === 'staff' || secili === 'review') && (
           <SonrakiAdimlar adim={secili} durum={veri} onTamamla={yenile} />
         )}
       </section>
@@ -371,6 +377,118 @@ function RaporOzeti({
   );
 }
 
+/** Adım 3 · kütüphaneden şablon seç (Ş-6). Seçim hesaba **kopyalanır**. */
+function SablonAdimi({ onSecildi }: { onSecildi: () => void }) {
+  const liste = useQuery({ queryKey: ['kurulum-kutuphane'], queryFn: kutuphane });
+  // Sarmalayıcı kasıtlı: react-query mutationFn'e ikinci bir bağlam
+  // argümanı geçiyor, doğrudan referans vermek çağrıyı bulandırıyor.
+  const sec = useMutation({
+    mutationFn: (key: string) => sablonKopyala(key),
+    onSuccess: onSecildi,
+  });
+
+  return (
+    <div>
+      <h2 style={{ fontSize: 'var(--baslik-kart)', marginTop: 0 }}>{tr.kurulum.sablonBaslik}</h2>
+      <p style={{ color: 'var(--renk-murekkep2)' }}>{tr.kurulum.sablonAciklama}</p>
+
+      {liste.isPending && <p style={{ color: 'var(--renk-sessiz)' }}>{tr.genel.yukleniyor}</p>}
+
+      <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+        {(liste.data ?? []).map((sablon) => (
+          <li
+            key={sablon.key}
+            style={{
+              border: '1px solid var(--renk-cizgi)',
+              borderRadius: 'var(--kose-kart)',
+              padding: 'var(--bosluk-4)',
+              marginBottom: 'var(--bosluk-3)',
+              background: 'var(--renk-yuzey2)',
+            }}
+          >
+            <h3 style={{ margin: 0, fontSize: 'var(--govde)' }}>{sablon.name}</h3>
+            <p style={{ color: 'var(--renk-murekkep2)', margin: 'var(--bosluk-2) 0' }}>
+              {sablon.summary}
+            </p>
+            <div style={{ display: 'flex', gap: 'var(--bosluk-2)', flexWrap: 'wrap' }}>
+              <Cip
+                renk="nötr"
+                metin={tr.kurulum.maddeSayisi.replace('{n}', String(sablon.item_count))}
+              />
+              <Cip
+                renk="kritik"
+                ikon="!"
+                metin={tr.kurulum.kritikSayisi.replace('{n}', String(sablon.critical_count))}
+              />
+              <Cip renk="nötr" ikon="📷" metin={String(sablon.photo_count)} />
+            </div>
+            <p style={{ color: 'var(--renk-sessiz)', fontSize: 'var(--etiket)' }}>
+              {sablon.window}
+            </p>
+            <button
+              type="button"
+              onClick={() => sec.mutate(sablon.key)}
+              disabled={sec.isPending}
+              style={birincilDugme}
+            >
+              {tr.kurulum.sablonuKullan}
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/** Adım 4 · şube saatlerinden türetilmiş plan önerisi. */
+function PlanAdimi({ onKaydedildi }: { onKaydedildi: () => void }) {
+  const [ad, setAd] = useState('');
+  const oneri = useQuery({ queryKey: ['kurulum-plan'], queryFn: planOnerisi });
+  const kaydet = useMutation({
+    mutationFn: () => planOlustur(ad || (oneri.data?.name ?? '')),
+    onSuccess: onKaydedildi,
+  });
+
+  return (
+    <div>
+      <h2 style={{ fontSize: 'var(--baslik-kart)', marginTop: 0 }}>{tr.kurulum.planBaslik}</h2>
+      <p style={{ color: 'var(--renk-murekkep2)' }}>{tr.kurulum.planAciklama}</p>
+
+      {oneri.isPending && <p style={{ color: 'var(--renk-sessiz)' }}>{tr.genel.yukleniyor}</p>}
+      {oneri.isError && (
+        <p role="alert" style={{ color: 'var(--renk-kritik)' }}>
+          {problemCoz(oneri.error)?.title ?? tr.hata.aglaBaglanilamadi}
+        </p>
+      )}
+
+      {oneri.data && (
+        <>
+          <label style={etiket}>
+            {tr.kurulum.planAdi}
+            <input
+              value={ad || oneri.data.name}
+              onChange={(olay) => setAd(olay.target.value)}
+              style={alan}
+            />
+          </label>
+          <ul style={{ paddingLeft: 'var(--bosluk-5)', color: 'var(--renk-murekkep2)' }}>
+            <li>{oneri.data.window}</li>
+            <li>{tr.kurulum.planSube.replace('{n}', String(oneri.data.branch_ids.length))}</li>
+          </ul>
+          <button
+            type="button"
+            onClick={() => kaydet.mutate()}
+            disabled={kaydet.isPending}
+            style={birincilDugme}
+          >
+            {tr.kurulum.planiOlustur}
+          </button>
+        </>
+      )}
+    </div>
+  );
+}
+
 function SonrakiAdimlar({
   adim,
   durum,
@@ -380,7 +498,7 @@ function SonrakiAdimlar({
   durum: KurulumDurumu;
   onTamamla: () => void;
 }) {
-  const tamamla = useMutation({ mutationFn: kurulumTamamla, onSuccess: onTamamla });
+  const yayin = useMutation({ mutationFn: kurulumYayinla, onSuccess: onTamamla });
   const bilgi = durum.steps.find((a) => a.step === adim);
 
   return (
@@ -406,12 +524,24 @@ function SonrakiAdimlar({
           )}
           <button
             type="button"
-            onClick={() => tamamla.mutate()}
-            disabled={!durum.publishable || tamamla.isPending}
+            onClick={() => yayin.mutate()}
+            disabled={!durum.publishable || yayin.isPending}
             style={birincilDugme}
           >
             {tr.kurulum.yayinla}
           </button>
+
+          {yayin.data && (
+            <p style={{ marginTop: 'var(--bosluk-4)' }}>
+              ✓ {tr.kurulum.yayinSonucu.replace('{n}', String(yayin.data.runs_ready))}
+              {yayin.data.first_window
+                ? ` · ${tr.kurulum.ilkPencere.replace(
+                    '{t}',
+                    new Date(yayin.data.first_window).toLocaleString('tr-TR'),
+                  )}`
+                : ''}
+            </p>
+          )}
         </>
       ) : (
         <p style={{ color: 'var(--renk-sessiz)' }}>{tr.kurulum.panelden}</p>

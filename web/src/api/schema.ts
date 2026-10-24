@@ -985,6 +985,106 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/setup/library": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Adım 3 · hazır şablonlar
+         * @description Ürün kütüphanesi (02-urun/07). Seçilen şablon hesaba kopyalanır.
+         */
+        get: operations["kutuphane_api_v1_setup_library_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/setup/template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Adım 3 · şablonu hesaba kopyala */
+        post: operations["sablon_kopyala_api_v1_setup_template_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/setup/plan-proposal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Adım 4 · plan önerisi
+         * @description Şube çalışma saatinden türetilir; kaydedilmez, gösterilir.
+         *
+         *     `version_id` verilmezse **planı olmayan ilk yayınlanmış sürüm**
+         *     seçilir: sihirbaz "hangi şablonu seçmiştim" diye durum tutmuyor.
+         */
+        get: operations["plan_onerisi_api_v1_setup_plan_proposal_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/setup/plan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Adım 4 · planı oluştur
+         * @description Öneriyi (yöneticinin düzenlediği hâliyle) kaydeder.
+         */
+        post: operations["plan_olustur_api_v1_setup_plan_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/setup/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Yayınla: çalıştırmaları üret ve sihirbazı kapat
+         * @description Üretim idempotent: düğmeye iki kez basmak ikinci pencere açmaz.
+         */
+        post: operations["yayinla_api_v1_setup_publish_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/setup/complete": {
         parameters: {
             query?: never;
@@ -1916,6 +2016,31 @@ export interface components {
              */
             pin_set?: boolean;
         };
+        /**
+         * KutuphaneSablonu
+         * @description Kütüphanedeki hazır şablon (ürün içeriği, hesap verisi değil).
+         */
+        KutuphaneSablonu: {
+            /** Key */
+            key: string;
+            /** Name */
+            name: string;
+            /** Category */
+            category: string;
+            /** Summary */
+            summary: string;
+            /** Item Count */
+            item_count: number;
+            /** Critical Count */
+            critical_count: number;
+            /** Photo Count */
+            photo_count: number;
+            /**
+             * Window
+             * @description Önerilen pencere, insan diliyle
+             */
+            window: string;
+        };
         /** KuyrukCiktisi */
         KuyrukCiktisi: {
             clock: components["schemas"]["talimatname__api__routers__sync__SaatCiktisi"];
@@ -2367,6 +2492,55 @@ export interface components {
              */
             assignment?: components["schemas"]["AtamaGirdisi"];
         };
+        /**
+         * PlanOnayi
+         * @description Hepsi isteğe bağlı: boş gövde öneriyi olduğu gibi kaydeder.
+         */
+        PlanOnayi: {
+            /** Version Id */
+            version_id?: string | null;
+            /** Name */
+            name?: string | null;
+            /** Branch Ids */
+            branch_ids?: string[] | null;
+            /** Duration Minutes */
+            duration_minutes?: number | null;
+            /** Tolerance Minutes */
+            tolerance_minutes?: number | null;
+        };
+        /**
+         * PlanOnerisi
+         * @description Şube saatlerinden türetilmiş öneri; kaydedilmeden gösterilir.
+         */
+        PlanOnerisi: {
+            /** Name */
+            name: string;
+            /**
+             * Template Version Id
+             * Format: uuid
+             */
+            template_version_id: string;
+            /** Branch Ids */
+            branch_ids: string[];
+            /** Recurrence */
+            recurrence: string;
+            /**
+             * Anchor Reference
+             * @enum {string}
+             */
+            anchor_reference: "open" | "close";
+            /** Anchor Offset Minutes */
+            anchor_offset_minutes: number;
+            /** Duration Minutes */
+            duration_minutes: number;
+            /** Tolerance Minutes */
+            tolerance_minutes: number;
+            /**
+             * Window
+             * @description Pencerenin insan diliyle özeti
+             */
+            window: string;
+        };
         /** PlanOzet */
         PlanOzet: {
             /**
@@ -2474,6 +2648,24 @@ export interface components {
             category?: string | null;
             /** Versions */
             versions: components["schemas"]["SurumOzet"][];
+        };
+        /** SablonSecimi */
+        SablonSecimi: {
+            /** Key */
+            key: string;
+        };
+        /** SablonSonucu */
+        SablonSonucu: {
+            /**
+             * Template Id
+             * Format: uuid
+             */
+            template_id: string;
+            /**
+             * Version Id
+             * Format: uuid
+             */
+            version_id: string;
         };
         /** Satir */
         Satir: {
@@ -2743,6 +2935,19 @@ export interface components {
             input?: unknown;
             /** Context */
             ctx?: Record<string, never>;
+        };
+        /**
+         * YayinSonucu
+         * @description Yayın özeti. **Hazır** çalıştırma sayısı, "yeni yazılan" değil:
+         *     plan kaydedilirken üretim zaten koşuyor ve ikinci kez yayınlamak
+         *     sıfır gösterirdi.
+         */
+        YayinSonucu: {
+            /** Runs Ready */
+            runs_ready: number;
+            /** First Window */
+            first_window?: string | null;
+            status: components["schemas"]["DurumCiktisi"];
         };
         /** YayinSorunu */
         YayinSorunu: {
@@ -4578,6 +4783,143 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    kutuphane_api_v1_setup_library_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KutuphaneSablonu"][];
+                };
+            };
+        };
+    };
+    sablon_kopyala_api_v1_setup_template_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SablonSecimi"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SablonSonucu"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    plan_onerisi_api_v1_setup_plan_proposal_get: {
+        parameters: {
+            query?: {
+                version_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlanOnerisi"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    plan_olustur_api_v1_setup_plan_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlanOnayi"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DurumCiktisi"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    yayinla_api_v1_setup_publish_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["YayinSonucu"];
                 };
             };
         };

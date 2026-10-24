@@ -5,7 +5,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   kurulumDurumu,
+  kurulumYayinla,
+  kutuphane,
   markaKaydet,
+  planOlustur,
+  planOnerisi,
+  sablonKopyala,
   subeOnizle,
   subeYukle,
   type KurulumDurumu,
@@ -17,6 +22,24 @@ const durumGetir = vi.mocked(kurulumDurumu);
 const markaYaz = vi.mocked(markaKaydet);
 const onizle = vi.mocked(subeOnizle);
 const yukle = vi.mocked(subeYukle);
+const kutuphaneGetir = vi.mocked(kutuphane);
+const sablonSec = vi.mocked(sablonKopyala);
+const oneriGetir = vi.mocked(planOnerisi);
+const planYaz = vi.mocked(planOlustur);
+const yayinla = vi.mocked(kurulumYayinla);
+
+const KUTUPHANE = [
+  {
+    key: 'kapanis-kafe',
+    name: 'Kapanış (kafe / hızlı servis)',
+    category: 'Kapanış',
+    summary: 'Gün sonunda hijyen ve güvenli kapanış.',
+    item_count: 15,
+    critical_count: 4,
+    photo_count: 4,
+    window: 'Günlük · şube kapanış saatinden 60 dk önce başlar',
+  },
+];
 
 const DURUM: KurulumDurumu = {
   steps: [
@@ -127,6 +150,64 @@ describe('KurulumSayfasi', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Dosya kabul edilmedi');
     expect(screen.getByRole('button', { name: 'Hatalı satırları indir' })).toBeInTheDocument();
+  });
+
+  it('kütüphane şablonları ölçüleriyle listelenir', async () => {
+    durumGetir.mockResolvedValue({ ...DURUM, current: 'template' });
+    kutuphaneGetir.mockResolvedValue(KUTUPHANE);
+    kur();
+
+    expect(await screen.findByText('Kapanış (kafe / hızlı servis)')).toBeInTheDocument();
+    expect(screen.getByText('15 madde')).toBeInTheDocument();
+    expect(screen.getByText('4 kritik')).toBeInTheDocument();
+    expect(screen.getByText(/kapanış saatinden 60 dk önce/)).toBeInTheDocument();
+  });
+
+  it('şablon seçimi hesaba kopyalar', async () => {
+    durumGetir.mockResolvedValue({ ...DURUM, current: 'template' });
+    kutuphaneGetir.mockResolvedValue(KUTUPHANE);
+    sablonSec.mockResolvedValue({ version_id: 's-1' });
+    kur();
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Bu şablonu kullan' }));
+
+    expect(sablonSec).toHaveBeenCalledWith('kapanis-kafe');
+  });
+
+  it('plan önerisi şube saatinden türetilir ve kaydedilebilir', async () => {
+    durumGetir.mockResolvedValue({ ...DURUM, current: 'plan' });
+    oneriGetir.mockResolvedValue({
+      name: 'Kapanış · Kahve Durağı',
+      template_version_id: 's-1',
+      branch_ids: ['b-1', 'b-2'],
+      recurrence: 'FREQ=DAILY',
+      anchor_reference: 'close',
+      anchor_offset_minutes: -60,
+      duration_minutes: 150,
+      tolerance_minutes: 120,
+      window: 'Günlük · şube kapanış saatinden 60 dk önce başlar',
+    });
+    planYaz.mockResolvedValue(DURUM);
+    kur();
+
+    expect(await screen.findByText('2 şube')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Planı oluştur' }));
+
+    expect(planYaz).toHaveBeenCalledWith('Kapanış · Kahve Durağı');
+  });
+
+  it('yayın sonucu hazır çalıştırma sayısını söyler', async () => {
+    durumGetir.mockResolvedValue({ ...DURUM, current: 'review', publishable: true });
+    yayinla.mockResolvedValue({
+      runs_ready: 75,
+      first_window: '2026-10-24T04:15:00Z',
+      status: DURUM,
+    });
+    kur();
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Yayınla' }));
+
+    expect(await screen.findByText(/75 çalıştırma hazır/)).toBeInTheDocument();
   });
 
   it('yayın için eksik varsa düğme kapalı ve sebebi yazılı', async () => {

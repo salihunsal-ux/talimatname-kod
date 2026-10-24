@@ -26,6 +26,47 @@ export async function markaKaydet(girdi: MarkaGirdisi): Promise<KurulumDurumu> {
   return data;
 }
 
+export type KutuphaneSablonu = components['schemas']['KutuphaneSablonu'];
+export type PlanOnerisi = components['schemas']['PlanOnerisi'];
+export type YayinSonucu = components['schemas']['YayinSonucu'];
+
+export async function kutuphane(): Promise<KutuphaneSablonu[]> {
+  const { data, error } = await api.GET('/api/v1/setup/library');
+  if (error) throw error;
+  return data;
+}
+
+export async function sablonKopyala(key: string): Promise<{ version_id: string }> {
+  const { data, error } = await api.POST('/api/v1/setup/template', { body: { key } });
+  if (error) throw error;
+  return data;
+}
+
+/**
+ * Plan önerisi. Sürüm verilmezse sunucu **planı olmayan ilk yayınlanmış
+ * sürümü** seçiyor: sihirbaz "hangi şablonu seçmiştim" diye durum
+ * tutmuyor, tarayıcı kapanıp açılsa da aynı yeri gösteriyor (TC-004).
+ */
+export async function planOnerisi(): Promise<PlanOnerisi> {
+  const { data, error } = await api.GET('/api/v1/setup/plan-proposal', {
+    params: { query: {} },
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function planOlustur(ad: string): Promise<KurulumDurumu> {
+  const { data, error } = await api.POST('/api/v1/setup/plan', { body: { name: ad } });
+  if (error) throw error;
+  return data;
+}
+
+export async function kurulumYayinla(): Promise<YayinSonucu> {
+  const { data, error } = await api.POST('/api/v1/setup/publish');
+  if (error) throw error;
+  return data;
+}
+
 export async function kurulumTamamla(): Promise<KurulumDurumu> {
   const { data, error } = await api.POST('/api/v1/setup/complete');
   if (error) throw error;

@@ -15,14 +15,16 @@ yükleme hatası üretir.
 from __future__ import annotations
 
 from collections.abc import Callable
-from dataclasses import replace
-from datetime import UTC, datetime, time
+from dataclasses import dataclass, replace
+from datetime import UTC, datetime, time, timedelta
 from typing import Protocol
 from uuid import UUID, uuid4
 
 import structlog
 
+from talimatname.domain.errors import DomainError, ErrorKind
 from talimatname.domain.organization import Branch, Region
+from talimatname.domain.plans import Plan
 from talimatname.domain.setup import (
     AccountSettings,
     BranchRow,
@@ -30,14 +32,47 @@ from talimatname.domain.setup import (
     SetupProgress,
     progress,
 )
-from talimatname.domain.window import BusinessHours
+from talimatname.domain.window import BusinessHours, WindowRule
 from talimatname.services.imports import ImportFailed, branch_template, parse_branches
+from talimatname.services.library import (
+    CATALOG,
+    LibraryTemplate,
+    find,
+    find_by_name,
+    plan_name,
+)
 from talimatname.services.organization import OrganizationRepository
-from talimatname.services.plans import PlanRepository
-from talimatname.services.templates import TemplateRepository
+from talimatname.services.plans import HORIZON_DAYS, PlanRepository, PlanService
+from talimatname.services.templates import TemplateRepository, TemplateService
 from talimatname.services.users import UserRepository
 
 log = structlog.get_logger(__name__)
+
+
+class LibraryTemplateNotFound(DomainError):
+    code = "kutuphane-sablonu-yok"
+    title = "Kütüphanede böyle bir şablon yok"
+    kind: ErrorKind = "not_found"
+
+
+class NoPendingTemplate(DomainError):
+    code = "plansiz-sablon-yok"
+    title = "Planı bekleyen yayınlanmış şablon yok"
+    kind: ErrorKind = "not_found"
+
+
+class NoBranches(DomainError):
+    code = "sube-yok"
+    title = "Önce en az bir şube eklenmeli"
+    kind: ErrorKind = "invalid"
+
+
+@dataclass(frozen=True, slots=True)
+class PublishResult:
+    """Yayın özeti: kaç çalıştırma hazır ve ilk pencere ne zaman açılıyor."""
+
+    runs_ready: int
+    first_window: datetime | None
 
 
 class SettingsRepository(Protocol):
@@ -183,6 +218,111 @@ class SetupService:
 
         log.info("kurulum.subeler_yuklendi", yeni=yeni, guncel=guncel, hatali=rapor.error_rows)
         return replace(rapor, created=yeni, updated=guncel)
+
+    # --- adım 3: kütüphane ------------------------------------------
+
+    def library(self) -> tuple[LibraryTemplate, ...]:
+        return CATALOG
+
+    def use_template(self, key: str) -> tuple[UUID, UUID]:
+        """Kütüphane şablonunu hesaba kopyalar ve **yayınlar**.
+
+        Yayınlıyoruz çünkü sihirbazın amacı bir saat içinde çalışan bir
+        liste; taslak bırakmak kullanıcıyı editörde ikinci bir tura
+        sokardı. Kopya bağımsız: bizim kütüphaneyi güncellememiz
+        zincirin listesini değiştirmez (ADR-0010).
+        """
+        sablon = find(key)
+        if sablon is None:
+            raise LibraryTemplateNotFound(f"anahtar: {key}")
+
+        servis = TemplateService(self._templates, now=self._now)
+        kopya, surum = sablon.copy_for_account()
+        self._templates.save_template(kopya)
+        self._templates.save_version(surum)
+        yayin = servis.publish(surum.id)
+        log.info("kurulum.sablon_kopyalandi", anahtar=key, sablon=str(kopya.id))
+        return kopya.id, yayin.id
+
+    # --- adım 4: plan önerisi ---------------------------------------
+
+    def pending_version(self) -> UUID | None:
+        """Planı olmayan ilk yayınlanmış sürüm.
+
+        Sihirbaz "hangi şablonu seçmiştim" diye bir durum tutmuyor:
+        hesapta yayınlanmış ama planı olmayan sürüm zaten odur.
+        Tarayıcı kapanıp açılsa da adım 4 aynı yeri gösteriyor (TC-004).
+        """
+        planli = {plan.template_version_id for plan in self._plans.plans()}
+        for sablon in self._templates.templates():
+            for surum in self._templates.versions(sablon.id):
+                if surum.status == "published" and surum.id not in planli:
+                    return surum.id
+        return None
+
+    def plan_proposal(self, version_id: UUID | None = None) -> Plan:
+        """Şube saatlerinden türetilmiş plan **önerisi** (kaydetmez).
+
+        Pencere `anchor` ile şube saatine bağlanıyor: tek plan, her
+        şubede kendi kapanışına göre açılıyor. Sabit saat yazsaydık
+        09:00 açılan şube ile 11:00 açılan şube aynı planı paylaşamazdı.
+        """
+        surum_id = version_id or self.pending_version()
+        if surum_id is None:
+            raise NoPendingTemplate("Planı olmayan yayınlanmış şablon yok")
+        surum = self._templates.version(surum_id)
+        sablon_kaydi = self._templates.template(surum.template_id) if surum else None
+        sablon = find_by_name(sablon_kaydi.name) if sablon_kaydi else None
+        if sablon is None:
+            raise LibraryTemplateNotFound(
+                f"sürüm {surum_id} kütüphane şablonundan gelmiyor; planı plan ekranından kurun"
+            )
+        version_id = surum_id
+        subeler = [sube.id for sube in self._org.branches() if sube.status == "active"]
+        if not subeler:
+            raise NoBranches("Plan önerisi için şube gerekiyor")
+        ayar = self._repo.settings()
+        return Plan(
+            id=uuid4(),
+            name=plan_name(sablon, ayar.brand_name if ayar else None),
+            template_version_id=version_id,
+            branch_ids=tuple(subeler),
+            rule=WindowRule(
+                recurrence=sablon.plan.recurrence,
+                starts_on=self._now().date(),
+                duration_minutes=sablon.plan.duration_minutes,
+                anchor=sablon.plan.anchor,
+                tolerance_minutes=sablon.plan.tolerance_minutes,
+            ),
+        ).validated()
+
+    def create_plan(self, plan: Plan) -> Plan:
+        """Öneriyi (düzenlenmiş hâliyle) kaydeder."""
+        servis = PlanService(self._plans, self._org, self._templates, now=self._now)
+        kayitli = servis.create(plan)
+        log.info("kurulum.plan_olusturuldu", plan=str(kayitli.id), sube=len(kayitli.branch_ids))
+        return kayitli
+
+    # --- yayın --------------------------------------------------------
+
+    def publish(self, *, days: int = HORIZON_DAYS) -> tuple[AccountSettings, PublishResult]:
+        """Sihirbazı kapatır ve çalıştırmaların hazır olduğunu doğrular.
+
+        Üretim idempotent ve plan kaydedilirken zaten koşuyor; burada
+        **üretilen** değil **hazır olan** sayılıyor. "7 yeni çalıştırma"
+        demek, ikinci kez basıldığında sıfır göstermek demekti — oysa
+        kullanıcının sorusu "liste hazır mı", "kaç tane yazdın" değil.
+        """
+        servis = PlanService(self._plans, self._org, self._templates, now=self._now)
+        servis.generate_all(days=days)
+
+        bugun = self._now().date()
+        son = bugun + timedelta(days=days - 1)
+        kosular = [r for r in self._plans.runs() if bugun <= r.business_day <= son]
+        ilk = min((r.window_start for r in kosular), default=None)
+        ayar = self.complete()
+        log.info("kurulum.yayinlandi", calistirma=len(kosular), ilk_pencere=str(ilk))
+        return ayar, PublishResult(runs_ready=len(kosular), first_window=ilk)
 
     def complete(self) -> AccountSettings:
         """Sihirbazı kapatır (yayın sonrası). Marka ayarı yoksa oluşturulur."""

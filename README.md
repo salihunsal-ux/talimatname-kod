@@ -177,6 +177,12 @@ POST /setup/branches/error-report → hatalı satırlar, Excel olarak (FR-0106)
 
 **Kabul sınırı** (FR-0106): satırların **beşte birinden fazlası** hatalıysa dosya bütün olarak reddedilir — o noktada sorun satırlarda değil dosyadadır (yanlış şablon, kaymış sütunlar). Altında kalırsa sağlam satırlar yazılır, hatalılar rapor olur. Küçük dosyalarda bu kural keskin: 4 satırlık bir dosyada tek hata dosyayı reddettirir. Önizleme bunu yazmadan önce gösteriyor.
 
+**Adım 3 · kütüphane:** hazır şablonlar koddadır, veritabanında değil — ürün içeriği, müşteri verisi değil (kaynak: `02-urun/07-sablon-kutuphanesi.md`, şimdilik 2 şablon). Seçilen şablon hesaba **yeni kimliklerle kopyalanır ve yayınlanır**: bağ kopar, bizim kütüphaneyi güncellememiz kimsenin listesini değiştirmez (ADR-0010).
+
+**Adım 4 · plan önerisi:** pencere şube saatine `anchor` ile bağlanır ("kapanıştan 60 dk önce"), sabit saatle değil — tek plan, 09:00 açılan şubeyle 11:00 açılan şubede kendi saatine göre çalışır. Öneri de durum tutmadan bulunur: **planı olmayan ilk yayınlanmış sürüm** zaten o adımın konusudur.
+
+**Yayın:** `runs_ready` döner, "kaç tane yazdım" değil. Üretim plan kaydedilirken zaten koşuyor; ikinci kez yayınlamak sıfır gösterirdi, oysa kullanıcının sorusu "liste hazır mı".
+
 Sütun **sırası değil başlığı** okunuyor (kullanıcılar sütun taşır), şablondaki gri örnek satır yalnızca yerinde ve birebir eşleşiyorsa atlanıyor, boş satırlar sayılmıyor. Açıklamalar ayrı sayfada: veri sayfasına yazılan yardım metni yükleme sırasında bir satır gibi okunuyordu.
 
 ## Damga ve küçük resim (ST-040)

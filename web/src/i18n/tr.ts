@@ -52,7 +52,23 @@ export const tr = {
     satir: 'Satır',
     sutun: 'Sütun',
     sorun: 'Sorun',
+    sablonBaslik: 'Adım 3 · Şablon',
+    sablonAciklama:
+      'Hazır listelerden birini seçin; hesabınıza kopyalanır ve istediğiniz ' +
+      'gibi düzenlersiniz. Bizim kütüphaneyi güncellememiz sizin listenizi değiştirmez.',
+    sablonuKullan: 'Bu şablonu kullan',
+    maddeSayisi: '{n} madde',
+    kritikSayisi: '{n} kritik',
+    planBaslik: 'Adım 4 · Plan',
+    planAciklama:
+      'Pencere şube çalışma saatinden türetiliyor: tek plan, her şubede ' +
+      'kendi kapanışına göre açılır.',
+    planAdi: 'Plan adı',
+    planSube: '{n} şube',
+    planiOlustur: 'Planı oluştur',
     panelden: 'Bu adım panelin kendi ekranından yapılıyor; buraya sihirbaz akışı eklenecek.',
+    yayinSonucu: '{n} çalıştırma hazır',
+    ilkPencere: 'İlk pencere: {t}',
     yayinla: 'Yayınla',
     yayinEngeli: 'Yayın için en az bir şube, bir yayınlanmış şablon ve bir etkin plan gerekiyor.',
   },

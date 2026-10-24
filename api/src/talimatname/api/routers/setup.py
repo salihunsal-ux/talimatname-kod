@@ -18,8 +18,10 @@ Hepsi **yönetici** işidir: kurulum hesabın kendisini şekillendiriyor.
 
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import datetime, time
-from typing import Annotated
+from typing import Annotated, Literal
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, Response, UploadFile
 from pydantic import BaseModel, Field
@@ -33,7 +35,9 @@ from talimatname.domain.setup import (
     SetupProgress,
     SetupStep,
 )
+from talimatname.domain.window import WindowRule
 from talimatname.services.imports import error_report
+from talimatname.services.library import LibraryTemplate
 from talimatname.services.setup import SetupService
 
 router = APIRouter(tags=["kurulum"])
@@ -230,6 +234,168 @@ async def hata_raporu(
         content=error_report(rapor),
         media_type=XLSX,
         headers={"Content-Disposition": 'attachment; filename="hatali-satirlar.xlsx"'},
+    )
+
+
+class KutuphaneSablonu(BaseModel):
+    """Kütüphanedeki hazır şablon (ürün içeriği, hesap verisi değil)."""
+
+    key: str
+    name: str
+    category: str
+    summary: str
+    item_count: int
+    critical_count: int
+    photo_count: int
+    window: str = Field(description="Önerilen pencere, insan diliyle")
+
+
+class SablonSecimi(BaseModel):
+    key: str
+
+
+class SablonSonucu(BaseModel):
+    template_id: UUID
+    version_id: UUID
+
+
+class PlanOnerisi(BaseModel):
+    """Şube saatlerinden türetilmiş öneri; kaydedilmeden gösterilir."""
+
+    name: str
+    template_version_id: UUID
+    branch_ids: list[UUID]
+    recurrence: str
+    anchor_reference: Literal["open", "close"]
+    anchor_offset_minutes: int
+    duration_minutes: int
+    tolerance_minutes: int
+    window: str = Field(description="Pencerenin insan diliyle özeti")
+
+
+class PlanOnayi(BaseModel):
+    """Hepsi isteğe bağlı: boş gövde öneriyi olduğu gibi kaydeder."""
+
+    version_id: UUID | None = None
+    name: str | None = None
+    branch_ids: list[UUID] | None = None
+    duration_minutes: int | None = None
+    tolerance_minutes: int | None = None
+
+
+class YayinSonucu(BaseModel):
+    """Yayın özeti. **Hazır** çalıştırma sayısı, "yeni yazılan" değil:
+    plan kaydedilirken üretim zaten koşuyor ve ikinci kez yayınlamak
+    sıfır gösterirdi."""
+
+    runs_ready: int
+    first_window: datetime | None = None
+    status: DurumCiktisi
+
+
+def _pencere_ozeti(kural: WindowRule) -> str:
+    """Planın penceresini insan diliyle: "kapanıştan 60 dk önce…"."""
+    assert kural.anchor is not None
+    yon = "açılış" if kural.anchor.reference == "open" else "kapanış"
+    dakika = abs(kural.anchor.offset_minutes)
+    once = "önce" if kural.anchor.offset_minutes < 0 else "sonra"
+    return (
+        f"Günlük · şube {yon} saatinden {dakika} dk {once} başlar · "
+        f"{kural.duration_minutes} dk pencere · {kural.tolerance_minutes} dk tolerans"
+    )
+
+
+def _pencere_metni(sablon: LibraryTemplate) -> str:
+    yon = "açılış" if sablon.plan.anchor.reference == "open" else "kapanış"
+    dakika = abs(sablon.plan.anchor.offset_minutes)
+    once = "önce" if sablon.plan.anchor.offset_minutes < 0 else "sonra"
+    return (
+        f"Günlük · şube {yon} saatinden {dakika} dk {once} başlar · "
+        f"{sablon.plan.duration_minutes} dk pencere · "
+        f"{sablon.plan.tolerance_minutes} dk tolerans"
+    )
+
+
+@router.get("/setup/library", summary="Adım 3 · hazır şablonlar")
+def kutuphane(servis: Servis, kullanici: Yonetici) -> list[KutuphaneSablonu]:
+    """Ürün kütüphanesi (02-urun/07). Seçilen şablon hesaba kopyalanır."""
+    return [
+        KutuphaneSablonu(
+            key=sablon.key,
+            name=sablon.name,
+            category=sablon.category,
+            summary=sablon.summary,
+            item_count=sablon.item_count,
+            critical_count=sablon.critical_count,
+            photo_count=sablon.photo_count,
+            window=_pencere_metni(sablon),
+        )
+        for sablon in servis.library()
+    ]
+
+
+@router.post("/setup/template", summary="Adım 3 · şablonu hesaba kopyala")
+def sablon_kopyala(girdi: SablonSecimi, servis: Servis, kullanici: Yonetici) -> SablonSonucu:
+    sablon_id, surum_id = servis.use_template(girdi.key)
+    return SablonSonucu(template_id=sablon_id, version_id=surum_id)
+
+
+@router.get("/setup/plan-proposal", summary="Adım 4 · plan önerisi")
+def plan_onerisi(
+    servis: Servis,
+    kullanici: Yonetici,
+    version_id: UUID | None = None,
+) -> PlanOnerisi:
+    """Şube çalışma saatinden türetilir; kaydedilmez, gösterilir.
+
+    `version_id` verilmezse **planı olmayan ilk yayınlanmış sürüm**
+    seçilir: sihirbaz "hangi şablonu seçmiştim" diye durum tutmuyor.
+    """
+    plan = servis.plan_proposal(version_id)
+    assert plan.rule.anchor is not None
+    return PlanOnerisi(
+        name=plan.name,
+        template_version_id=plan.template_version_id,
+        branch_ids=list(plan.branch_ids),
+        recurrence=plan.rule.recurrence,
+        anchor_reference=plan.rule.anchor.reference,
+        anchor_offset_minutes=plan.rule.anchor.offset_minutes,
+        duration_minutes=plan.rule.duration_minutes,
+        tolerance_minutes=plan.rule.tolerance_minutes,
+        window=_pencere_ozeti(plan.rule),
+    )
+
+
+@router.post("/setup/plan", summary="Adım 4 · planı oluştur")
+def plan_olustur(girdi: PlanOnayi, servis: Servis, kullanici: Yonetici) -> DurumCiktisi:
+    """Öneriyi (yöneticinin düzenlediği hâliyle) kaydeder."""
+    oneri = servis.plan_proposal(girdi.version_id)
+    plan = replace(
+        oneri,
+        name=girdi.name or oneri.name,
+        branch_ids=tuple(girdi.branch_ids) if girdi.branch_ids else oneri.branch_ids,
+        rule=replace(
+            oneri.rule,
+            duration_minutes=girdi.duration_minutes or oneri.rule.duration_minutes,
+            tolerance_minutes=(
+                girdi.tolerance_minutes
+                if girdi.tolerance_minutes is not None
+                else oneri.rule.tolerance_minutes
+            ),
+        ),
+    ).validated()
+    servis.create_plan(plan)
+    return _durum(servis.progress(), servis.settings())
+
+
+@router.post("/setup/publish", summary="Yayınla: çalıştırmaları üret ve sihirbazı kapat")
+def yayinla(servis: Servis, kullanici: Yonetici) -> YayinSonucu:
+    """Üretim idempotent: düğmeye iki kez basmak ikinci pencere açmaz."""
+    _, sonuc = servis.publish()
+    return YayinSonucu(
+        runs_ready=sonuc.runs_ready,
+        first_window=sonuc.first_window,
+        status=_durum(servis.progress(), servis.settings()),
     )
 
 

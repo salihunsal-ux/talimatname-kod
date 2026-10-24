@@ -303,6 +303,18 @@ def branch_row(
             except ValidationError as hata:
                 hatalar.append(RowError(row, hata.field_name, hata.message))
 
+    if not any(saatler.values()):
+        # Ne satırda saat var ne markada varsayılan: şube hiç açılmaz ve
+        # hiç çalıştırma üretilmez. Sessizce kabul etmek, kullanıcıyı
+        # "neden hiçbir liste gelmiyor" sorusuyla baş başa bırakırdı.
+        hatalar.append(
+            RowError(
+                row,
+                "acilis",
+                "Açılış ve kapanış yazın (markanın varsayılan çalışma saati tanımlı değil)",
+            )
+        )
+
     kapali = values.get("kapali_gunler", "").strip()
     if kapali:
         try:
