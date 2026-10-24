@@ -21,6 +21,7 @@ from talimatname.domain.evidence import Evidence
 from talimatname.domain.notifications import Notification
 from talimatname.domain.organization import Branch, Region, Station, uniform_hours
 from talimatname.domain.plans import Assignment, Plan, Run
+from talimatname.domain.setup import AccountSettings
 from talimatname.domain.templates import (
     ChoiceOption,
     Item,
@@ -101,6 +102,19 @@ def _tohum_istasyonlar(subeler: list[Branch]) -> list[Station]:
     ]
 
 
+class MemorySettingsRepository:
+    """Marka ayarları, bellek içi. Geliştirmede tohumla dolu başlar."""
+
+    def __init__(self, settings: AccountSettings | None = None) -> None:
+        self._ayar = settings
+
+    def settings(self) -> AccountSettings | None:
+        return self._ayar
+
+    def save_settings(self, settings: AccountSettings) -> None:
+        self._ayar = settings
+
+
 class MemoryOrganizationRepository:
     """`OrganizationRepository` portunun bellek içi karşılığı."""
 
@@ -127,6 +141,9 @@ class MemoryOrganizationRepository:
 
     def branches(self) -> list[Branch]:
         return list(self._branches.values())
+
+    def save_region(self, region: Region) -> None:
+        self._regions[region.id] = region
 
     def branch(self, branch_id: UUID) -> Branch | None:
         return self._branches.get(branch_id)

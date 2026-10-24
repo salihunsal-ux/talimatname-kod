@@ -16,7 +16,45 @@ export const tr = {
     aksiyonlar: 'Aksiyonlar',
     bildirimler: 'Bildirimler',
     raporlar: 'Raporlar',
+    kurulum: 'Kurulum',
     henuzYok: 'Bu bölüm henüz geliştirilmedi',
+  },
+  kurulum: {
+    baslik: 'Kurulum sihirbazı',
+    aciklama:
+      'Zincirinizi altı adımda kurun. Bıraktığınız yerden devam edebilirsiniz: ' +
+      'adımların durumu kayıtlı veriden okunuyor.',
+    tamamlandi: '(tamamlandı)',
+    markaBaslik: 'Adım 1 · Marka',
+    markaAciklama:
+      'Zincirin adı ve varsayılan çalışma saatleri. Şube listesinde saat ' +
+      'yazmayan satırlar bu saatleri alır.',
+    markaAdi: 'Marka adı',
+    saatDilimi: 'Saat dilimi',
+    acilis: 'Açılış',
+    kapanis: 'Kapanış',
+    kapaliGunler: 'Kapalı günler',
+    gunler: ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'],
+    kaydet: 'Kaydet ve devam et',
+    subeBaslik: 'Adım 2 · Şubeler',
+    subeAciklama:
+      'Şablonu indirin, şubelerinizi doldurun ve yükleyin. Yüklemeden önce ' +
+      'ne olacağını gösteriyoruz; aynı kodla gelen satır şubeyi günceller.',
+    sablonIndir: 'Excel şablonunu indir',
+    dosyaSec: 'Doldurduğunuz dosya',
+    subeleriYukle: '{n} şubeyi yükle',
+    satirSayisi: '{n} satır',
+    kabul: '{n} satır hazır',
+    hataliSatir: '{n} satır hatalı',
+    sonuc: '{yeni} yeni, {guncel} güncellendi',
+    hataRaporu: 'Hatalı satırları indir',
+    hataTablosu: 'Hatalı satırlar',
+    satir: 'Satır',
+    sutun: 'Sütun',
+    sorun: 'Sorun',
+    panelden: 'Bu adım panelin kendi ekranından yapılıyor; buraya sihirbaz akışı eklenecek.',
+    yayinla: 'Yayınla',
+    yayinEngeli: 'Yayın için en az bir şube, bir yayınlanmış şablon ve bir etkin plan gerekiyor.',
   },
   sistem: {
     baslik: 'Sistem durumu',

@@ -20,6 +20,7 @@ from talimatname.infra.memory import (
     MemoryNotificationRepository,
     MemoryOrganizationRepository,
     MemoryPlanRepository,
+    MemorySettingsRepository,
     MemoryTemplateRepository,
     MemoryUserRepository,
 )
@@ -38,6 +39,7 @@ from talimatname.services.organization import OrganizationRepository, Organizati
 from talimatname.services.plans import PlanRepository, PlanService
 from talimatname.services.reminders import ReminderService
 from talimatname.services.scheduler import SchedulerService
+from talimatname.services.setup import SettingsRepository, SetupService
 from talimatname.services.storage import LocalObjectStore, ObjectStore
 from talimatname.services.sync import SyncService
 from talimatname.services.templates import TemplateRepository, TemplateService
@@ -151,6 +153,15 @@ def _kanit_deposu() -> EvidenceRepository:
 
         return SqlEvidenceRepository(_kiraci())  # type: ignore[arg-type,return-value]
     return MemoryEvidenceRepository()  # type: ignore[return-value]
+
+
+@lru_cache
+def _ayar_deposu() -> SettingsRepository:
+    if sql_modu():
+        from talimatname.infra.db.adapters import SqlSettingsRepository
+
+        return SqlSettingsRepository(_kiraci())  # type: ignore[arg-type]
+    return MemorySettingsRepository()
 
 
 @lru_cache
@@ -283,6 +294,17 @@ def senk_servisi() -> SyncService:
     )
 
 
+def kurulum_servisi() -> SetupService:
+    """Sihirbaz kendi yazma yolunu kurmaz: şubeyi org deposuna yazar."""
+    return SetupService(
+        _ayar_deposu(),
+        _org_deposu(),
+        _sablon_deposu(),
+        _plan_deposu(),
+        _kullanici_deposu(),
+    )
+
+
 def pano_servisi() -> DashboardService:
     _ilk_tur()
     return DashboardService(_plan_deposu(), _org_deposu())
@@ -302,6 +324,7 @@ _ONBELLEKLER = (
     _aksiyon_deposu,
     _bildirim_deposu,
     _kanit_deposu,
+    _ayar_deposu,
     _nesne_deposu,
     _kimlik_servisi,
 )

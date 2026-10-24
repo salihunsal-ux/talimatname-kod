@@ -27,7 +27,7 @@ BRANCH_CODE = re.compile(r"^[A-Z0-9][A-Z0-9-]{1,15}$")
 WEEKDAYS = (0, 1, 2, 3, 4, 5, 6)
 
 
-def _check_timezone(value: str) -> str:
+def check_timezone(value: str) -> str:
     try:
         ZoneInfo(value)
     except (ZoneInfoNotFoundError, ValueError) as hata:
@@ -96,7 +96,7 @@ class Branch:
             self,
             code=code,
             name=clean_name(self.name, "name"),
-            timezone=_check_timezone(self.timezone),
+            timezone=check_timezone(self.timezone),
             business_hours=hours,
             address=self.address.strip() if self.address else None,
         )

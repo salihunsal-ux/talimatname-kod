@@ -2251,10 +2251,291 @@
           }
         }
       }
+    },
+    "/api/v1/setup": {
+      "get": {
+        "tags": [
+          "kurulum"
+        ],
+        "summary": "Kurulum durumu (kaldığı yer)",
+        "description": "Adımların durumu **veriden** okunur: sayaç tutulmuyor.\n\nPanelden elle şube ekleyen bir yöneticide sayaç ile gerçek\nayrışırdı; böyle olunca sihirbaz her zaman doğruyu gösteriyor.",
+        "operationId": "kurulum_durumu_api_v1_setup_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DurumCiktisi"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/setup/brand": {
+      "put": {
+        "tags": [
+          "kurulum"
+        ],
+        "summary": "Adım 1 · marka ve varsayılan saatler",
+        "operationId": "marka_kaydet_api_v1_setup_brand_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarkaGirdisi"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DurumCiktisi"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/setup/branches/template": {
+      "get": {
+        "tags": [
+          "kurulum"
+        ],
+        "summary": "Adım 2 · şube Excel şablonu",
+        "description": "Doldurulacak dosya. Şablon sürümü dosyanın içinde yazılı (FR-0105).",
+        "operationId": "sube_sablonu_api_v1_setup_branches_template_get",
+        "responses": {
+          "200": {
+            "description": "Excel şablonu",
+            "content": {
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {}
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/setup/branches/preview": {
+      "post": {
+        "tags": [
+          "kurulum"
+        ],
+        "summary": "Adım 2 · dosyayı yazmadan dene",
+        "description": "Kuru çalıştırma: ne yazılacağını ve neyin hatalı olduğunu gösterir.",
+        "operationId": "sube_onizleme_api_v1_setup_branches_preview_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_sube_onizleme_api_v1_setup_branches_preview_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/YuklemeRaporu"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/setup/branches/import": {
+      "post": {
+        "tags": [
+          "kurulum"
+        ],
+        "summary": "Adım 2 · şubeleri yükle",
+        "description": "Aynı kodla gelen satır **günceller**: dosyayı ikinci kez yüklemek zarar vermez.",
+        "operationId": "sube_yukle_api_v1_setup_branches_import_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_sube_yukle_api_v1_setup_branches_import_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/YuklemeRaporu"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/setup/branches/error-report": {
+      "post": {
+        "tags": [
+          "kurulum"
+        ],
+        "summary": "Adım 2 · hatalı satır raporu (Excel)",
+        "description": "Hatalı satırları indirilebilir Excel olarak döner (FR-0106, UC-01/E2).\n\nDosya yeniden gönderiliyor: raporu sunucuda saklamak, kullanıcının\naynı dosyayı bir daha yollamasından daha çok soru doğururdu\n(ne kadar saklanacak, kim görebilecek).",
+        "operationId": "hata_raporu_api_v1_setup_branches_error_report_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_hata_raporu_api_v1_setup_branches_error_report_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Hatalı satırlar",
+            "content": {
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {}
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/setup/complete": {
+      "post": {
+        "tags": [
+          "kurulum"
+        ],
+        "summary": "Sihirbazı kapat",
+        "operationId": "kurulum_tamamla_api_v1_setup_complete_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DurumCiktisi"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/setup/reopen": {
+      "post": {
+        "tags": [
+          "kurulum"
+        ],
+        "summary": "Sihirbazı yeniden aç",
+        "operationId": "kurulum_yeniden_ac_api_v1_setup_reopen_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DurumCiktisi"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
+      "AdimCiktisi": {
+        "properties": {
+          "step": {
+            "type": "string",
+            "enum": [
+              "brand",
+              "branches",
+              "template",
+              "plan",
+              "staff",
+              "review"
+            ],
+            "title": "Step"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "done": {
+            "type": "boolean",
+            "title": "Done"
+          },
+          "detail": {
+            "type": "string",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "required": [
+          "step",
+          "label",
+          "done",
+          "detail"
+        ],
+        "title": "AdimCiktisi"
+      },
       "AksiyonOzet": {
         "properties": {
           "id": {
@@ -2675,6 +2956,48 @@
         ],
         "title": "BildirimSayaclari",
         "description": "Kuyruğun özeti. `failed` sıfırdan büyükse bir şey eksik demektir."
+      },
+      "Body_hata_raporu_api_v1_setup_branches_error_report_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "File"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_hata_raporu_api_v1_setup_branches_error_report_post"
+      },
+      "Body_sube_onizleme_api_v1_setup_branches_preview_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "File"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_sube_onizleme_api_v1_setup_branches_preview_post"
+      },
+      "Body_sube_yukle_api_v1_setup_branches_import_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "File"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_sube_yukle_api_v1_setup_branches_import_post"
       },
       "BolgeDugumu": {
         "properties": {
@@ -3303,6 +3626,78 @@
           "code"
         ],
         "title": "DogrulamaIstegi"
+      },
+      "DurumCiktisi": {
+        "properties": {
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/AdimCiktisi"
+            },
+            "type": "array",
+            "title": "Steps"
+          },
+          "current": {
+            "type": "string",
+            "enum": [
+              "brand",
+              "branches",
+              "template",
+              "plan",
+              "staff",
+              "review"
+            ],
+            "title": "Current"
+          },
+          "order": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "brand",
+                "branches",
+                "template",
+                "plan",
+                "staff",
+                "review"
+              ]
+            },
+            "type": "array",
+            "title": "Order"
+          },
+          "publishable": {
+            "type": "boolean",
+            "title": "Publishable"
+          },
+          "completed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          },
+          "brand": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MarkaCiktisi"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "steps",
+          "current",
+          "publishable"
+        ],
+        "title": "DurumCiktisi",
+        "description": "Sihirbazın durumu. `current` kaldığı yer (TC-004)."
       },
       "Eksik": {
         "properties": {
@@ -4207,7 +4602,7 @@
       "KuyrukCiktisi": {
         "properties": {
           "clock": {
-            "$ref": "#/components/schemas/SaatCiktisi"
+            "$ref": "#/components/schemas/talimatname__api__routers__sync__SaatCiktisi"
           },
           "accepted": {
             "type": "integer",
@@ -4908,7 +5303,7 @@
       "ManifestCiktisi": {
         "properties": {
           "clock": {
-            "$ref": "#/components/schemas/SaatCiktisi"
+            "$ref": "#/components/schemas/talimatname__api__routers__sync__SaatCiktisi"
           },
           "horizon_hours": {
             "type": "integer",
@@ -4997,6 +5392,119 @@
         ],
         "title": "ManifestSurumu",
         "description": "Şablon sürümünün kimliği. İçeriği `GET /template-versions/{id}`.\n\nSürüm yayınlandıktan sonra **değişmez**: cihaz bir kez indirir ve\nsüresiz önbelleğe alır. Manifest her 15 dakikada tazelenirken\nşablon ağacını yeniden göndermek mobil veriyi boşa harcardı."
+      },
+      "MarkaCiktisi": {
+        "properties": {
+          "brand_name": {
+            "type": "string",
+            "title": "Brand Name"
+          },
+          "timezone": {
+            "type": "string",
+            "title": "Timezone"
+          },
+          "logo_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logo Url"
+          },
+          "hours": {
+            "items": {
+              "$ref": "#/components/schemas/talimatname__api__routers__setup__SaatCiktisi"
+            },
+            "type": "array",
+            "title": "Hours"
+          },
+          "completed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "brand_name",
+          "timezone",
+          "hours"
+        ],
+        "title": "MarkaCiktisi"
+      },
+      "MarkaGirdisi": {
+        "properties": {
+          "brand_name": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Brand Name"
+          },
+          "timezone": {
+            "type": "string",
+            "title": "Timezone",
+            "default": "Europe/Istanbul"
+          },
+          "open_time": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Open Time",
+            "description": "Tüm günler için varsayılan açılış"
+          },
+          "close_time": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Close Time"
+          },
+          "closed_days": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Closed Days",
+            "description": "Kapalı günler (0 Pazartesi … 6 Pazar)"
+          },
+          "logo_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logo Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "brand_name"
+        ],
+        "title": "MarkaGirdisi"
       },
       "OnizlemeYaniti": {
         "properties": {
@@ -5337,50 +5845,6 @@
         "title": "RolGirdisi",
         "description": "Rol atama gövdesi. Kapsam türü rolden belirlenir, ayrıca gönderilmez."
       },
-      "SaatCiktisi": {
-        "properties": {
-          "server_time": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Server Time"
-          },
-          "device_time": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "date-time"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Device Time"
-          },
-          "skew_minutes": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Skew Minutes"
-          },
-          "flagged": {
-            "type": "boolean",
-            "title": "Flagged",
-            "description": "Fark eşiği aştı mı (10 dk; BR-13)"
-          }
-        },
-        "type": "object",
-        "required": [
-          "server_time",
-          "flagged"
-        ],
-        "title": "SaatCiktisi",
-        "description": "Senk anındaki saat ölçümü (FR-0704, BR-13).\n\n`skew_minutes` pozitifse cihaz **ileri**. Çekim zamanları bu farkla\ndüzeltilerek saklanır; ham cihaz değeri de kaydın içinde kalır.\nOlay zamanı (cevabın yazıldığı an) **sunucununkidir**: düzeltme\nyalnızca çekim zamanına uygulanır, yoksa saati geri alan bir cihaz\nkapanmış pencereye yazabilirdi."
-      },
       "SablonGirdisi": {
         "properties": {
           "name": {
@@ -5490,6 +5954,29 @@
           "exception"
         ],
         "title": "Satir"
+      },
+      "SatirHatasi": {
+        "properties": {
+          "row": {
+            "type": "integer",
+            "title": "Row"
+          },
+          "field": {
+            "type": "string",
+            "title": "Field"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "row",
+          "field",
+          "message"
+        ],
+        "title": "SatirHatasi"
       },
       "SebepCiktisi": {
         "properties": {
@@ -6075,6 +6562,61 @@
         "title": "YuklemeIzni",
         "description": "Yükleme adresi ve belirteci.\n\n`upload_url` yerel adaptörde kendi uç noktamızdır ve **göreli**\nyazılır: istemci kendi kaynağına göre çözsün, ters vekil arkasında\nsunucunun iç adresi sızmasın. S3 uyumlu depoya geçilince burası ön\nimzalı kova adresi olur (mutlak) ve istemci kodu değişmez."
       },
+      "YuklemeRaporu": {
+        "properties": {
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "accepted": {
+            "type": "integer",
+            "title": "Accepted"
+          },
+          "error_rows": {
+            "type": "integer",
+            "title": "Error Rows"
+          },
+          "created": {
+            "type": "integer",
+            "title": "Created"
+          },
+          "updated": {
+            "type": "integer",
+            "title": "Updated"
+          },
+          "rejected": {
+            "type": "boolean",
+            "title": "Rejected"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/SatirHatasi"
+            },
+            "type": "array",
+            "title": "Errors"
+          },
+          "branches": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Branches",
+            "description": "Kabul edilen şube kodları"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total",
+          "accepted",
+          "error_rows",
+          "created",
+          "updated",
+          "rejected",
+          "errors"
+        ],
+        "title": "YuklemeRaporu",
+        "description": "Satır bazlı sonuç (FR-0106). `rejected` ise hiçbir şey yazılmadı."
+      },
       "Zamanlama": {
         "properties": {
           "repeat": {
@@ -6162,6 +6704,86 @@
         ],
         "title": "Zamanlama",
         "description": "Plan editörünün zaman kuralı (FR-0502…0507).\n\nRRULE metni burada kurulur: arayüz \"her gün / haftanın günleri / tek\nseferlik\" der, motor RFC 5545 alır. Başlangıç ya sabit saattir ya da\nşubenin çalışma saatinden türetilir (\"kapanıştan 60 dk önce\")."
+      },
+      "talimatname__api__routers__setup__SaatCiktisi": {
+        "properties": {
+          "weekday": {
+            "type": "integer",
+            "title": "Weekday",
+            "description": "0 Pazartesi … 6 Pazar"
+          },
+          "open_time": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Open Time"
+          },
+          "close_time": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Close Time"
+          }
+        },
+        "type": "object",
+        "required": [
+          "weekday"
+        ],
+        "title": "SaatCiktisi"
+      },
+      "talimatname__api__routers__sync__SaatCiktisi": {
+        "properties": {
+          "server_time": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Server Time"
+          },
+          "device_time": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Device Time"
+          },
+          "skew_minutes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Skew Minutes"
+          },
+          "flagged": {
+            "type": "boolean",
+            "title": "Flagged",
+            "description": "Fark eşiği aştı mı (10 dk; BR-13)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "server_time",
+          "flagged"
+        ],
+        "title": "SaatCiktisi",
+        "description": "Senk anındaki saat ölçümü (FR-0704, BR-13).\n\n`skew_minutes` pozitifse cihaz **ileri**. Çekim zamanları bu farkla\ndüzeltilerek saklanır; ham cihaz değeri de kaydın içinde kalır.\nOlay zamanı (cevabın yazıldığı an) **sunucununkidir**: düzeltme\nyalnızca çekim zamanına uygulanır, yoksa saati geri alan bir cihaz\nkapanmış pencereye yazabilirdi."
       }
     }
   }

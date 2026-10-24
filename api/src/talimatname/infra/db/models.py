@@ -36,6 +36,7 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 #: RLS politikası olan tablolar — göç bunları gezip politika kurar.
 TENANT_TABLES: tuple[str, ...] = (
+    "account_settings",
     "region",
     "branch",
     "station",
@@ -71,6 +72,27 @@ class Tenant(Base):
     name: Mapped[str] = mapped_column(String(120))
     default_timezone: Mapped[str] = mapped_column(String(64), default="Europe/Istanbul")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
+class AccountSettings(Base):
+    """Marka ayarları (FR-1401 adım 1).
+
+    `tenant` tablosunda değil: orası RLS'in kökü ve uygulama rolü
+    yalnızca okuyabiliyor (hesap açmak/silmek uygulamanın işi değil).
+    Marka adı ve çalışma saatleri ise uygulamanın yazdığı veri, bu
+    yüzden diğer tablolar gibi kiracıya bağlı ve RLS'li.
+    """
+
+    __tablename__ = "account_settings"
+
+    tenant_id: Mapped[UUID] = mapped_column(
+        Uuid, ForeignKey("tenant.id", ondelete="CASCADE"), primary_key=True
+    )
+    brand_name: Mapped[str] = mapped_column(String(120))
+    timezone: Mapped[str] = mapped_column(String(64), default="Europe/Istanbul")
+    default_hours: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+    logo_url: Mapped[str | None] = mapped_column(String(400))
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class Region(Base):

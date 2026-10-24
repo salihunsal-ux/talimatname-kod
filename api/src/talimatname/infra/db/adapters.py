@@ -23,6 +23,7 @@ from talimatname.domain.evidence import Evidence
 from talimatname.domain.notifications import Notification
 from talimatname.domain.organization import Branch, Region, Station
 from talimatname.domain.plans import Assignment, Plan, Run
+from talimatname.domain.setup import AccountSettings
 from talimatname.domain.templates import (
     ChoiceOption,
     Item,
@@ -86,6 +87,35 @@ def _branch(satir: m.Branch) -> Branch:
     )
 
 
+class SqlSettingsRepository(_TenantRepository):
+    """Marka ayarları: kiracı başına tek satır."""
+
+    def settings(self) -> AccountSettings | None:
+        with tenant_session(self._tenant) as o:
+            satir = o.get(m.AccountSettings, self._tenant)
+            if satir is None:
+                return None
+            return AccountSettings(
+                brand_name=satir.brand_name,
+                timezone=satir.timezone,
+                default_hours=_saatler_alan(satir.default_hours),
+                logo_url=satir.logo_url,
+                completed_at=satir.completed_at,
+            )
+
+    def save_settings(self, settings: AccountSettings) -> None:
+        with tenant_session(self._tenant) as o:
+            satir = o.get(m.AccountSettings, self._tenant) or m.AccountSettings(
+                tenant_id=self._tenant
+            )
+            satir.brand_name = settings.brand_name
+            satir.timezone = settings.timezone
+            satir.default_hours = _saatler_json(settings.default_hours)
+            satir.logo_url = settings.logo_url
+            satir.completed_at = settings.completed_at
+            o.add(satir)
+
+
 class SqlOrganizationRepository(_TenantRepository):
     def regions(self) -> list[Region]:
         with tenant_session(self._tenant) as o:
@@ -119,6 +149,13 @@ class SqlOrganizationRepository(_TenantRepository):
             satir.longitude = branch.longitude
             satir.status = branch.status
             satir.business_hours = _saatler_json(branch.business_hours)
+            o.add(satir)
+
+    def save_region(self, region: Region) -> None:
+        with tenant_session(self._tenant) as o:
+            satir = o.get(m.Region, region.id) or m.Region(id=region.id, tenant_id=self._tenant)
+            satir.name = region.name
+            satir.code = region.code
             o.add(satir)
 
     def stations(self, branch_id: UUID) -> list[Station]:

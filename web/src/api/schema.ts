@@ -861,10 +861,182 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Kurulum durumu (kaldığı yer)
+         * @description Adımların durumu **veriden** okunur: sayaç tutulmuyor.
+         *
+         *     Panelden elle şube ekleyen bir yöneticide sayaç ile gerçek
+         *     ayrışırdı; böyle olunca sihirbaz her zaman doğruyu gösteriyor.
+         */
+        get: operations["kurulum_durumu_api_v1_setup_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/setup/brand": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Adım 1 · marka ve varsayılan saatler */
+        put: operations["marka_kaydet_api_v1_setup_brand_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/setup/branches/template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Adım 2 · şube Excel şablonu
+         * @description Doldurulacak dosya. Şablon sürümü dosyanın içinde yazılı (FR-0105).
+         */
+        get: operations["sube_sablonu_api_v1_setup_branches_template_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/setup/branches/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Adım 2 · dosyayı yazmadan dene
+         * @description Kuru çalıştırma: ne yazılacağını ve neyin hatalı olduğunu gösterir.
+         */
+        post: operations["sube_onizleme_api_v1_setup_branches_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/setup/branches/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Adım 2 · şubeleri yükle
+         * @description Aynı kodla gelen satır **günceller**: dosyayı ikinci kez yüklemek zarar vermez.
+         */
+        post: operations["sube_yukle_api_v1_setup_branches_import_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/setup/branches/error-report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Adım 2 · hatalı satır raporu (Excel)
+         * @description Hatalı satırları indirilebilir Excel olarak döner (FR-0106, UC-01/E2).
+         *
+         *     Dosya yeniden gönderiliyor: raporu sunucuda saklamak, kullanıcının
+         *     aynı dosyayı bir daha yollamasından daha çok soru doğururdu
+         *     (ne kadar saklanacak, kim görebilecek).
+         */
+        post: operations["hata_raporu_api_v1_setup_branches_error_report_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/setup/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sihirbazı kapat */
+        post: operations["kurulum_tamamla_api_v1_setup_complete_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/setup/reopen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sihirbazı yeniden aç */
+        post: operations["kurulum_yeniden_ac_api_v1_setup_reopen_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AdimCiktisi */
+        AdimCiktisi: {
+            /**
+             * Step
+             * @enum {string}
+             */
+            step: "brand" | "branches" | "template" | "plan" | "staff" | "review";
+            /** Label */
+            label: string;
+            /** Done */
+            done: boolean;
+            /** Detail */
+            detail: string;
+        };
         /** AksiyonOzet */
         AksiyonOzet: {
             /**
@@ -1041,6 +1213,21 @@ export interface components {
              * @description Bağlı kanal sürücüleri; boşsa hiçbiri
              */
             drivers_connected?: string[];
+        };
+        /** Body_hata_raporu_api_v1_setup_branches_error_report_post */
+        Body_hata_raporu_api_v1_setup_branches_error_report_post: {
+            /** File */
+            file: string;
+        };
+        /** Body_sube_onizleme_api_v1_setup_branches_preview_post */
+        Body_sube_onizleme_api_v1_setup_branches_preview_post: {
+            /** File */
+            file: string;
+        };
+        /** Body_sube_yukle_api_v1_setup_branches_import_post */
+        Body_sube_yukle_api_v1_setup_branches_import_post: {
+            /** File */
+            file: string;
         };
         /** BolgeDugumu */
         BolgeDugumu: {
@@ -1312,6 +1499,26 @@ export interface components {
             phone: string;
             /** Code */
             code: string;
+        };
+        /**
+         * DurumCiktisi
+         * @description Sihirbazın durumu. `current` kaldığı yer (TC-004).
+         */
+        DurumCiktisi: {
+            /** Steps */
+            steps: components["schemas"]["AdimCiktisi"][];
+            /**
+             * Current
+             * @enum {string}
+             */
+            current: "brand" | "branches" | "template" | "plan" | "staff" | "review";
+            /** Order */
+            order?: ("brand" | "branches" | "template" | "plan" | "staff" | "review")[];
+            /** Publishable */
+            publishable: boolean;
+            /** Completed At */
+            completed_at?: string | null;
+            brand?: components["schemas"]["MarkaCiktisi"] | null;
         };
         /** Eksik */
         Eksik: {
@@ -1711,7 +1918,7 @@ export interface components {
         };
         /** KuyrukCiktisi */
         KuyrukCiktisi: {
-            clock: components["schemas"]["SaatCiktisi"];
+            clock: components["schemas"]["talimatname__api__routers__sync__SaatCiktisi"];
             /** Accepted */
             accepted: number;
             /** Rejected */
@@ -2015,7 +2222,7 @@ export interface components {
         };
         /** ManifestCiktisi */
         ManifestCiktisi: {
-            clock: components["schemas"]["SaatCiktisi"];
+            clock: components["schemas"]["talimatname__api__routers__sync__SaatCiktisi"];
             /** Horizon Hours */
             horizon_hours: number;
             /** Refresh After Minutes */
@@ -2053,6 +2260,43 @@ export interface components {
             published_at?: string | null;
             /** Item Count */
             item_count: number;
+        };
+        /** MarkaCiktisi */
+        MarkaCiktisi: {
+            /** Brand Name */
+            brand_name: string;
+            /** Timezone */
+            timezone: string;
+            /** Logo Url */
+            logo_url?: string | null;
+            /** Hours */
+            hours: components["schemas"]["talimatname__api__routers__setup__SaatCiktisi"][];
+            /** Completed At */
+            completed_at?: string | null;
+        };
+        /** MarkaGirdisi */
+        MarkaGirdisi: {
+            /** Brand Name */
+            brand_name: string;
+            /**
+             * Timezone
+             * @default Europe/Istanbul
+             */
+            timezone?: string;
+            /**
+             * Open Time
+             * @description Tüm günler için varsayılan açılış
+             */
+            open_time?: string | null;
+            /** Close Time */
+            close_time?: string | null;
+            /**
+             * Closed Days
+             * @description Kapalı günler (0 Pazartesi … 6 Pazar)
+             */
+            closed_days?: number[];
+            /** Logo Url */
+            logo_url?: string | null;
         };
         /**
          * OnizlemeYaniti
@@ -2207,32 +2451,6 @@ export interface components {
             /** Scope Id */
             scope_id?: string | null;
         };
-        /**
-         * SaatCiktisi
-         * @description Senk anındaki saat ölçümü (FR-0704, BR-13).
-         *
-         *     `skew_minutes` pozitifse cihaz **ileri**. Çekim zamanları bu farkla
-         *     düzeltilerek saklanır; ham cihaz değeri de kaydın içinde kalır.
-         *     Olay zamanı (cevabın yazıldığı an) **sunucununkidir**: düzeltme
-         *     yalnızca çekim zamanına uygulanır, yoksa saati geri alan bir cihaz
-         *     kapanmış pencereye yazabilirdi.
-         */
-        SaatCiktisi: {
-            /**
-             * Server Time
-             * Format: date-time
-             */
-            server_time: string;
-            /** Device Time */
-            device_time?: string | null;
-            /** Skew Minutes */
-            skew_minutes?: number | null;
-            /**
-             * Flagged
-             * @description Fark eşiği aştı mı (10 dk; BR-13)
-             */
-            flagged: boolean;
-        };
         /** SablonGirdisi */
         SablonGirdisi: {
             /**
@@ -2272,6 +2490,15 @@ export interface components {
             cells: components["schemas"]["Hucre"][];
             /** Exception */
             exception: boolean;
+        };
+        /** SatirHatasi */
+        SatirHatasi: {
+            /** Row */
+            row: number;
+            /** Field */
+            field: string;
+            /** Message */
+            message: string;
         };
         /** SebepCiktisi */
         SebepCiktisi: {
@@ -2552,6 +2779,31 @@ export interface components {
             max_per_item?: number;
         };
         /**
+         * YuklemeRaporu
+         * @description Satır bazlı sonuç (FR-0106). `rejected` ise hiçbir şey yazılmadı.
+         */
+        YuklemeRaporu: {
+            /** Total */
+            total: number;
+            /** Accepted */
+            accepted: number;
+            /** Error Rows */
+            error_rows: number;
+            /** Created */
+            created: number;
+            /** Updated */
+            updated: number;
+            /** Rejected */
+            rejected: boolean;
+            /** Errors */
+            errors: components["schemas"]["SatirHatasi"][];
+            /**
+             * Branches
+             * @description Kabul edilen şube kodları
+             */
+            branches?: string[];
+        };
+        /**
          * Zamanlama
          * @description Plan editörünün zaman kuralı (FR-0502…0507).
          *
@@ -2598,6 +2850,44 @@ export interface components {
              * @default 0
              */
             tolerance_minutes?: number;
+        };
+        /** SaatCiktisi */
+        talimatname__api__routers__setup__SaatCiktisi: {
+            /**
+             * Weekday
+             * @description 0 Pazartesi … 6 Pazar
+             */
+            weekday: number;
+            /** Open Time */
+            open_time?: string | null;
+            /** Close Time */
+            close_time?: string | null;
+        };
+        /**
+         * SaatCiktisi
+         * @description Senk anındaki saat ölçümü (FR-0704, BR-13).
+         *
+         *     `skew_minutes` pozitifse cihaz **ileri**. Çekim zamanları bu farkla
+         *     düzeltilerek saklanır; ham cihaz değeri de kaydın içinde kalır.
+         *     Olay zamanı (cevabın yazıldığı an) **sunucununkidir**: düzeltme
+         *     yalnızca çekim zamanına uygulanır, yoksa saati geri alan bir cihaz
+         *     kapanmış pencereye yazabilirdi.
+         */
+        talimatname__api__routers__sync__SaatCiktisi: {
+            /**
+             * Server Time
+             * Format: date-time
+             */
+            server_time: string;
+            /** Device Time */
+            device_time?: string | null;
+            /** Skew Minutes */
+            skew_minutes?: number | null;
+            /**
+             * Flagged
+             * @description Fark eşiği aştı mı (10 dk; BR-13)
+             */
+            flagged: boolean;
         };
     };
     responses: never;
@@ -4116,6 +4406,218 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    kurulum_durumu_api_v1_setup_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DurumCiktisi"];
+                };
+            };
+        };
+    };
+    marka_kaydet_api_v1_setup_brand_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MarkaGirdisi"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DurumCiktisi"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sube_sablonu_api_v1_setup_branches_template_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Excel şablonu */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": unknown;
+                };
+            };
+        };
+    };
+    sube_onizleme_api_v1_setup_branches_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_sube_onizleme_api_v1_setup_branches_preview_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["YuklemeRaporu"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sube_yukle_api_v1_setup_branches_import_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_sube_yukle_api_v1_setup_branches_import_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["YuklemeRaporu"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    hata_raporu_api_v1_setup_branches_error_report_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_hata_raporu_api_v1_setup_branches_error_report_post"];
+            };
+        };
+        responses: {
+            /** @description Hatalı satırlar */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    kurulum_tamamla_api_v1_setup_complete_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DurumCiktisi"];
+                };
+            };
+        };
+    };
+    kurulum_yeniden_ac_api_v1_setup_reopen_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DurumCiktisi"];
                 };
             };
         };

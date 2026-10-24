@@ -156,6 +156,29 @@ GET  /evidence/{id}/url                      → 15 dk imzalı bağlantı (FR-13
 
 **Depolama** port/adaptör (ADR-0012 md.4): geliştirmede yerel dizin (`EVIDENCE_DIR`), üretimde S3 uyumlu kova. Sağlayıcı kararı bu kodu değiştirmeden verilebilir; üretim kovası Türkiye'de olmalı (fotoğraf kişisel veri sayılabilir).
 
+## Kurulum sihirbazı (ST-008)
+
+Yeni bir zincirin **bir saat içinde** ilk listesini çalıştırabilmesi için (FR-1401, UC-01):
+
+```
+GET  /setup                      → hangi adımdayım, ne eksik
+PUT  /setup/brand                → adım 1: marka, saat dilimi, varsayılan saatler
+GET  /setup/branches/template    → doldurulacak Excel (FR-0105)
+POST /setup/branches/preview     → kuru çalıştırma: ne yazılacak, ne hatalı
+POST /setup/branches/import      → uygula
+POST /setup/branches/error-report → hatalı satırlar, Excel olarak (FR-0106)
+```
+
+**İlerleme saklanmıyor, veriden türetiliyor.** "Kullanıcı 3. adımda" diye bir sayaç yok: şube varsa 2. adım bitmiştir, yayınlanmış şablon varsa 3. adım bitmiştir. Sayaç tutsaydık, panelden elle şube ekleyen bir yöneticide sayaç ile gerçek ayrışır ve sihirbaz kullanıcıya yalan söylerdi. "Kaldığı yerden devam" (TC-004) böylece kendiliğinden çalışıyor — saklanan bir adım yok, durumun kendisi var.
+
+**Önizleme ayrı bir uç nokta.** Yönetici 40 şubelik dosyayı yazmadan önce görmeli; aynı dosya iki kez gidiyor ve bunun bedeli yanlış yüklemeyi geri almaya çalışmaktan ucuz.
+
+**Şube kodu zincirin anahtarı** (FR-0103): aynı kodla gelen satır yeni şube değil, o şubenin güncel hâli. Dosyayı ikinci kez yüklemek bu yüzden zarar vermiyor (`created: 0, updated: 6`).
+
+**Kabul sınırı** (FR-0106): satırların **beşte birinden fazlası** hatalıysa dosya bütün olarak reddedilir — o noktada sorun satırlarda değil dosyadadır (yanlış şablon, kaymış sütunlar). Altında kalırsa sağlam satırlar yazılır, hatalılar rapor olur. Küçük dosyalarda bu kural keskin: 4 satırlık bir dosyada tek hata dosyayı reddettirir. Önizleme bunu yazmadan önce gösteriyor.
+
+Sütun **sırası değil başlığı** okunuyor (kullanıcılar sütun taşır), şablondaki gri örnek satır yalnızca yerinde ve birebir eşleşiyorsa atlanıyor, boş satırlar sayılmıyor. Açıklamalar ayrı sayfada: veri sayfasına yazılan yardım metni yükleme sırasında bir satır gibi okunuyordu.
+
 ## Damga ve küçük resim (ST-040)
 
 Doğrulanmış her kanıt için **turlu bir işçi** iki kopya üretir (FR-0606, zamanlayıcı turunda, ST-027):

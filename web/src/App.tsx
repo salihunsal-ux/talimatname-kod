@@ -12,6 +12,7 @@ import { GirisSayfasi } from './features/oturum/GirisSayfasi';
 import { PanoSayfasi } from './features/pano/PanoSayfasi';
 import { PersonelSayfasi } from './features/personel/PersonelSayfasi';
 import { PlanlarSayfasi } from './features/planlar/PlanlarSayfasi';
+import { KurulumSayfasi } from './features/kurulum/KurulumSayfasi';
 import { SablonlarSayfasi } from './features/sablonlar/SablonlarSayfasi';
 import { SubelerSayfasi } from './features/subeler/SubelerSayfasi';
 import { tr } from './i18n/tr';
@@ -24,6 +25,7 @@ export type Bolum =
   | 'planlar'
   | 'aksiyonlar'
   | 'bildirimler'
+  | 'kurulum'
   | 'sistem';
 
 export function App() {
@@ -90,6 +92,7 @@ function Kapi() {
             {bolum === 'planlar' && <PlanlarSayfasi />}
             {bolum === 'aksiyonlar' && <AksiyonlarSayfasi />}
             {bolum === 'bildirimler' && <BildirimlerSayfasi />}
+            {bolum === 'kurulum' && <KurulumSayfasi />}
             {bolum === 'sistem' && <SistemDurumu />}
           </>
         )}
