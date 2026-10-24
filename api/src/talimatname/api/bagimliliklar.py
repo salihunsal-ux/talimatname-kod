@@ -38,6 +38,7 @@ from talimatname.services.notifications import (
 from talimatname.services.organization import OrganizationRepository, OrganizationService
 from talimatname.services.plans import PlanRepository, PlanService
 from talimatname.services.reminders import ReminderService
+from talimatname.services.reports import ReportService
 from talimatname.services.scheduler import SchedulerService
 from talimatname.services.setup import SettingsRepository, SetupService
 from talimatname.services.storage import LocalObjectStore, ObjectStore
@@ -302,6 +303,18 @@ def kurulum_servisi() -> SetupService:
         _sablon_deposu(),
         _plan_deposu(),
         _kullanici_deposu(),
+    )
+
+
+def rapor_servisi() -> ReportService:
+    """Raporlar kanıt deposunu da görüyor: galeri aynı kayıtlardan."""
+    _ilk_tur()
+    return ReportService(
+        _plan_deposu(),
+        _cevap_deposu(),
+        _sablon_deposu(),
+        _org_deposu(),
+        _kanit_deposu(),
     )
 
 

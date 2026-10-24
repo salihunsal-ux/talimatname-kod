@@ -1193,6 +1193,75 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/reports/monthly": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Aylık tek sayfa özet (FR-1220)
+         * @description Ayın zamanında / geç / kaçırıldı dağılımı ve şube kırılımı.
+         *
+         *     Açık pencereler yüzdeye girmez: ayın ortasında henüz olmamış işi
+         *     kayıp saymak, raporu yanlış okutur.
+         */
+        get: operations["aylik_ozet_api_v1_reports_monthly_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/measurements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Ölçüm günlüğü (FR-1207)
+         * @description Sıcaklık ve sayı maddelerinin zaman serisi; aralık dışı işaretli.
+         *
+         *     Aralık dışı ölçümü olan seriler **önce** geliyor: denetim
+         *     konuşması oradan başlıyor.
+         */
+        get: operations["olcum_gunlugu_api_v1_reports_measurements_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/gallery": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Kanıt galerisi (FR-1208)
+         * @description Şube ve tarih süzgeciyle doğrulanmış kanıtlar, yenisi önce.
+         *
+         *     Görsellerin kendisi imzalı bağlantıyla geliyor
+         *     (`GET /evidence/{id}/url`); burada yalnızca kayıt listesi var.
+         */
+        get: operations["kanit_galerisi_api_v1_reports_gallery_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1294,6 +1363,31 @@ export interface components {
             role?: string | null;
             /** User Id */
             user_id?: string | null;
+        };
+        /** AylikOzet */
+        AylikOzet: {
+            /** Year */
+            year: number;
+            /** Month */
+            month: number;
+            /** Month Name */
+            month_name: string;
+            /**
+             * First Day
+             * Format: date
+             */
+            first_day: string;
+            /**
+             * Last Day
+             * Format: date
+             */
+            last_day: string;
+            counters: components["schemas"]["SayaclarCiktisi"];
+            /**
+             * Branches
+             * @description Zamanındalığı en düşük şube önce; ölçülemeyenler sonda
+             */
+            branches: components["schemas"]["SubeOzeti"][];
         };
         /** BayrakCiktisi */
         BayrakCiktisi: {
@@ -1746,6 +1840,41 @@ export interface components {
             description?: string | null;
             /** Assignee User Id */
             assignee_user_id?: string | null;
+        };
+        /** GaleriKanidi */
+        GaleriKanidi: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Run Id
+             * Format: uuid
+             */
+            run_id: string;
+            /**
+             * Branch Id
+             * Format: uuid
+             */
+            branch_id: string;
+            /**
+             * Item Id
+             * Format: uuid
+             */
+            item_id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Captured At */
+            captured_at?: string | null;
+            /**
+             * Flags
+             * @description Bayrakların Türkçe etiketleri
+             */
+            flags?: string[];
         };
         /** GonderimGirdisi */
         GonderimGirdisi: {
@@ -2512,6 +2641,45 @@ export interface components {
             /** Logo Url */
             logo_url?: string | null;
         };
+        /** OlcumNoktasi */
+        OlcumNoktasi: {
+            /**
+             * Run Id
+             * Format: uuid
+             */
+            run_id: string;
+            /**
+             * Branch Id
+             * Format: uuid
+             */
+            branch_id: string;
+            /** Measured At */
+            measured_at?: string | null;
+            /** Value */
+            value: number;
+            /** Out Of Range */
+            out_of_range: boolean;
+        };
+        /** OlcumSerisi */
+        OlcumSerisi: {
+            /**
+             * Item Id
+             * Format: uuid
+             */
+            item_id: string;
+            /** Item Title */
+            item_title: string;
+            /** Unit */
+            unit?: string | null;
+            /** Min Value */
+            min_value?: number | null;
+            /** Max Value */
+            max_value?: number | null;
+            /** Out Of Range Count */
+            out_of_range_count: number;
+            /** Points */
+            points: components["schemas"]["OlcumNoktasi"][];
+        };
         /**
          * OnizlemeYaniti
          * @description 7 gün önizleme (FR-0511): kaydetmeden önce ne üretileceği.
@@ -2781,6 +2949,32 @@ export interface components {
             /** Message */
             message: string;
         };
+        /** SayaclarCiktisi */
+        SayaclarCiktisi: {
+            /** Total */
+            total: number;
+            /** On Time */
+            on_time: number;
+            /** Late */
+            late: number;
+            /** Missed */
+            missed: number;
+            /** Cancelled */
+            cancelled: number;
+            /** Open */
+            open: number;
+            /** Failed */
+            failed: number;
+            /** Not Done Items */
+            not_done_items: number;
+            /** Closed */
+            closed: number;
+            /**
+             * On Time Percent
+             * @description Kapanmış çalıştırma yoksa null: sıfır 'hiçbiri zamanında değil' demek olurdu
+             */
+            on_time_percent?: number | null;
+        };
         /** SebepCiktisi */
         SebepCiktisi: {
             /** Code */
@@ -2885,6 +3079,19 @@ export interface components {
              * @description Haftada açık gün sayısı
              */
             open_days: number;
+        };
+        /** SubeOzeti */
+        SubeOzeti: {
+            /**
+             * Branch Id
+             * Format: uuid
+             */
+            branch_id: string;
+            /** Branch Code */
+            branch_code: string;
+            /** Branch Name */
+            branch_name: string;
+            counters: components["schemas"]["SayaclarCiktisi"];
         };
         /** SurumDetay */
         SurumDetay: {
@@ -5168,6 +5375,104 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DurumCiktisi"];
+                };
+            };
+        };
+    };
+    aylik_ozet_api_v1_reports_monthly_get: {
+        parameters: {
+            query: {
+                year: number;
+                month: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AylikOzet"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    olcum_gunlugu_api_v1_reports_measurements_get: {
+        parameters: {
+            query: {
+                first_day: string;
+                last_day: string;
+                only_out_of_range?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OlcumSerisi"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    kanit_galerisi_api_v1_reports_gallery_get: {
+        parameters: {
+            query: {
+                first_day: string;
+                last_day: string;
+                only_flagged?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GaleriKanidi"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

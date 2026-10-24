@@ -473,6 +473,15 @@ class SqlPlanRepository(_TenantRepository):
                 for r in o.scalars(select(m.Run).where(m.Run.business_day == business_day)).all()
             ]
 
+    def runs_between(self, first_day: date, last_day: date) -> list[Run]:
+        with tenant_session(self._tenant) as o:
+            satirlar = o.scalars(
+                select(m.Run)
+                .where(m.Run.business_day >= first_day, m.Run.business_day <= last_day)
+                .order_by(m.Run.business_day)
+            ).all()
+            return [_run(r) for r in satirlar]
+
     def save_run(self, run: Run) -> None:
         self.save_runs([run])
 
@@ -559,6 +568,20 @@ class SqlAnswerRepository(_TenantRepository):
                 _answer(a)
                 for a in o.scalars(select(m.Answer).where(m.Answer.run_id == run_id)).all()
             ]
+
+    def answers_for_runs(self, run_ids: list[UUID]) -> dict[UUID, list[Answer]]:
+        """Çok çalıştırmanın cevapları **tek sorguda** (rapor yolu).
+
+        Çalıştırma başına ayrı sorgu, 200 çalıştırmalık bir ayda 200
+        gidiş-dönüş demekti.
+        """
+        sonuc: dict[UUID, list[Answer]] = {run_id: [] for run_id in run_ids}
+        if not run_ids:
+            return sonuc
+        with tenant_session(self._tenant) as o:
+            for satir in o.scalars(select(m.Answer).where(m.Answer.run_id.in_(run_ids))).all():
+                sonuc[satir.run_id].append(_answer(satir))
+        return sonuc
 
     def answer(self, answer_id: UUID) -> Answer | None:
         with tenant_session(self._tenant) as o:

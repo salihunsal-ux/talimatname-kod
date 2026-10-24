@@ -480,6 +480,9 @@ class MemoryPlanRepository:
     def runs_for_day(self, business_day: date) -> list[Run]:
         return [r for r in self._runs.values() if r.business_day == business_day]
 
+    def runs_between(self, first_day: date, last_day: date) -> list[Run]:
+        return [r for r in self._runs.values() if first_day <= r.business_day <= last_day]
+
     def save_runs(self, runs: list[Run]) -> None:
         for run in runs:
             self.save_run(run)
@@ -577,6 +580,13 @@ class MemoryAnswerRepository:
     def __init__(self) -> None:
         self._answers: dict[UUID, Answer] = {}
         self._locks: dict[UUID, RunLock] = {}
+
+    def answers_for_runs(self, run_ids: list[UUID]) -> dict[UUID, list[Answer]]:
+        sonuc: dict[UUID, list[Answer]] = {run_id: [] for run_id in run_ids}
+        for cevap in self._answers.values():
+            if cevap.run_id in sonuc:
+                sonuc[cevap.run_id].append(cevap)
+        return sonuc
 
     def answers(self, run_id: UUID) -> list[Answer]:
         return [a for a in self._answers.values() if a.run_id == run_id]

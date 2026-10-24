@@ -247,6 +247,24 @@ def istemci(tmp_path: Path) -> TestClient:
     return oturum_ac(TestClient(create_app(Settings(evidence_dir=str(tmp_path)))))
 
 
+def _acik_calistirma(istemci: TestClient) -> dict[str, object]:
+    """Yazılabilir bir çalıştırma seçer: **penceresi hâlâ açık** olan.
+
+    Listenin ilkini körlemesine almak testi duvar saatine bağlıyordu:
+    gece yarısından sonra ilk sıradaki çalıştırmanın toleransı dolmuş
+    oluyor ve yazma 409 dönüyordu (CI de bu saatte kırmızı yanardı).
+    """
+    simdi = datetime.now(UTC)
+    acik = [
+        k
+        for k in istemci.get("/api/v1/runs").json()
+        if datetime.fromisoformat(k["tolerance_end"]) > simdi
+        and k["status"] in ("scheduled", "in_progress")
+    ]
+    assert acik, "açık pencereli çalıştırma yok"
+    return acik[0]  # type: ignore[no-any-return]
+
+
 def test_uc_nokta_gorunum_maddeleri_ve_eksikleri_doner(istemci: TestClient) -> None:
     run = istemci.get("/api/v1/runs").json()[0]
 
@@ -269,7 +287,7 @@ def test_uc_nokta_cevap_ve_gonderim(istemci: TestClient) -> None:
     önce geliyor (ST-054); gönderimi beyana açmak, kanıtlı listenin
     tek iddiasını istemciye bırakmak olurdu.
     """
-    run = istemci.get("/api/v1/runs").json()[0]
+    run = _acik_calistirma(istemci)
     gorunum = istemci.get(f"/api/v1/runs/{run['id']}").json()
 
     cevap_idleri: dict[str, str] = {}
@@ -321,7 +339,7 @@ def test_uc_nokta_cevap_ve_gonderim(istemci: TestClient) -> None:
 
 
 def test_uc_nokta_eksik_gonderim_422_ve_eksik_listesi(istemci: TestClient) -> None:
-    run = istemci.get("/api/v1/runs").json()[1]
+    run = _acik_calistirma(istemci)
 
     yanit = istemci.post(f"/api/v1/runs/{run['id']}/submit", json={})
 

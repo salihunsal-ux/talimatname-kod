@@ -67,9 +67,17 @@ def test_kpi_tamamlanma_ve_gecikme() -> None:
 
 
 def test_her_sey_yolunda_gun_bitmeden_soylenmez() -> None:
-    """Penceresi açık çalıştırma varken 'her şey yolunda' yanıltıcı olur."""
+    """Penceresi açık çalıştırma varken 'her şey yolunda' yanıltıcı olur.
+
+    "Şimdi" duvar saatinden değil **verinin kendisinden** alınıyor:
+    gece yarısından sonra koşulduğunda tohumun pencereleri çoktan
+    kapanmış oluyor ve test saate bağlı kalıyordu.
+    """
+    servis = _servis(bugunu_uret=True)
     bugun = datetime.now(UTC).date()
-    board = _servis(bugunu_uret=True).board(bugun, datetime.now(UTC))
+    acik = [r for r in servis._plans.runs() if r.business_day == bugun]
+    an = min(r.window_start for r in acik) + timedelta(minutes=5)
+    board = servis.board(bugun, an)
 
     assert board.kpi.open_now > 0
     assert board.kpi.all_clear is False

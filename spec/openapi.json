@@ -2816,6 +2816,198 @@
           }
         }
       }
+    },
+    "/api/v1/reports/monthly": {
+      "get": {
+        "tags": [
+          "rapor"
+        ],
+        "summary": "Aylık tek sayfa özet (FR-1220)",
+        "description": "Ayın zamanında / geç / kaçırıldı dağılımı ve şube kırılımı.\n\nAçık pencereler yüzdeye girmez: ayın ortasında henüz olmamış işi\nkayıp saymak, raporu yanlış okutur.",
+        "operationId": "aylik_ozet_api_v1_reports_monthly_get",
+        "parameters": [
+          {
+            "name": "year",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 2100,
+              "minimum": 2020,
+              "title": "Year"
+            }
+          },
+          {
+            "name": "month",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 12,
+              "minimum": 1,
+              "title": "Month"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AylikOzet"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/reports/measurements": {
+      "get": {
+        "tags": [
+          "rapor"
+        ],
+        "summary": "Ölçüm günlüğü (FR-1207)",
+        "description": "Sıcaklık ve sayı maddelerinin zaman serisi; aralık dışı işaretli.\n\nAralık dışı ölçümü olan seriler **önce** geliyor: denetim\nkonuşması oradan başlıyor.",
+        "operationId": "olcum_gunlugu_api_v1_reports_measurements_get",
+        "parameters": [
+          {
+            "name": "first_day",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "title": "First Day"
+            }
+          },
+          {
+            "name": "last_day",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "title": "Last Day"
+            }
+          },
+          {
+            "name": "only_out_of_range",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Only Out Of Range"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/OlcumSerisi"
+                  },
+                  "title": "Response Olcum Gunlugu Api V1 Reports Measurements Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/reports/gallery": {
+      "get": {
+        "tags": [
+          "rapor"
+        ],
+        "summary": "Kanıt galerisi (FR-1208)",
+        "description": "Şube ve tarih süzgeciyle doğrulanmış kanıtlar, yenisi önce.\n\nGörsellerin kendisi imzalı bağlantıyla geliyor\n(`GET /evidence/{id}/url`); burada yalnızca kayıt listesi var.",
+        "operationId": "kanit_galerisi_api_v1_reports_gallery_get",
+        "parameters": [
+          {
+            "name": "first_day",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "title": "First Day"
+            }
+          },
+          {
+            "name": "last_day",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "title": "Last Day"
+            }
+          },
+          {
+            "name": "only_flagged",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Only Flagged"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GaleriKanidi"
+                  },
+                  "title": "Response Kanit Galerisi Api V1 Reports Gallery Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -3052,6 +3244,54 @@
         },
         "type": "object",
         "title": "AtamaGirdisi"
+      },
+      "AylikOzet": {
+        "properties": {
+          "year": {
+            "type": "integer",
+            "title": "Year"
+          },
+          "month": {
+            "type": "integer",
+            "title": "Month"
+          },
+          "month_name": {
+            "type": "string",
+            "title": "Month Name"
+          },
+          "first_day": {
+            "type": "string",
+            "format": "date",
+            "title": "First Day"
+          },
+          "last_day": {
+            "type": "string",
+            "format": "date",
+            "title": "Last Day"
+          },
+          "counters": {
+            "$ref": "#/components/schemas/SayaclarCiktisi"
+          },
+          "branches": {
+            "items": {
+              "$ref": "#/components/schemas/SubeOzeti"
+            },
+            "type": "array",
+            "title": "Branches",
+            "description": "Zamanındalığı en düşük şube önce; ölçülemeyenler sonda"
+          }
+        },
+        "type": "object",
+        "required": [
+          "year",
+          "month",
+          "month_name",
+          "first_day",
+          "last_day",
+          "counters",
+          "branches"
+        ],
+        "title": "AylikOzet"
       },
       "BayrakCiktisi": {
         "properties": {
@@ -4146,6 +4386,64 @@
           "title"
         ],
         "title": "ElleAksiyonGirdisi"
+      },
+      "GaleriKanidi": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "run_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Run Id"
+          },
+          "branch_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Branch Id"
+          },
+          "item_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Item Id"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "captured_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Captured At"
+          },
+          "flags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Flags",
+            "description": "Bayrakların Türkçe etiketleri"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "run_id",
+          "branch_id",
+          "item_id",
+          "created_at"
+        ],
+        "title": "GaleriKanidi"
       },
       "GonderimGirdisi": {
         "properties": {
@@ -5918,6 +6216,113 @@
         ],
         "title": "MarkaGirdisi"
       },
+      "OlcumNoktasi": {
+        "properties": {
+          "run_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Run Id"
+          },
+          "branch_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Branch Id"
+          },
+          "measured_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Measured At"
+          },
+          "value": {
+            "type": "number",
+            "title": "Value"
+          },
+          "out_of_range": {
+            "type": "boolean",
+            "title": "Out Of Range"
+          }
+        },
+        "type": "object",
+        "required": [
+          "run_id",
+          "branch_id",
+          "value",
+          "out_of_range"
+        ],
+        "title": "OlcumNoktasi"
+      },
+      "OlcumSerisi": {
+        "properties": {
+          "item_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Item Id"
+          },
+          "item_title": {
+            "type": "string",
+            "title": "Item Title"
+          },
+          "unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit"
+          },
+          "min_value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min Value"
+          },
+          "max_value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Value"
+          },
+          "out_of_range_count": {
+            "type": "integer",
+            "title": "Out Of Range Count"
+          },
+          "points": {
+            "items": {
+              "$ref": "#/components/schemas/OlcumNoktasi"
+            },
+            "type": "array",
+            "title": "Points"
+          }
+        },
+        "type": "object",
+        "required": [
+          "item_id",
+          "item_title",
+          "out_of_range_count",
+          "points"
+        ],
+        "title": "OlcumSerisi"
+      },
       "OnizlemeYaniti": {
         "properties": {
           "days": {
@@ -6554,6 +6959,71 @@
         ],
         "title": "SatirHatasi"
       },
+      "SayaclarCiktisi": {
+        "properties": {
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "on_time": {
+            "type": "integer",
+            "title": "On Time"
+          },
+          "late": {
+            "type": "integer",
+            "title": "Late"
+          },
+          "missed": {
+            "type": "integer",
+            "title": "Missed"
+          },
+          "cancelled": {
+            "type": "integer",
+            "title": "Cancelled"
+          },
+          "open": {
+            "type": "integer",
+            "title": "Open"
+          },
+          "failed": {
+            "type": "integer",
+            "title": "Failed"
+          },
+          "not_done_items": {
+            "type": "integer",
+            "title": "Not Done Items"
+          },
+          "closed": {
+            "type": "integer",
+            "title": "Closed"
+          },
+          "on_time_percent": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "On Time Percent",
+            "description": "Kapanmış çalıştırma yoksa null: sıfır 'hiçbiri zamanında değil' demek olurdu"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total",
+          "on_time",
+          "late",
+          "missed",
+          "cancelled",
+          "open",
+          "failed",
+          "not_done_items",
+          "closed"
+        ],
+        "title": "SayaclarCiktisi"
+      },
       "SebepCiktisi": {
         "properties": {
           "code": {
@@ -6801,6 +7271,34 @@
           "open_days"
         ],
         "title": "SubeOzet"
+      },
+      "SubeOzeti": {
+        "properties": {
+          "branch_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Branch Id"
+          },
+          "branch_code": {
+            "type": "string",
+            "title": "Branch Code"
+          },
+          "branch_name": {
+            "type": "string",
+            "title": "Branch Name"
+          },
+          "counters": {
+            "$ref": "#/components/schemas/SayaclarCiktisi"
+          }
+        },
+        "type": "object",
+        "required": [
+          "branch_id",
+          "branch_code",
+          "branch_name",
+          "counters"
+        ],
+        "title": "SubeOzeti"
       },
       "SurumDetay": {
         "properties": {

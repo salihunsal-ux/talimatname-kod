@@ -118,7 +118,14 @@ def test_kaynaksiz_sistem_aksiyonu_olmaz() -> None:
 
 
 def test_tc069_kacirilan_calistirmadan_aksiyon_acilir() -> None:
-    servis, plan_deposu = _servis(datetime.now(UTC))
+    """Kaçırılan her çalıştırma bir aksiyon açar (FR-0902, BR-10).
+
+    Sayı **veriden** okunuyor, sabit yazılmıyor: tohumun kaç
+    çalıştırmasının kaçırılmış sayılacağı turun koştuğu saate bağlı
+    ve test duvar saatine bağlı kalmamalı.
+    """
+    an = datetime.now(UTC)
+    servis, plan_deposu = _servis(an)
     SchedulerService(
         plan_deposu,
         MemoryOrganizationRepository(),
@@ -126,11 +133,13 @@ def test_tc069_kacirilan_calistirmadan_aksiyon_acilir() -> None:
         servis,
     ).tick()
 
+    kacirilan = [r for r in plan_deposu.runs() if r.status == "missed"]
     acik = servis.list_actions()
 
-    assert len(acik) == 1
-    assert acik[0].source == "missed_run"
-    assert acik[0].priority == "high"
+    assert kacirilan, "tohumda kaçırılmış çalıştırma yok"
+    assert len(acik) == len(kacirilan)
+    assert {a.source for a in acik} == {"missed_run"}
+    assert {a.priority for a in acik} == {"high"}
 
 
 def test_tc069_tekrar_senkron_yeni_aksiyon_acmaz() -> None:
@@ -142,9 +151,9 @@ def test_tc069_tekrar_senkron_yeni_aksiyon_acmaz() -> None:
     ilk = zamanlayici.tick()
     ikinci = zamanlayici.tick()
 
-    assert ilk.actions_opened == 1
+    assert ilk.actions_opened > 0
     assert ikinci.actions_opened == 0
-    assert len(servis.list_actions()) == 1
+    assert len(servis.list_actions()) == ilk.actions_opened
 
 
 def test_elle_aksiyon_vadesiyle_acilir() -> None:

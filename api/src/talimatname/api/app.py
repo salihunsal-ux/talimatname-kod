@@ -22,6 +22,7 @@ from talimatname.api.routers import (
     notifications,
     organization,
     plans,
+    reports,
     setup,
     sync,
     templates,
@@ -88,6 +89,7 @@ def build_router(settings: Settings) -> APIRouter:
     router.include_router(evidence.router)
     router.include_router(sync.router)
     router.include_router(setup.router)
+    router.include_router(reports.router)
     return router
 
 

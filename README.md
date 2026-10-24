@@ -156,6 +156,28 @@ GET  /evidence/{id}/url                      → 15 dk imzalı bağlantı (FR-13
 
 **Depolama** port/adaptör (ADR-0012 md.4): geliştirmede yerel dizin (`EVIDENCE_DIR`), üretimde S3 uyumlu kova. Sağlayıcı kararı bu kodu değiştirmeden verilebilir; üretim kovası Türkiye'de olmalı (fotoğraf kişisel veri sayılabilir).
 
+## Raporlar (ST-088, ST-145, ST-090)
+
+Üç soru, tek sayfa — üçü de denetim konuşmasının parçası:
+
+```
+GET /reports/monthly?year&month      → ay nasıl geçti (FR-1220)
+GET /reports/measurements?first&last → sıcaklıklar ne durumda (FR-1207)
+GET /reports/gallery?first&last      → kanıtı göster (FR-1208)
+```
+
+**Rapor kendi "geç" tanımını yazmıyor.** Panonun kullandığı `Run.state_at` türetmesini kullanıyor; iki ayrı tanım, iki ayrı gerçek demekti.
+
+**Açık pencere yüzdeye girmiyor.** Ayın ortasında henüz olmamış işi kayıp saymak raporu yanlış okutur: yüzde yalnızca kapanmış çalıştırmalardan hesaplanıyor. Kapanmış hiçbir çalıştırma yoksa yüzde **null** — sıfır göstermek "hiçbiri zamanında değil" demek olurdu.
+
+**Şubeler en kötüden iyiye sıralı** (ölçülemeyenler sonda): denetim konuşması "hangi şube" sorusuyla başlıyor, sıralamayı rapora koymak o soruyu ekranda cevaplamak demek. Ölçüm günlüğünde de aralık dışı olan seriler önce geliyor.
+
+**Sayıya çevrilemeyen ölçüm atlanıyor:** denetime giden günlükte "bilinmiyor" satırı olmamalı.
+
+Okumalar aralıkla (`runs_between`, `answers_for_runs`): çalıştırma başına ayrı sorgu, 200 çalıştırmalık bir ayda 200 gidiş-dönüş demekti.
+
+**Eksik:** PDF çıktısı (FR-1220'nin son cümlesi) henüz yok — kütüphane kararı gerektiriyor.
+
 ## Çalıştırma okuma ve yazma: ölçülmüş kararlar
 
 Ufuk üretimi bir seferde onlarca satır yazıyor. Uzak veritabanında (uygulama Türkiye'de, Neon Frankfurt'ta) ölçüm:

@@ -59,6 +59,10 @@ class PlanRepository(Protocol):
 
     def runs_for_day(self, business_day: date) -> list[Run]: ...
 
+    def runs_between(self, first_day: date, last_day: date) -> list[Run]:
+        """Aralık okuması: aylık rapor bir ayı okur, tüm tabloyu değil."""
+        ...
+
     def save_run(self, run: Run) -> None: ...
 
     def save_runs(self, runs: list[Run]) -> None:

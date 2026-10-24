@@ -79,7 +79,15 @@ def test_gonderilmis_calistirmaya_dokunulmaz() -> None:
 
 
 def test_yapilmayacak_isaretli_calistirma_kacirilmaz() -> None:
+    """İlk tur geçmişi kapatır; ölçüm **ikinci** turda.
+
+    Tek turda ölçseydik sonuç saate bağlı olurdu: gece yarısından
+    sonra tohumun başka çalıştırmaları da kaçırılmış sayılıyor ve
+    `missed == 0` beklentisi tutmuyordu.
+    """
     servis, depo = _zamanlayici()
+    servis.tick()
+
     dun = datetime.now(UTC).date() - timedelta(days=1)
     hedef = _calistirma(depo, sabit_id(f"calistirma:sube:BSK:{dun.isoformat()}"))
     depo.save_run(replace(hedef, status="cancelled", cancel_reason="Şube kapalıydı"))
