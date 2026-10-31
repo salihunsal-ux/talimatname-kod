@@ -45,17 +45,25 @@ services:
 
   # S3 uyumlu depolama. Üretimde yerine sağlayıcının kovası geçer;
   # uygulama farkı görmez (ADR-0012 md.4).
+  #
+  # İmaj neden `bitnamilegacy`: MinIO Eylül 2026'da `minio/minio`yu
+  # Docker Hub'dan kaldırdı, quay.io kopyası da anonim çekilemiyor.
+  # Bu, aynı MinIO sunucusunu paketleyen hâlâ açık son imaj. Bir gün
+  # o da kaybolursa seçenekler: (a) sağlayıcının kovasına geçmek —
+  # üretimde zaten öyle, (b) `cgr.dev/chainguard/minio`, (c) SeaweedFS
+  # (`chrislusf/seaweedfs`, S3 kimlikleri dosyadan okunur).
+  # Sürüm sabit: `latest` bir sabah sessizce değişip yığını bozuyor.
   minio:
-    image: minio/minio:latest
+    image: bitnamilegacy/minio:2025.7.23-debian-12-r5
     restart: unless-stopped
-    command: server /veri --console-address ":9001"
     environment:
       MINIO_ROOT_USER: ${OBJECT_STORE_ACCESS_KEY:-talimatname}
       MINIO_ROOT_PASSWORD: ${OBJECT_STORE_SECRET_KEY:?parola gerekli}
+      MINIO_DEFAULT_BUCKETS: ${OBJECT_STORE_BUCKET:-talimatname-kanit}
     volumes:
-      - minio-veri:/veri
+      - minio-veri:/bitnami/minio/data
     healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
+      test: ["CMD", "curl", "-fsS", "http://localhost:9000/minio/health/live"]
       interval: 10s
       timeout: 5s
       retries: 10

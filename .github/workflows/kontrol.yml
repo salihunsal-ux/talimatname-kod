@@ -274,10 +274,26 @@ jobs:
       - name: Kanıt kovası gerçekten S3'te mi
         run: |
           docker compose exec -T api python - <<'PY'
+          import time
+
           from talimatname.api.bagimliliklar import _nesne_deposu
-          depo = _nesne_deposu()
-          print("adaptör:", type(depo).__name__)
-          assert type(depo).__name__ == "S3ObjectStore", "yerel dizine düşmüş"
+
+          # Kova servisi yığının en yavaş parçası olabilir: adaptör
+          # ilk bağlanışta kovayı açıyor, birkaç saniye bekliyoruz.
+          son_hata = None
+          for _ in range(20):
+              try:
+                  depo = _nesne_deposu()
+                  break
+              except Exception as hata:  # noqa: BLE001
+                  son_hata = hata
+                  _nesne_deposu.cache_clear()
+                  time.sleep(3)
+          else:
+              raise SystemExit(f"kovaya baglanilamadi: {son_hata}")
+
+          print("adaptor:", type(depo).__name__)
+          assert type(depo).__name__ == "S3ObjectStore", "yerel dizine dusmus"
           depo.put("ci/deneme.txt", b"merhaba")
           assert depo.get("ci/deneme.txt") == b"merhaba"
           depo.delete("ci/deneme.txt")
