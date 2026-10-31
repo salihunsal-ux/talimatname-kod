@@ -12,3 +12,18 @@ export async function calistirmaGorunumu(id: string): Promise<CalistirmaGorunumu
   if (error) throw error;
   return data;
 }
+
+/**
+ * Çalıştırma PDF'i (FR-1213): denetçiye verilen kâğıt.
+ *
+ * Belirteç ara katmandan geliyor; `<a href>` ile indirmek belirteci
+ * URL'ye koymak demek olurdu.
+ */
+export async function calistirmaPdf(runId: string): Promise<Blob> {
+  const { data, error } = await api.GET('/api/v1/runs/{run_id}/pdf', {
+    params: { path: { run_id: runId } },
+    parseAs: 'blob',
+  });
+  if (error) throw error;
+  return data;
+}

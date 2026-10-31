@@ -3,15 +3,19 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { calistirmaGorunumu, type CalistirmaGorunumu } from '../../api/calistirma';
+import { calistirmaGorunumu, calistirmaPdf, type CalistirmaGorunumu } from '../../api/calistirma';
+import { dosyayiIndir } from '../../api/raporlar';
 import { calistirmaKanitlari, kanitBaglantisi, type Kanit } from '../../api/kanitlar';
 import { CalistirmaDetayi } from './CalistirmaDetayi';
 
 vi.mock('../../api/calistirma');
 vi.mock('../../api/kanitlar');
+vi.mock('../../api/raporlar');
 const getir = vi.mocked(calistirmaGorunumu);
 const kanitlariGetir = vi.mocked(calistirmaKanitlari);
 const baglantiGetir = vi.mocked(kanitBaglantisi);
+const pdfGetir = vi.mocked(calistirmaPdf);
+const indir = vi.mocked(dosyayiIndir);
 
 const KANIT: Kanit = {
   id: 'k-1',
@@ -259,5 +263,27 @@ describe('Çalıştırma detayı', () => {
     kur();
 
     expect(await screen.findByText('Bayrak yok')).toBeInTheDocument();
+  });
+
+  it('çalıştırma PDF olarak indirilir', async () => {
+    pdfGetir.mockResolvedValue(new Blob([new Uint8Array([37, 80, 68, 70])]));
+
+    kur();
+    await screen.findByText(GORUNUM.template_name);
+    await userEvent.click(screen.getByRole('button', { name: 'PDF indir' }));
+
+    expect(pdfGetir).toHaveBeenCalledWith('r-1');
+    expect(indir).toHaveBeenCalledWith(expect.any(Blob), expect.stringContaining('.pdf'));
+  });
+
+  it('PDF üretilemezse hata görünür, sayfa durur', async () => {
+    pdfGetir.mockRejectedValue(new Error('500'));
+
+    kur();
+    await screen.findByText(GORUNUM.template_name);
+    await userEvent.click(screen.getByRole('button', { name: 'PDF indir' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('PDF üretilemedi');
+    expect(indir).not.toHaveBeenCalled();
   });
 });

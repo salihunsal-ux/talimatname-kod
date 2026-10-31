@@ -14,6 +14,14 @@ from typing import Literal
 Result = Literal["passed", "failed"]
 AnswerState = Literal["passed", "failed", "not_done", "not_applicable"]
 
+#: Cevabın Türkçe karşılığı (denetim kâğıdı, FR-1213).
+ANSWER_STATE_LABELS: dict[str, str] = {
+    "passed": "Yapıldı",
+    "failed": "Başarısız",
+    "not_done": "Yapılamadı",
+    "not_applicable": "Uygun değil",
+}
+
 
 @dataclass(frozen=True, slots=True)
 class ItemOutcome:

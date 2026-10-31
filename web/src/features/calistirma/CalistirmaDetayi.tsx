@@ -1,6 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
 
-import { calistirmaGorunumu, type MaddeDurumu } from '../../api/calistirma';
+import { calistirmaGorunumu, calistirmaPdf, type MaddeDurumu } from '../../api/calistirma';
+import { dosyayiIndir } from '../../api/raporlar';
 import { Cip } from '../../bilesenler/Cip';
 import { calistirmaKanitlari, type Kanit } from '../../api/kanitlar';
 import { tr } from '../../i18n/tr';
@@ -27,6 +29,40 @@ function saat(iso: string | null | undefined): string {
  * **kanıt görselleri** (FR-0606). Görseller imzalı ve 15 dakikalık
  * bağlantıyla geliyor (FR-1305); bayraklar madde altında listeleniyor.
  */
+/**
+ * Çalıştırma PDF'ini indirir (FR-1213).
+ *
+ * Kendi durumunu tutuyor: kâğıt sunucuda deriliyor — kanıt küçük
+ * resimleri depodan okunuyor — ve bu bir saniyeyi geçebiliyor.
+ * Tıklayıp hiçbir şey olmaması kullanıcıyı ikinci kez tıklatır.
+ */
+function PdfDugmesi({ runId }: { runId: string }) {
+  const [durum, setDurum] = useState<'bos' | 'calisiyor' | 'hata'>('bos');
+
+  async function tikla() {
+    setDurum('calisiyor');
+    try {
+      dosyayiIndir(await calistirmaPdf(runId), `talimatname-calistirma-${runId.slice(0, 8)}.pdf`);
+      setDurum('bos');
+    } catch {
+      setDurum('hata');
+    }
+  }
+
+  return (
+    <span style={{ marginLeft: 'auto', display: 'flex', gap: 'var(--bosluk-2)' }}>
+      {durum === 'hata' && (
+        <span role="alert" style={{ color: 'var(--renk-kritik)', fontSize: 'var(--etiket)' }}>
+          {tr.rapor.pdfHata}
+        </span>
+      )}
+      <button type="button" onClick={tikla} disabled={durum === 'calisiyor'} style={kucukDugme}>
+        {durum === 'calisiyor' ? tr.rapor.pdfHazirlaniyor : tr.rapor.pdfIndir}
+      </button>
+    </span>
+  );
+}
+
 export function CalistirmaDetayi({ runId, onKapat }: { runId: string; onKapat: () => void }) {
   const gorunum = useQuery({
     queryKey: ['calistirma', runId],
@@ -79,7 +115,8 @@ export function CalistirmaDetayi({ runId, onKapat }: { runId: string; onKapat: (
         {veri.score_percent !== null && (
           <strong style={{ fontVariantNumeric: 'tabular-nums' }}>%{veri.score_percent}</strong>
         )}
-        <button type="button" onClick={onKapat} style={{ ...kucukDugme, marginLeft: 'auto' }}>
+        <PdfDugmesi runId={runId} />
+        <button type="button" onClick={onKapat} style={kucukDugme}>
           {tr.calistirma.kapat}
         </button>
       </header>

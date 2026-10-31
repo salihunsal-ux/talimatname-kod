@@ -430,6 +430,19 @@ class EvidenceService:
             )
         return sayac
 
+    def thumbnail_bytes(self, evidence: Evidence) -> bytes | None:
+        """Küçük resmin baytları; yoksa **None** (çağıran atlar).
+
+        Rapor derleyicisi için: belirteç üretip kendi kendine HTTP
+        isteği yapmak yerine depodan doğrudan okuyor. Dosya
+        bulunamazsa rapor düşmüyor — eksik kâğıt, hiç kâğıttan iyi.
+        """
+        try:
+            return self._store.get(evidence.key_for("thumbnail"))
+        except ObjectMissing:
+            log.info("kanit.kucuk_resim_yok", kanit=str(evidence.id))
+            return None
+
     # --- damgalama işçisi (ST-040) -------------------------------------
 
     def stamp_pending(self, *, limit: int = STAMP_BATCH) -> dict[str, int]:

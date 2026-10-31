@@ -66,13 +66,38 @@ class RequestContext:
 #: katmanında biliniyor ama olayı yazan yer servisin derinliği
 #: (kanıt, yürütme). Bu bilgiyi her servis imzasına parametre olarak
 #: eklemek, HTTP'yi bütün katmanlara sızdırırdı (ADR-0014).
+#: İsteğin bağlamı **kutu içinde** tutuluyor. Nedeni ince ama önemli:
+#: FastAPI eşzamanlı (sync) bağımlılıkları ve uç noktaları ayrı
+#: iş parçacıklarında koşturuyor ve her biri contextvar'ın bir
+#: **kopyasını** alıyor. Kopyaya yazmak çağıranı etkilemez; bu yüzden
+#: belirteç çözülünce eklenen aktör uç noktaya ulaşmıyordu. Kutu
+#: referansla paylaşıldığı için içine yazılan her yerden görünüyor.
+#:
 #: Varsayılan None: bağlamsız çağrı (zamanlayıcı turu, betik) ile
 #: "boş bağlam" aynı şey ve ikisinde de IP uydurulmuyor.
-_ISTEK_BAGLAMI: ContextVar[RequestContext | None] = ContextVar("izi_baglami", default=None)
+@dataclass
+class _Kutu:
+    context: RequestContext
+
+
+_ISTEK_BAGLAMI: ContextVar[_Kutu | None] = ContextVar("izi_baglami", default=None)
 
 
 def current_context() -> RequestContext:
-    return _ISTEK_BAGLAMI.get() or RequestContext()
+    kutu = _ISTEK_BAGLAMI.get()
+    return kutu.context if kutu else RequestContext()
+
+
+def set_actor(actor_id: UUID) -> None:
+    """Bağlama aktörü ekler: belirteç çözülünce kim olduğu belli olur.
+
+    Ara katman isteği karşılarken IP ve cihazı biliyor ama kullanıcıyı
+    bilmiyor (belirteç henüz çözülmedi). Bu yüzden aktör sonradan,
+    `guvenlik.gecerli_kullanici` içinden yazılıyor.
+    """
+    kutu = _ISTEK_BAGLAMI.get()
+    if kutu is not None:
+        kutu.context = replace(kutu.context, actor_id=actor_id)
 
 
 @contextmanager
@@ -82,7 +107,7 @@ def using_context(context: RequestContext) -> Iterator[None]:
     Sıfırlamak değil geri almak: zamanlayıcı turu bir isteğin içinden
     tetiklenebiliyor ve dönüşte isteğin bağlamı kaybolmamalı.
     """
-    jeton = _ISTEK_BAGLAMI.set(context)
+    jeton = _ISTEK_BAGLAMI.set(_Kutu(context))
     try:
         yield
     finally:

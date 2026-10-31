@@ -56,7 +56,15 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Kodu doğrula ve oturum aç */
+        /**
+         * Kodu doğrula ve oturum aç
+         * @description Başarılı da başarısız da olay günlüğüne yazılır (FR-1301).
+         *
+         *     Reddedilen deneme, başarılı oturum kadar önemli: denetimde "kim
+         *     girmeye çalıştı" sorusunun cevabı orada. Telefon numarası
+         *     yazılmıyor — kişisel veri, üstelik kayıt kullanıcı kimliğiyle
+         *     zaten bağlanabiliyor (BR-21).
+         */
         post: operations["kod_dogrula_api_v1_auth_verify_post"];
         delete?: never;
         options?: never;
@@ -675,6 +683,30 @@ export interface paths {
          *     Gönderen de oturumdaki kullanıcıdır (gövdedeki `user_id` yok sayılır).
          */
         post: operations["calistirma_gonder_api_v1_runs__run_id__submit_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/runs/{run_id}/pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Çalıştırma PDF'i (FR-1213)
+         * @description Denetçinin eline verilen kâğıt: maddeler, cevaplar, kanıt, iz.
+         *
+         *     Kapsam denetimi ekranla **aynı**: şubesini göremeyen kullanıcı
+         *     kâğıdını da alamaz. PDF ayrı bir kapı açsaydı, en çok veri taşıyan
+         *     çıktı en zayıf kapıdan geçerdi.
+         */
+        get: operations["calistirma_pdf_api_v1_runs__run_id__pdf_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -4688,6 +4720,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CalistirmaGorunumu"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    calistirma_pdf_api_v1_runs__run_id__pdf_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description PDF */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": unknown;
                 };
             };
             /** @description Validation Error */

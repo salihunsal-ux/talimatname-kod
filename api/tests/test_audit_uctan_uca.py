@@ -181,3 +181,21 @@ def test_zamanlayici_turu_istegin_ipsini_tasimaz(istemci: TestClient) -> None:
         if o.event_type in {"kanit.supuruldu", "calistirma.kacirildi"}
     ]
     assert all(o.ip is None and o.device is None for o in tur_olaylari)
+
+
+def test_aktor_servis_olaylarina_da_geciyor(istemci: TestClient) -> None:
+    """FR-1301 'aktör': olayı yazan yer servisin derinliği, kimi
+    bilmiyor. Belirteç çözülürken bağlama yazılıyor.
+
+    Aktörsüz bir denetim izi "ne oldu" der ama "kim yaptı" demez —
+    denetimdeki asıl soru ikincisi.
+    """
+    oturum_ac(istemci)
+
+    istemci.get("/api/v1/runs")  # korumalı bir çağrı: aktör bağlama yazılır
+    bugun = datetime.now(UTC).date()
+    istemci.get("/api/v1/reports/monthly.pdf", params={"year": bugun.year, "month": bugun.month})
+
+    servis = bagimliliklar.izi_servisi()
+    olay = next(o for o in servis._repo.events(limit=200) if o.event_type == "rapor.uretildi")
+    assert olay.actor_id is not None

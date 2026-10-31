@@ -46,12 +46,14 @@ from reportlab.lib.enums import TA_RIGHT
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import mm
+from reportlab.lib.utils import ImageReader
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import (
     BaseDocTemplate,
     Flowable,
     Frame,
+    Image,
     PageTemplate,
     Paragraph,
     Spacer,
@@ -580,11 +582,242 @@ def _uret(ic: list[Flowable], *, brand: Brand, kod: str, generated_at: datetime)
     return tampon.getvalue()
 
 
+# --- çalıştırma PDF'i (ST-091; FR-1213) --------------------------------
+
+#: Kâğıttaki fotoğrafın ölçüsü. Küçük resim 320 piksel; burada ~45 mm'ye
+#: oturuyor: dördü bir satıra sığsın, yine de denetçinin "ne olduğunu"
+#: görebileceği kadar büyük kalsın.
+FOTO_GENISLIK = 45 * mm
+FOTO_YUKSEKLIK = 34 * mm
+
+
+@dataclass(frozen=True, slots=True)
+class RunLine:
+    """Kâğıttaki tek madde satırı. Fotoğraflar **bayt** olarak gelir.
+
+    Servis katmanı depodan okuyup buraya veriyor; bu modül dosya
+    sistemi ya da kova bilmiyor.
+    """
+
+    section: str
+    title: str
+    kind: str
+    critical: bool
+    state: str
+    value: str
+    reason: str | None = None
+    note: str | None = None
+    answered_at: datetime | None = None
+    by: str | None = None
+    photos: tuple[bytes, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
+class AuditLine:
+    """Denetim izi özetinin bir satırı (FR-1213)."""
+
+    at: datetime
+    label: str
+    actor: str | None = None
+    ip: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class RunReport:
+    """Çalıştırma PDF'inin bütün verisi."""
+
+    run_id: UUID
+    branch_name: str
+    branch_code: str
+    template_title: str
+    business_day: date
+    window_start: datetime
+    window_end: datetime
+    status_label: str
+    result_label: str
+    score_percent: int | None
+    submitted_at: datetime | None
+    submitted_by: str | None
+    lines: tuple[RunLine, ...]
+    audit: tuple[AuditLine, ...] = ()
+
+
+def run_code(report: RunReport, *, brand: Brand) -> str:
+    """Çalıştırmanın **içerik** kodu (bkz. `monthly_code`)."""
+    return document_code(
+        [
+            "calistirma",
+            brand.name,
+            report.run_id,
+            report.business_day,
+            report.status_label,
+            report.result_label,
+            report.score_percent,
+            *[(s.title, s.state, s.value, len(s.photos)) for s in report.lines],
+        ]
+    )
+
+
+def _foto_hucresi(baytlar: bytes) -> Flowable | str:
+    """Baytı kâğıda koyar; açılamazsa **yerine cümle** yazar.
+
+    Bozuk tek bir dosya yüzünden bütün raporun üretilememesi, denetim
+    gününde elde kâğıt olmaması demek olurdu.
+    """
+    try:
+        en, boy = ImageReader(io.BytesIO(baytlar)).getSize()
+        oran = min(FOTO_GENISLIK / en, FOTO_YUKSEKLIK / boy)
+        return Image(io.BytesIO(baytlar), width=en * oran, height=boy * oran)
+    except Exception:
+        log.warning("pdf.kanit_acilamadi")
+        return "(görsel açılamadı)"
+
+
+def run_pdf(
+    report: RunReport,
+    *,
+    brand: Brand,
+    generated_at: datetime,
+    generated_by: str,
+    code: str | None = None,
+) -> bytes:
+    """Çalıştırma PDF'i (FR-1213): maddeler, cevaplar, kanıt, denetim izi.
+
+    Denetçinin eline verilen asıl kâğıt bu: tek bir gecenin kapanış
+    listesi — ne yapıldı, kim yaptı, ne zaman, fotoğrafıyla.
+    """
+    stil = _stiller()
+    kod = code or run_code(report, brand=brand)
+    genislik = SAYFA[0] - 2 * KENAR
+
+    ic: list[Flowable] = _baslik_blogu(
+        stil,
+        brand=brand,
+        baslik=f"{report.template_title} · {report.branch_name}",
+        donem=f"{_gun(report.business_day)} iş günü",
+        generated_at=generated_at,
+        generated_by=generated_by,
+    )
+
+    ic.append(
+        _tablo(
+            [
+                ["Şube", "Durum", "Sonuç", "Puan", "Gönderim"],
+                [
+                    f"{report.branch_name} ({report.branch_code})",
+                    report.status_label,
+                    report.result_label,
+                    "—" if report.score_percent is None else f"%{report.score_percent}",
+                    _zaman(report.submitted_at, brand.zone) if report.submitted_at else "—",
+                ],
+            ],
+            genislikler=[genislik * o for o in (0.3, 0.17, 0.17, 0.12, 0.24)],
+        )
+    )
+    ic.append(Spacer(1, 4))
+    ic.append(
+        Paragraph(
+            f"Pencere: {_zaman(report.window_start, brand.zone)} – "
+            f"{_zaman(report.window_end, brand.zone)}"
+            + (f" · Gönderen: {report.submitted_by}" if report.submitted_by else ""),
+            stil["govde"],
+        )
+    )
+
+    bolum = ""
+    for satir in report.lines:
+        if satir.section != bolum:
+            bolum = satir.section
+            ic.append(Paragraph(bolum, stil["bolum"]))
+        ic.append(_madde_tablosu(satir, stil, brand=brand, genislik=genislik))
+        if satir.photos:
+            ic.append(_foto_satiri(satir.photos))
+        ic.append(Spacer(1, 5))
+
+    if report.audit:
+        ic.append(Paragraph("Denetim izi", stil["bolum"]))
+        ic.append(
+            _tablo(
+                [
+                    ["Zaman", "Olay", "Kişi", "Nereden"],
+                    *[
+                        [_zaman(iz.at, brand.zone), iz.label, iz.actor or "—", iz.ip or "—"]
+                        for iz in report.audit
+                    ],
+                ],
+                genislikler=[genislik * o for o in (0.22, 0.36, 0.24, 0.18)],
+            )
+        )
+
+    ic.extend(_dipnot(stil, chained=code is not None))
+    return _uret(ic, brand=brand, kod=kod, generated_at=generated_at)
+
+
+def _madde_tablosu(
+    satir: RunLine, stil: dict[str, ParagraphStyle], *, brand: Brand, genislik: float
+) -> Table:
+    baslik = satir.title + (" · KRİTİK" if satir.critical else "")
+    ayrinti = [f"Tür: {satir.kind}"]
+    if satir.value:
+        ayrinti.insert(0, f"Cevap: {satir.value}")
+    if satir.reason:
+        # Sebep **ayrıntı satırında**: durum sütununa sığmıyor ve
+        # oraya sıkıştırılınca "Yapılamadı · Malzeme" diye bölünüyordu.
+        ayrinti.insert(0, f"Sebep: {satir.reason}")
+    if satir.answered_at:
+        ayrinti.append(_zaman(satir.answered_at, brand.zone))
+    if satir.by:
+        ayrinti.append(satir.by)
+
+    hucreler: list[list[object]] = [
+        [Paragraph(baslik, stil["govde"]), Paragraph(satir.state, stil["sag"])],
+        [Paragraph(" · ".join(ayrinti), stil["alt"]), ""],
+    ]
+    if satir.note:
+        hucreler.append([Paragraph(f"Not: {satir.note}", stil["alt"]), ""])
+
+    tablo = Table(hucreler, colWidths=[genislik * 0.74, genislik * 0.26])
+    bicim: list[Any] = [
+        ("FONTNAME", (0, 0), (-1, -1), FONT_NORMAL),
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("TOPPADDING", (0, 0), (-1, -1), 2),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
+        ("LINEBELOW", (0, len(hucreler) - 1), (-1, len(hucreler) - 1), 0.3, RENK_CIZGI),
+    ]
+    if satir.critical and satir.state != "Yapıldı":
+        bicim.append(("TEXTCOLOR", (0, 0), (-1, -1), RENK_UYARI))
+    tablo.setStyle(TableStyle(bicim))
+    return tablo
+
+
+def _foto_satiri(fotograflar: tuple[bytes, ...]) -> Table:
+    """En çok dört küçük resim yan yana: beşincisi kâğıdı taşırıyor."""
+    hucreler: list[object] = [_foto_hucresi(b) for b in fotograflar[:4]]
+    tablo = Table([hucreler], colWidths=[FOTO_GENISLIK + 4] * len(hucreler))
+    tablo.setStyle(
+        TableStyle(
+            [
+                ("FONTNAME", (0, 0), (-1, -1), FONT_NORMAL),
+                ("FONTSIZE", (0, 0), (-1, -1), 7.5),
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ("LEFTPADDING", (0, 0), (-1, -1), 0),
+                ("TOPPADDING", (0, 0), (-1, -1), 3),
+            ]
+        )
+    )
+    return tablo
+
+
 __all__ = [
+    "AuditLine",
     "Brand",
     "FontMissing",
+    "RunLine",
+    "RunReport",
     "document_code",
     "measurements_pdf",
     "monthly_pdf",
     "register_fonts",
+    "run_code",
+    "run_pdf",
 ]

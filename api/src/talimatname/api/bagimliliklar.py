@@ -33,6 +33,7 @@ from talimatname.services.digest import DigestService
 from talimatname.services.escalation import EscalationService
 from talimatname.services.evidence import EvidenceRepository, EvidenceService
 from talimatname.services.execution import AnswerRepository, ExecutionService
+from talimatname.services.exports import ExportService
 from talimatname.services.notifications import (
     NotificationRepository,
     NotificationService,
@@ -317,6 +318,23 @@ def kanit_servisi() -> EvidenceService:
         _kullanici_deposu(),
         settings=ayarlar(),
         audit=izi_servisi(),
+    )
+
+
+def disa_aktarim_servisi() -> ExportService:
+    """Çalıştırma PDF'ini derleyen servis (FR-1213).
+
+    Kendi okuma yolunu kurmuyor: yürütme görünümünü, kanıt servisini
+    ve olay günlüğünü kullanıyor — kâğıt, ekranın gördüğü veriyle
+    aynı yerden besleniyor.
+    """
+    return ExportService(
+        yurutme_servisi(),
+        kanit_servisi(),
+        _org_deposu(),
+        _sablon_deposu(),
+        _kullanici_deposu(),
+        izi_servisi(),
     )
 
 

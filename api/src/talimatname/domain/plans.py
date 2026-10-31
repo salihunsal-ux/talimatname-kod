@@ -28,6 +28,22 @@ AssignmentKind = Literal["anyone", "role", "user"]
 RunStatus = Literal["scheduled", "in_progress", "submitted", "missed", "cancelled"]
 RunResult = Literal["passed", "failed"]
 
+#: Durum ve sonucun Türkçe karşılığı. Sunucuda duruyor çünkü PDF
+#: (FR-1213) panelden geçmeden üretiliyor; panelin kendi sözlüğü
+#: ekran metinleri için ayrı kalıyor.
+RUN_STATUS_LABELS: dict[str, str] = {
+    "scheduled": "Planlı",
+    "in_progress": "Devam ediyor",
+    "submitted": "Tamamlandı",
+    "missed": "Kaçırıldı",
+    "cancelled": "Yapılmayacak",
+}
+
+RUN_RESULT_LABELS: dict[str, str] = {
+    "passed": "Başarılı",
+    "failed": "Başarısız",
+}
+
 #: Çalıştırma kimlikleri tohumlanabilir olsun diye sabit ad alanı: aynı
 #: (plan, şube, iş günü, pencere) her zaman aynı id'yi verir (FR-0513).
 RUN_NAMESPACE = UUID("3a7c1f5e-9b2d-4c8a-8f1e-2d6b4a9c7e30")

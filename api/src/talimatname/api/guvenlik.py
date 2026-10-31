@@ -24,6 +24,7 @@ from talimatname.api.bagimliliklar import kimlik_servisi
 from talimatname.domain.errors import DomainError, ErrorKind
 from talimatname.domain.organization import Branch
 from talimatname.domain.users import Role, User, can_access
+from talimatname.services.audit import set_actor
 from talimatname.services.auth import AuthService
 from talimatname.services.organization import OrganizationService
 from talimatname.services.tokens import TokenInvalid
@@ -52,13 +53,20 @@ def gecerli_kullanici(
     request: Request,
     kimlik: Annotated[AuthService, Depends(kimlik_servisi)],
 ) -> User:
-    """Belirteçten kullanıcıyı çözer. Her korumalı uç noktanın girişi."""
+    """Belirteçten kullanıcıyı çözer. Her korumalı uç noktanın girişi.
+
+    Çözülen kullanıcı **olay günlüğü bağlamına** da yazılıyor
+    (FR-1301 "aktör"): günlüğe yazan yer servisin derinliği ve orası
+    kimin istediğini bilmiyor. Burası biliyor ve tek giriş noktası.
+    """
     try:
-        return kimlik.user_from_token(_belirtec(request))
+        kullanici = kimlik.user_from_token(_belirtec(request))
     except TokenInvalid:
         raise
     except DomainError:
         raise
+    set_actor(kullanici.id)
+    return kullanici
 
 
 Kullanici = Annotated[User, Depends(gecerli_kullanici)]
