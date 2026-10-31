@@ -19,6 +19,7 @@ from typing import Any
 from uuid import UUID
 
 from sqlalchemy import (
+    BigInteger,
     Boolean,
     Date,
     DateTime,
@@ -35,6 +36,8 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 #: RLS politikası olan tablolar — göç bunları gezip politika kurar.
+#: Dikkat: yetkiler tablo tablo veriliyor, hepsi aynı değil —
+#: `audit_event` ekle-yalnız (yalnızca SELECT, INSERT; göç 0006).
 TENANT_TABLES: tuple[str, ...] = (
     "account_settings",
     "region",
@@ -52,6 +55,7 @@ TENANT_TABLES: tuple[str, ...] = (
     "action",
     "notification",
     "evidence",
+    "audit_event",
 )
 
 
@@ -380,3 +384,37 @@ class Evidence(Base):
     stamped_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     stamped_key: Mapped[str | None] = mapped_column(String(200))
     thumbnail_key: Mapped[str | None] = mapped_column(String(200))
+
+
+class AuditEvent(Base):
+    """Ekle-yalnız olay günlüğü (FR-1301).
+
+    Uygulama rolünün bu tabloda **yalnızca SELECT ve INSERT** yetkisi
+    var (bkz. göç 0006): ekle-yalnızlık koda değil veritabanına
+    yazılı. Kodda güncelleme/silme yöntemi de yok (TC-100).
+
+    `(tenant_id, sequence)` tekil: iki istek aynı anda yazıp zinciri
+    çatallayamaz; ikincisi hata alır ve yeniden dener.
+    """
+
+    __tablename__ = "audit_event"
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "sequence", name="uq_audit_sira"),
+        Index("ix_audit_nesne", "tenant_id", "object_id"),
+        Index("ix_audit_zaman", "tenant_id", "at"),
+    )
+
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True)
+    tenant_id: Mapped[UUID] = _tenant_column()
+    sequence: Mapped[int] = mapped_column(BigInteger)
+    event_type: Mapped[str] = mapped_column(String(40))
+    at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    object_type: Mapped[str] = mapped_column(String(30))
+    object_id: Mapped[UUID | None] = mapped_column(Uuid)
+    actor_id: Mapped[UUID | None] = mapped_column(Uuid)
+    ip: Mapped[str | None] = mapped_column(String(45))
+    device: Mapped[str | None] = mapped_column(String(120))
+    before: Mapped[Any] = mapped_column(JSONB, default=dict)
+    after: Mapped[Any] = mapped_column(JSONB, default=dict)
+    prev_hash: Mapped[str] = mapped_column(String(64))
+    hash: Mapped[str] = mapped_column(String(64))

@@ -76,6 +76,7 @@
           "oturum"
         ],
         "summary": "Kodu doğrula ve oturum aç",
+        "description": "Başarılı da başarısız da olay günlüğüne yazılır (FR-1301).\n\nReddedilen deneme, başarılı oturum kadar önemli: denetimde \"kim\ngirmeye çalıştı\" sorusunun cevabı orada. Telefon numarası\nyazılmıyor — kişisel veri, üstelik kayıt kullanıcı kimliğiyle\nzaten bağlanabiliyor (BR-21).",
         "operationId": "kod_dogrula_api_v1_auth_verify_post",
         "requestBody": {
           "content": {

@@ -310,34 +310,40 @@ def _baslik_blogu(
     ]
 
 
-def _dipnot(stil: dict[str, ParagraphStyle]) -> list[Flowable]:
+#: Kodun ne olduğunu kâğıtta yazmak zorundayız: denetçi "bu kod ne"
+#: diye sorduğunda cevabı belgenin kendisinde olsun. İki hâl var ve
+#: ikisi farklı şey söylüyor — birini ötekinin yerine yazmak, olmayan
+#: bir güvence vermek olurdu.
+DIPNOT_ZINCIRLI = (
+    "Belge kodu, bu raporun üretildiği anın olay günlüğündeki kaydının özetidir "
+    "(FR-1301 zinciri). Kayıt ekle-yalnız günlükte durur; sonradan değiştirilirse "
+    "zincir doğrulaması bunu gösterir. Koda göre kaydı gösteren çevrimiçi doğrulama "
+    "sayfası sonraki sürümde (FR-1218)."
+)
+
+DIPNOT_ICERIK = (
+    "Belge kodu bu raporun verisinden türetilmiştir (SHA-256): aynı veri aynı kodu "
+    "verir, tek bir sayı değişirse kod değişir. Bu kopya üretilirken olay günlüğüne "
+    "yazılamadı, bu yüzden kod zincire bağlı değil (FR-1218)."
+)
+
+
+def _dipnot(stil: dict[str, ParagraphStyle], *, chained: bool) -> list[Flowable]:
     return [
         Spacer(1, 10),
-        Paragraph(
-            "Belge kodu bu raporun verisinden türetilmiştir (SHA-256): aynı veri aynı kodu "
-            "verir, tek bir sayı değişirse kod değişir. Kodun olay günlüğü zincirine "
-            "bağlanması ve çevrimiçi doğrulama sayfası sonraki sürümde (FR-1218).",
-            stil["dipnot"],
-        ),
+        Paragraph(DIPNOT_ZINCIRLI if chained else DIPNOT_ICERIK, stil["dipnot"]),
     ]
 
 
-def monthly_pdf(
-    summary: MonthlySummary,
-    *,
-    brand: Brand,
-    generated_at: datetime,
-    generated_by: str,
-) -> bytes:
-    """Aylık tek sayfa özet (FR-1220): toplam sayaçlar + şube kırılımı.
+def monthly_code(summary: MonthlySummary, *, brand: Brand) -> str:
+    """Aylık raporun **içerik** kodu: veriden türer, dosyadan değil.
 
-    Şube sıralaması ekranla aynı: zamanındalığı en düşük önce
-    (`MonthlySummary.worst_branches`). Denetim konuşması oradan
-    başlıyor, kâğıt da oradan başlasın.
+    Olay günlüğüne bu kod yazılıyor; kâğıtta görünen kod ise o olayın
+    zincir özeti (FR-1218). İkisi birbirine bağlı: olay kaydı hangi
+    verinin dökülmüş olduğunu, zincir de kaydın değişmediğini söyler.
     """
-    stil = _stiller()
     sayac = summary.counters
-    kod = document_code(
+    return document_code(
         [
             "aylik",
             brand.name,
@@ -357,6 +363,43 @@ def monthly_pdf(
             ],
         ]
     )
+
+
+def measurements_code(
+    series: Sequence[MeasurementSeries], *, brand: Brand, first_day: date, last_day: date
+) -> str:
+    """Ölçüm günlüğünün içerik kodu (bkz. `monthly_code`)."""
+    return document_code(
+        [
+            "olcum",
+            brand.name,
+            first_day,
+            last_day,
+            *[
+                (s.item_id, len(s.points), s.out_of_range_count, *[n.value for n in s.points])
+                for s in series
+            ],
+        ]
+    )
+
+
+def monthly_pdf(
+    summary: MonthlySummary,
+    *,
+    brand: Brand,
+    generated_at: datetime,
+    generated_by: str,
+    code: str | None = None,
+) -> bytes:
+    """Aylık tek sayfa özet (FR-1220): toplam sayaçlar + şube kırılımı.
+
+    Şube sıralaması ekranla aynı: zamanındalığı en düşük önce
+    (`MonthlySummary.worst_branches`). Denetim konuşması oradan
+    başlıyor, kâğıt da oradan başlasın.
+    """
+    stil = _stiller()
+    sayac = summary.counters
+    kod = code or monthly_code(summary, brand=brand)
 
     ic: list[Flowable] = _baslik_blogu(
         stil,
@@ -430,7 +473,7 @@ def monthly_pdf(
             )
         )
 
-    ic.extend(_dipnot(stil))
+    ic.extend(_dipnot(stil, chained=code is not None))
     return _uret(ic, brand=brand, kod=kod, generated_at=generated_at)
 
 
@@ -443,6 +486,7 @@ def measurements_pdf(
     branch_codes: Mapping[UUID, str],
     generated_at: datetime,
     generated_by: str,
+    code: str | None = None,
 ) -> bytes:
     """Dönem PDF'i: ölçüm günlüğü biçimi (FR-1214, FR-1207).
 
@@ -451,18 +495,7 @@ def measurements_pdf(
     **kelimeyle** işaretli: fotokopide renk kayboluyor.
     """
     stil = _stiller()
-    kod = document_code(
-        [
-            "olcum",
-            brand.name,
-            first_day,
-            last_day,
-            *[
-                (s.item_id, len(s.points), s.out_of_range_count, *[n.value for n in s.points])
-                for s in series
-            ],
-        ]
-    )
+    kod = code or measurements_code(series, brand=brand, first_day=first_day, last_day=last_day)
 
     ic: list[Flowable] = _baslik_blogu(
         stil,
@@ -482,7 +515,7 @@ def measurements_pdf(
                 stil["govde"],
             )
         )
-        ic.extend(_dipnot(stil))
+        ic.extend(_dipnot(stil, chained=code is not None))
         return _uret(ic, brand=brand, kod=kod, generated_at=generated_at)
 
     for seri in series:
@@ -522,7 +555,7 @@ def measurements_pdf(
         )
         ic.append(Spacer(1, 6))
 
-    ic.extend(_dipnot(stil))
+    ic.extend(_dipnot(stil, chained=code is not None))
     return _uret(ic, brand=brand, kod=kod, generated_at=generated_at)
 
 

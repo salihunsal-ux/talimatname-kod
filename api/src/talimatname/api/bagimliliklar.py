@@ -16,6 +16,7 @@ from functools import lru_cache
 from talimatname.infra.memory import (
     MemoryActionRepository,
     MemoryAnswerRepository,
+    MemoryAuditRepository,
     MemoryEvidenceRepository,
     MemoryNotificationRepository,
     MemoryOrganizationRepository,
@@ -25,6 +26,7 @@ from talimatname.infra.memory import (
     MemoryUserRepository,
 )
 from talimatname.services.actions import ActionRepository, ActionService
+from talimatname.services.audit import AuditRepository, AuditService
 from talimatname.services.auth import AuthService
 from talimatname.services.dashboard import DashboardService
 from talimatname.services.digest import DigestService
@@ -157,6 +159,21 @@ def _kanit_deposu() -> EvidenceRepository:
 
 
 @lru_cache
+def _izi_deposu() -> AuditRepository:
+    if sql_modu():
+        from talimatname.infra.db.adapters import SqlAuditRepository
+
+        return SqlAuditRepository(_kiraci())  # type: ignore[arg-type,return-value]
+    return MemoryAuditRepository()  # type: ignore[return-value]
+
+
+@lru_cache
+def izi_servisi() -> AuditService:
+    """Olay günlüğü (FR-1301). Tek örnek: zincirin başı tek yerden okunur."""
+    return AuditService(_izi_deposu())
+
+
+@lru_cache
 def _ayar_deposu() -> SettingsRepository:
     if sql_modu():
         from talimatname.infra.db.adapters import SqlSettingsRepository
@@ -286,6 +303,7 @@ def yurutme_servisi() -> ExecutionService:
         _sablon_deposu(),
         _aksiyon_deposu(),
         verified_evidence=lambda run_id: kanit_servisi().verified_counts(run_id),
+        audit=izi_servisi(),
     )
 
 
@@ -298,6 +316,7 @@ def kanit_servisi() -> EvidenceService:
         _nesne_deposu(),
         _kullanici_deposu(),
         settings=ayarlar(),
+        audit=izi_servisi(),
     )
 
 
@@ -357,6 +376,8 @@ _ONBELLEKLER = (
     _aksiyon_deposu,
     _bildirim_deposu,
     _kanit_deposu,
+    _izi_deposu,
+    izi_servisi,
     _ayar_deposu,
     _nesne_deposu,
     _kimlik_servisi,

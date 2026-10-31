@@ -40,6 +40,7 @@ from talimatname.domain.evidence import (
     stamp_text,
     storage_key,
 )
+from talimatname.services.audit import AuditService
 from talimatname.services.imaging import FontMissing, find_font, stamp, thumbnail
 from talimatname.services.organization import OrganizationRepository
 from talimatname.services.plans import PlanRepository
@@ -139,6 +140,7 @@ class EvidenceService:
         users: UserRepository | None = None,
         *,
         settings: Settings | None = None,
+        audit: AuditService | None = None,
         now: Callable[[], datetime] = lambda: datetime.now(UTC),
     ) -> None:
         self._repo = repo
@@ -147,6 +149,9 @@ class EvidenceService:
         self._store = store
         self._kullanicilar = users
         self._ayar = settings or get_settings()
+        #: Olay günlüğü isteğe bağlı: alan testleri ve betikler
+        #: zincir kurmadan kanıt servisini kullanabilsin (FR-1301).
+        self._izi = audit
         self._now = now
         #: Açılamayan dosyalar: her turda yeniden denemek günlüğü boğar
         #: ve hiçbir şey değiştirmez. Süreç içinde tutuluyor — yeniden
@@ -245,6 +250,15 @@ class EvidenceService:
                 onceki=str(ayni.id),
                 kullanici=str(user_id) if user_id else None,
             )
+            # FR-0614 bunu **açıkça** istiyor: deneme olay günlüğüne
+            # yazılır. Denetimde "aynı fotoğrafı iki kez gönderdiler mi"
+            # sorusunun cevabı burada.
+            self._kaydet(
+                "kanit.tekrar_denemesi",
+                object_type="kanit",
+                object_id=ayni.id,
+                after={"calistirma": str(run_id), "ozet": ozet[:12]},
+            )
             raise DuplicateEvidence(f"Aynı dosya daha önce yüklendi: {ayni.id}")
 
         if len([k for k in self.for_answer(answer_id) if k.item_id == item_id]) >= MAX_PER_ITEM:
@@ -340,7 +354,22 @@ class EvidenceService:
 
         tamam = kanit.stored(an)
         self._repo.save_evidence(tamam)
+        self._kaydet(
+            "kanit.alindi",
+            object_type="kanit",
+            object_id=tamam.id,
+            after={
+                "calistirma": str(tamam.run_id),
+                "ozet": tamam.sha256[:12],
+                "bayraklar": ",".join(tamam.flags) or "-",
+            },
+        )
         return tamam
+
+    def _kaydet(self, tur: str, **alanlar: object) -> None:
+        """Olay günlüğü bağlıysa yazar. Bağlı değilse sessiz geçer."""
+        if self._izi is not None:
+            self._izi.record(tur, **alanlar)  # type: ignore[arg-type]
 
     # --- bekleyen kanıt süpürücüsü -------------------------------------
 
@@ -385,6 +414,13 @@ class EvidenceService:
                 self._store.delete(kanit.storage_key)
             self._repo.delete_evidence(kanit.id)
             sayac["silinen"] += 1
+            self._kaydet(
+                "kanit.supuruldu",
+                object_type="kanit",
+                object_id=kanit.id,
+                before={"durum": "pending", "ozet": kanit.sha256[:12]},
+                after={"durum": "silindi"},
+            )
             log.info(
                 "kanit.supuruldu_silindi",
                 kanit=str(kanit.id),

@@ -16,9 +16,11 @@ from typing import Any
 from uuid import UUID, uuid5
 
 from sqlalchemy import delete, select
+from sqlalchemy.exc import IntegrityError
 
 from talimatname.domain.actions import Action
 from talimatname.domain.answers import Answer, RunLock
+from talimatname.domain.audit import AuditEvent, SequenceTaken
 from talimatname.domain.evidence import Evidence
 from talimatname.domain.notifications import Notification
 from talimatname.domain.organization import Branch, Region, Station
@@ -829,9 +831,87 @@ class SqlEvidenceRepository(_TenantRepository):
                 o.delete(satir)
 
 
+def _olay(satir: m.AuditEvent) -> AuditEvent:
+    return AuditEvent(
+        id=satir.id,
+        sequence=satir.sequence,
+        event_type=satir.event_type,
+        at=satir.at,
+        object_type=satir.object_type,
+        object_id=satir.object_id,
+        actor_id=satir.actor_id,
+        ip=satir.ip,
+        device=satir.device,
+        before=dict(satir.before or {}),
+        after=dict(satir.after or {}),
+        prev_hash=satir.prev_hash,
+        hash=satir.hash,
+    )
+
+
+class SqlAuditRepository(_TenantRepository):
+    """`AuditRepository` portunun SQL karşılığı (FR-1301).
+
+    Güncelleme ve silme yöntemi **yok**: veritabanı yetkisi de
+    vermiyor (göç 0006). İki yerde birden korumak fazlalık değil;
+    biri niyeti, öbürü güvenceyi anlatıyor.
+    """
+
+    def append(self, event: AuditEvent) -> None:
+        try:
+            with tenant_session(self._tenant) as o:
+                o.add(
+                    m.AuditEvent(
+                        id=event.id,
+                        tenant_id=self._tenant,
+                        sequence=event.sequence,
+                        event_type=event.event_type,
+                        at=event.at,
+                        object_type=event.object_type,
+                        object_id=event.object_id,
+                        actor_id=event.actor_id,
+                        ip=event.ip,
+                        device=event.device,
+                        before=dict(event.before),
+                        after=dict(event.after),
+                        prev_hash=event.prev_hash,
+                        hash=event.hash,
+                    )
+                )
+        except IntegrityError as hata:
+            # (kiraci, sira) tekil: başka bir yazma aynı halkayı almış.
+            raise SequenceTaken(f"sıra: {event.sequence}") from hata
+
+    def head(self) -> AuditEvent | None:
+        with tenant_session(self._tenant) as o:
+            satir = o.scalars(
+                select(m.AuditEvent).order_by(m.AuditEvent.sequence.desc()).limit(1)
+            ).first()
+            return _olay(satir) if satir else None
+
+    def events(
+        self,
+        *,
+        object_id: UUID | None = None,
+        since: datetime | None = None,
+        until: datetime | None = None,
+        limit: int = 200,
+    ) -> list[AuditEvent]:
+        sorgu = select(m.AuditEvent).order_by(m.AuditEvent.sequence).limit(limit)
+        if object_id is not None:
+            sorgu = sorgu.where(m.AuditEvent.object_id == object_id)
+        if since is not None:
+            sorgu = sorgu.where(m.AuditEvent.at >= since)
+        if until is not None:
+            sorgu = sorgu.where(m.AuditEvent.at <= until)
+        with tenant_session(self._tenant) as o:
+            return [_olay(k) for k in o.scalars(sorgu).all()]
+
+
 __all__ = [
     "SqlActionRepository",
     "SqlAnswerRepository",
+    "SqlAuditRepository",
     "SqlEvidenceRepository",
     "SqlNotificationRepository",
     "SqlOrganizationRepository",

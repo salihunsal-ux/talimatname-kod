@@ -17,6 +17,7 @@ from uuid import UUID, uuid5
 
 from talimatname.domain.actions import Action
 from talimatname.domain.answers import Answer, RunLock
+from talimatname.domain.audit import AuditEvent, SequenceTaken
 from talimatname.domain.evidence import Evidence
 from talimatname.domain.notifications import Notification
 from talimatname.domain.organization import Branch, Region, Station, uniform_hours
@@ -612,3 +613,41 @@ class MemoryAnswerRepository:
             self._locks.pop(run_id, None)
         else:
             self._locks[run_id] = lock
+
+
+class MemoryAuditRepository:
+    """`AuditRepository` portunun bellek içi karşılığı (FR-1301).
+
+    Liste **yalnızca büyür**: güncelleme ve silme yöntemi yok, tıpkı
+    SQL karşılığındaki yetkiler gibi. Testler zinciri kırmak için
+    kaydı değiştiremesin diye değil — değiştirmek istediklerinde
+    `services.audit.tampered` ile açıkça yapsınlar diye.
+    """
+
+    def __init__(self) -> None:
+        self._events: list[AuditEvent] = []
+
+    def append(self, event: AuditEvent) -> None:
+        if any(o.sequence == event.sequence for o in self._events):
+            raise SequenceTaken(f"sıra: {event.sequence}")
+        self._events.append(event)
+
+    def head(self) -> AuditEvent | None:
+        return self._events[-1] if self._events else None
+
+    def events(
+        self,
+        *,
+        object_id: UUID | None = None,
+        since: datetime | None = None,
+        until: datetime | None = None,
+        limit: int = 200,
+    ) -> list[AuditEvent]:
+        secilen = [
+            o
+            for o in self._events
+            if (object_id is None or o.object_id == object_id)
+            and (since is None or o.at >= since)
+            and (until is None or o.at <= until)
+        ]
+        return sorted(secilen, key=lambda o: o.sequence)[:limit]

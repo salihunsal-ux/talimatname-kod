@@ -26,6 +26,7 @@ from fastapi import APIRouter, Depends, Query, Response
 from pydantic import BaseModel, Field
 
 from talimatname.api.bagimliliklar import (
+    izi_servisi,
     kurulum_servisi,
     organizasyon_servisi,
     rapor_servisi,
@@ -33,8 +34,15 @@ from talimatname.api.bagimliliklar import (
 from talimatname.api.guvenlik import Kullanici, erisilebilir_sube_idleri
 from talimatname.domain.evidence import FLAG_LABELS
 from talimatname.domain.reports import Counters, MonthlySummary
+from talimatname.services.audit import AuditService
 from talimatname.services.organization import OrganizationService
-from talimatname.services.pdf import Brand, measurements_pdf, monthly_pdf
+from talimatname.services.pdf import (
+    Brand,
+    measurements_code,
+    measurements_pdf,
+    monthly_code,
+    monthly_pdf,
+)
 from talimatname.services.reports import MeasurementSeries, ReportService
 from talimatname.services.setup import SetupService
 
@@ -43,6 +51,7 @@ router = APIRouter(tags=["rapor"])
 Servis = Annotated[ReportService, Depends(rapor_servisi)]
 OrgServis = Annotated[OrganizationService, Depends(organizasyon_servisi)]
 KurulumServis = Annotated[SetupService, Depends(kurulum_servisi)]
+Iz = Annotated[AuditService, Depends(izi_servisi)]
 
 AY_ADLARI = (
     "Ocak",
@@ -279,6 +288,28 @@ def _sube_kodlari(org: OrgServis) -> dict[UUID, str]:
     }
 
 
+def _belge_kodu(iz: Iz, *, tur: str, donem: str, icerik_kodu: str) -> str | None:
+    """Raporu olay günlüğüne yazar ve kâğıttaki kodu döner (FR-1218).
+
+    Kâğıttaki kod, **olayın zincir özeti**: doğrulama sayfası koda
+    göre kaydı bulacak (v1.x). Kaydın içinde raporun içerik kodu da
+    duruyor, böylece "hangi veri dökülmüş" sorusu da cevaplanıyor.
+
+    Günlük yazılamazsa None dönüyor: rapor yine üretiliyor ama
+    kâğıtta kodun zincire bağlı **olmadığı** yazıyor. Bağlıymış gibi
+    yazmak, olmayan bir güvence vermek olurdu.
+    """
+    olay = iz.record(
+        "rapor.uretildi",
+        object_type="rapor",
+        after={"tur": tur, "donem": donem, "icerik": icerik_kodu},
+    )
+    if olay is None:
+        return None
+    ozet = olay.hash[:12].upper()
+    return f"{ozet[:4]}-{ozet[4:8]}-{ozet[8:]}"
+
+
 def _pdf(icerik: bytes, *, dosya_adi: str) -> Response:
     return Response(
         content=icerik,
@@ -297,16 +328,25 @@ def aylik_ozet_pdf(
     servis: Servis,
     org: OrgServis,
     kurulum: KurulumServis,
+    iz: Iz,
     kullanici: Kullanici,
     year: Annotated[int, Query(ge=2020, le=2100)],
     month: Annotated[int, Query(ge=1, le=12)],
 ) -> Response:
     ozet = servis.monthly(year, month, branch_ids=erisilebilir_sube_idleri(kullanici, org))
+    marka = _marka(kurulum)
+    kod = _belge_kodu(
+        iz,
+        tur="aylik-ozet",
+        donem=f"{year}-{month:02d}",
+        icerik_kodu=monthly_code(ozet, brand=marka),
+    )
     icerik = monthly_pdf(
         ozet,
-        brand=_marka(kurulum),
+        brand=marka,
         generated_at=datetime.now(UTC),
         generated_by=kullanici.full_name,
+        code=kod,
     )
     return _pdf(icerik, dosya_adi=f"talimatname-{year}-{month:02d}-aylik-ozet.pdf")
 
@@ -321,6 +361,7 @@ def olcum_gunlugu_pdf(
     servis: Servis,
     org: OrgServis,
     kurulum: KurulumServis,
+    iz: Iz,
     kullanici: Kullanici,
     first_day: date,
     last_day: date,
@@ -333,14 +374,22 @@ def olcum_gunlugu_pdf(
         branch_ids=erisilebilir_sube_idleri(kullanici, org),
         only_out_of_range=only_out_of_range,
     )
+    marka = _marka(kurulum)
+    kod = _belge_kodu(
+        iz,
+        tur="olcum-gunlugu",
+        donem=f"{first_day:%Y-%m-%d}/{last_day:%Y-%m-%d}",
+        icerik_kodu=measurements_code(seriler, brand=marka, first_day=first_day, last_day=last_day),
+    )
     icerik = measurements_pdf(
         seriler,
-        brand=_marka(kurulum),
+        brand=marka,
         first_day=first_day,
         last_day=last_day,
         branch_codes=_sube_kodlari(org),
         generated_at=datetime.now(UTC),
         generated_by=kullanici.full_name,
+        code=kod,
     )
     return _pdf(
         icerik,

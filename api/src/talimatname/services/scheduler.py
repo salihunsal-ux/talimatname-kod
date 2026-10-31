@@ -33,6 +33,7 @@ from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 
 from talimatname.services.actions import ActionService
+from talimatname.services.audit import RequestContext, using_context
 from talimatname.services.digest import DigestService
 from talimatname.services.escalation import EscalationService
 from talimatname.services.evidence import EvidenceService
@@ -105,6 +106,18 @@ class SchedulerService:
         self._now = now
 
     def tick(self, *, days: int = HORIZON_DAYS) -> TickResult:
+        """Bir tur. Olay günlüğüne **bağlamsız** yazar (FR-1301).
+
+        Tur işi arka plandadır: üretimde ayrı süreçte koşar, IP'si ve
+        cihazı yoktur. Geliştirmede ilk istekle, panelde elle de
+        tetiklenebiliyor; o isteğin IP'sini süpürülen kanıdın yanına
+        yazmak "bu kullanıcı sildi" gibi okunurdu. Tur kimin
+        tetiklediğinden bağımsız aynı kaydı bıraksın.
+        """
+        with using_context(RequestContext()):
+            return self._tur(days=days)
+
+    def _tur(self, *, days: int = HORIZON_DAYS) -> TickResult:
         an = self._now()
         eklenen, silinen = self._plans.generate_all(days=days)
         kacirilan = self.close_expired(an)

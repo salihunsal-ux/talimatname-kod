@@ -33,6 +33,7 @@ from talimatname.domain.plans import Run
 from talimatname.domain.scoring import evaluate
 from talimatname.domain.templates import TemplateVersion
 from talimatname.services.actions import ActionRepository
+from talimatname.services.audit import AuditService
 from talimatname.services.plans import PlanRepository
 from talimatname.services.templates import TemplateRepository
 
@@ -109,6 +110,7 @@ class ExecutionService:
         actions: ActionRepository | None = None,
         *,
         verified_evidence: Callable[[UUID], dict[UUID, int]] | None = None,
+        audit: AuditService | None = None,
         now: Callable[[], datetime] = lambda: datetime.now(UTC),
     ) -> None:
         self._answers = answers
@@ -116,6 +118,9 @@ class ExecutionService:
         self._templates = templates
         self._actions = actions
         self._verified = verified_evidence
+        #: Olay günlüğü isteğe bağlı: alan testleri zincir kurmadan
+        #: yürütme servisini kullanabilsin (FR-1301).
+        self._izi = audit
         self._now = now
 
     # --- okuma -------------------------------------------------------
@@ -227,6 +232,19 @@ class ExecutionService:
         self._plans.save_run(gonderilen)
         self._answers.save_lock(run_id, None)
         self._kritik_aksiyonlar(run, surum, degerlendirme.failed_critical_items, an)
+        if self._izi is not None:
+            self._izi.record(
+                "calistirma.gonderildi",
+                object_type="calistirma",
+                object_id=run_id,
+                before={"durum": run.status},
+                after={
+                    "durum": "submitted",
+                    "sonuc": degerlendirme.result,
+                    "puan": str(degerlendirme.score_percent),
+                    "basarisiz_kritik": str(len(degerlendirme.failed_critical_items)),
+                },
+            )
         return gonderilen
 
     def _kritik_aksiyonlar(

@@ -13,9 +13,10 @@ from uuid import UUID, uuid4, uuid5
 
 import pytest
 from sqlalchemy import text
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, ProgrammingError
 
 from talimatname.domain.answers import Answer
+from talimatname.domain.audit import GENESIS, AuditEvent, SequenceTaken, sealed
 from talimatname.domain.evidence import Evidence
 from talimatname.domain.notifications import Notification
 from talimatname.domain.organization import Branch, uniform_hours
@@ -36,6 +37,7 @@ if get_settings().database_url is None:  # pragma: no cover - ortam bağımlı
 
 from talimatname.infra.db.adapters import (  # noqa: E402
     SqlAnswerRepository,
+    SqlAuditRepository,
     SqlEvidenceRepository,
     SqlNotificationRepository,
     SqlOrganizationRepository,
@@ -43,8 +45,13 @@ from talimatname.infra.db.adapters import (  # noqa: E402
     SqlTemplateRepository,
     SqlUserRepository,
 )
-from talimatname.infra.db.session import APP_ROLE, create_db_engine  # noqa: E402
+from talimatname.infra.db.session import (  # noqa: E402
+    APP_ROLE,
+    create_db_engine,
+    tenant_session,
+)
 from talimatname.seed import DEV_TENANT  # noqa: E402
+from talimatname.services.audit import AuditService  # noqa: E402
 
 AD_ALANI = UUID("9f2b7c41-5d6e-4a83-9c17-2e4b8a6d3f55")
 A_KIRACI = uuid5(AD_ALANI, "test:kiraci-a")
@@ -456,6 +463,75 @@ def test_supurulecek_bekleyenler_veritabaninda_suzuluyor(iki_kiraci: object) -> 
     gelen = depo.pending_evidences(an - timedelta(days=7), 10)
 
     assert [k.id for k in gelen] == [eski.id]
+
+
+# --- olay günlüğü (FR-1301; TC-100) -----------------------------------
+
+
+def _olay(sira: int, prev: str, **ek: object) -> AuditEvent:
+    temel = AuditEvent(
+        id=uuid4(),
+        sequence=sira,
+        event_type="oturum.acildi",
+        at=datetime.now(UTC),
+        object_type="kullanici",
+        prev_hash=prev,
+    )
+    return sealed(replace(temel, **ek))  # type: ignore[arg-type]
+
+
+def test_olay_gunlugu_gidip_geliyor(iki_kiraci: object) -> None:
+    depo = SqlAuditRepository(A_KIRACI)
+    bir = _olay(1, GENESIS, ip="198.51.100.7", device="iPhone", after={"roller": "admin"})
+    depo.append(bir)
+    iki = _olay(2, bir.hash, event_type="kanit.alindi", object_type="kanit")
+    depo.append(iki)
+
+    gelen = depo.events(limit=10)
+
+    assert [o.sequence for o in gelen] == [1, 2]
+    assert gelen[0].ip == "198.51.100.7"
+    assert gelen[0].after == {"roller": "admin"}
+    assert depo.head() is not None
+    assert depo.head().hash == iki.hash  # type: ignore[union-attr]
+    assert AuditService(depo).verify().intact
+
+
+def test_ayni_sira_veritabaninda_da_engelleniyor(iki_kiraci: object) -> None:
+    """Zincir çatallanamaz: (kiracı, sıra) tekil.
+
+    İki istek aynı anda yazarsa ikincisi burada durur ve servis
+    yeni başı okuyup tekrar dener.
+    """
+    depo = SqlAuditRepository(A_KIRACI)
+    depo.append(_olay(1, GENESIS))
+
+    with pytest.raises(SequenceTaken):
+        depo.append(_olay(1, GENESIS))
+
+
+def test_tc100_uygulama_rolu_gunlugu_degistiremez(iki_kiraci: object) -> None:
+    """TC-100: veritabanı rolünün UPDATE/DELETE yetkisi **yok**.
+
+    Kodda silme yöntemi bulunmaması niyeti anlatır; yetkinin
+    olmaması güvenceyi. Uygulamada bir açık bulan da günlüğü
+    düzeltemesin diye ikisi birden var.
+    """
+    SqlAuditRepository(A_KIRACI).append(_olay(1, GENESIS))
+
+    with tenant_session(A_KIRACI) as o, pytest.raises(ProgrammingError, match="permission denied"):
+        o.execute(text("UPDATE audit_event SET hash = 'x'"))
+    with tenant_session(A_KIRACI) as o, pytest.raises(ProgrammingError, match="permission denied"):
+        o.execute(text("DELETE FROM audit_event"))
+
+
+def test_olay_gunlugu_kiracilar_arasinda_yalitik(iki_kiraci: object) -> None:
+    SqlAuditRepository(A_KIRACI).append(_olay(1, GENESIS))
+    SqlAuditRepository(B_KIRACI).append(_olay(1, GENESIS))
+
+    assert len(SqlAuditRepository(A_KIRACI).events(limit=10)) == 1
+    assert len(SqlAuditRepository(B_KIRACI).events(limit=10)) == 1
+    # Aynı sıra numarası iki kiracıda serbest: zincir hesap başına.
 
 
 def test_toplu_calistirma_yazma_tek_islemde(iki_kiraci: object) -> None:

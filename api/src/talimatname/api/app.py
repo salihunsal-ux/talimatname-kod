@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 import logging
-from typing import Literal
+from typing import Any, Literal
 
 import structlog
-from fastapi import APIRouter, FastAPI
+from fastapi import APIRouter, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -28,6 +28,7 @@ from talimatname.api.routers import (
     templates,
     users,
 )
+from talimatname.services.audit import RequestContext, using_context
 from talimatname.settings import Settings, get_settings
 
 API_PREFIX = "/api/v1"
@@ -118,6 +119,37 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
             allow_headers=["Authorization", "Content-Type", "Idempotency-Key"],
         )
+
+    @app.middleware("http")
+    async def izi_baglami(request: Request, sonraki: Any) -> Any:
+        """Olay günlüğünün "nereden" kısmı (FR-1301).
+
+        Burada kuruluyor çünkü IP ve cihaz yalnızca HTTP katmanında
+        biliniyor; olayı yazan yer ise servisin derinliği. Aktör
+        henüz belli değil — belirteç çözüldüğünde ekleniyor
+        (`guvenlik.gecerli_kullanici`).
+        """
+        with using_context(RequestContext(ip=_istemci_ip(request), device=_cihaz(request))):
+            return await sonraki(request)
+
     register_error_handlers(app)
     app.include_router(build_router(settings))
     return app
+
+
+def _istemci_ip(request: Request) -> str | None:
+    """Ters vekil arkasında gerçek istemci `X-Forwarded-For`un başında.
+
+    Başlık **istemciden** gelebildiği için tek başına delil değil;
+    günlüğe "istemcinin söylediği" olarak giriyor ve bu yüzden
+    doğrulamada tek dayanak sayılmıyor.
+    """
+    iletilen = request.headers.get("x-forwarded-for")
+    if iletilen:
+        return iletilen.split(",")[0].strip()[:45] or None
+    return request.client.host if request.client else None
+
+
+def _cihaz(request: Request) -> str | None:
+    ajan = request.headers.get("user-agent")
+    return ajan[:120] if ajan else None

@@ -8,20 +8,24 @@ yer almaz; o aşamada SMS sürücüsü (ST-067) devreye girer.
 
 from __future__ import annotations
 
+from dataclasses import replace
 from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 
-from talimatname.api.bagimliliklar import kimlik_servisi
+from talimatname.api.bagimliliklar import izi_servisi, kimlik_servisi
 from talimatname.api.guvenlik import Kullanici
+from talimatname.domain.errors import DomainError
 from talimatname.domain.users import ROLE_LABELS
+from talimatname.services.audit import AuditService, current_context
 from talimatname.services.auth import AuthService
 
 router = APIRouter(tags=["oturum"])
 
 Servis = Annotated[AuthService, Depends(kimlik_servisi)]
+Iz = Annotated[AuditService, Depends(izi_servisi)]
 
 
 class KodIstegi(BaseModel):
@@ -91,8 +95,31 @@ def kod_iste(girdi: KodIstegi, servis: Servis) -> KodYaniti:
 
 
 @router.post("/auth/verify", summary="Kodu doğrula ve oturum aç")
-def kod_dogrula(girdi: DogrulamaIstegi, servis: Servis) -> OturumYaniti:
-    kullanici, belirtec = servis.verify_code(girdi.phone, girdi.code)
+def kod_dogrula(girdi: DogrulamaIstegi, servis: Servis, iz: Iz) -> OturumYaniti:
+    """Başarılı da başarısız da olay günlüğüne yazılır (FR-1301).
+
+    Reddedilen deneme, başarılı oturum kadar önemli: denetimde "kim
+    girmeye çalıştı" sorusunun cevabı orada. Telefon numarası
+    yazılmıyor — kişisel veri, üstelik kayıt kullanıcı kimliğiyle
+    zaten bağlanabiliyor (BR-21).
+    """
+    try:
+        kullanici, belirtec = servis.verify_code(girdi.phone, girdi.code)
+    except DomainError as hata:
+        iz.record(
+            "oturum.reddedildi",
+            object_type="kullanici",
+            after={"sebep": hata.code},
+        )
+        raise
+
+    iz.record(
+        "oturum.acildi",
+        object_type="kullanici",
+        object_id=kullanici.id,
+        context=replace(current_context(), actor_id=kullanici.id),
+        after={"roller": ",".join(a.role for a in kullanici.assignments) or "-"},
+    )
     from talimatname.settings import get_settings
 
     return OturumYaniti(

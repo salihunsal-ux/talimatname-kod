@@ -48,6 +48,24 @@ cd api
 
 İş **idempotenttir**: ikinci tur ne ekler ne siler. Üretimde döngü yerine sistem zamanlayıcısı `--once` ile çağırabilir. Geliştirmede zamanlayıcı süreci açık değilse panel ilk istekte bir tur atar (`api/bagimliliklar.py`), böylece pano boş kalmaz. `POST /api/v1/scheduler/tick` turu elle tetikler.
 
+
+### Olay günlüğü ve zincir doğrulama
+
+Her olay bir öncekinin SHA-256 özetini taşır (FR-1301): bir kayıt sonradan değişirse özeti tutmaz ve kırılma noktası bulunur. Tablo **ekle-yalnız** — uygulama rolünün `UPDATE`/`DELETE` yetkisi yok (göç 0006) ve depo portunda böyle bir yöntem de yok.
+
+```bash
+cd api
+./.venv/Scripts/python.exe -m talimatname.izi_dogrula              # tüm günlük
+./.venv/Scripts/python.exe -m talimatname.izi_dogrula --gun 30     # son 30 gün
+./.venv/Scripts/python.exe -m talimatname.izi_dogrula --nesne <id> # bir kaydın izi
+```
+
+Çıkış kodu 0 zincirin bütün olduğunu, 1 kırılma bulunduğunu söyler (FR-1304). Komut yalnızca okur: onarılmış bir denetim izi, denetim izi değildir.
+
+**Zincirin sınırı:** hash zinciri kayıtları *tek tek* değiştirmeyi görünür kılar. Veritabanına yazma yetkisi olan birinin zinciri baştan hesaplamasını engellemez — onu ancak dışarıya çıpalanmış günlük kökü durdurur (RFC 3161, FR-1302, v1.1). Ürün bu yüzden "değiştirilemez" demiyor, **"değişiklik görünür"** diyor.
+
+Rapor PDF'lerindeki belge kodu bu zincire bağlı (FR-1218): kod, raporun üretildiği anın olay kaydının özeti. Günlüğe yazılamazsa kâğıtta kodun zincire bağlı olmadığı yazar.
+
 ### Panel
 
 ```bash
