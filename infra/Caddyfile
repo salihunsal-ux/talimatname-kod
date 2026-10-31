@@ -1,0 +1,37 @@
+# Panelin ve API'nin tek giriş kapısı.
+#
+# `SITE_ADRESI` bir alan adıysa Caddy sertifikayı kendi alır ve yeniler
+# (Let's Encrypt). Yerelde `:8080` verilir, sertifika devreye girmez.
+#
+# Panel ile API **aynı kaynakta**: `/api` buradan arkaya aktarılıyor.
+# Böylece tarayıcı açısından tek site var — CORS dağıtımda devreye
+# girmiyor ve imzalı kanıt bağlantıları (göreli adresler) çalışıyor.
+
+{$SITE_ADRESI::8080} {
+	encode gzip
+
+	handle /api/* {
+		reverse_proxy {$API_ADRESI:api:8000}
+	}
+
+	handle {
+		root * /srv
+		# Tek sayfa uygulaması: bilinmeyen yol index.html'e düşer,
+		# yoksa tarayıcıdan yenilemede 404 alınır.
+		try_files {path} /index.html
+		file_server
+	}
+
+	header {
+		# Panel kendi kaynağından çalışıyor; dışarıdan gömülmesin.
+		X-Frame-Options "DENY"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "same-origin"
+		-Server
+	}
+
+	log {
+		output stdout
+		format console
+	}
+}

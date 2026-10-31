@@ -21,6 +21,9 @@ dependencies = [
   "openpyxl>=3.1",
   # Dosya yükleme (multipart): Excel içe aktarma uç noktaları ister.
   "python-multipart>=0.0.9",
+  # S3 uyumlu nesne depolama (ADR-0012 md.4). Sağlayıcıya özel SDK
+  # değil: MinIO, Turkcell nDepo, AWS — hepsi aynı API.
+  "boto3>=1.35",
 ]
 
 [project.optional-dependencies]
@@ -35,6 +38,9 @@ dev = [
   "types-python-dateutil>=2.9",
   # openpyxl tip bilgisi paketle gelmiyor (pillow'un aksine).
   "types-openpyxl>=3.1",
+  "boto3-stubs[s3]>=1.35",
+  # S3 adaptörünü kova olmadan sınamak için (CI'da MinIO kaldırmadan).
+  "moto[s3]>=5",
 ]
 
 [build-system]

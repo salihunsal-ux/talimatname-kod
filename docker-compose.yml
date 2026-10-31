@@ -1,0 +1,139 @@
+# Talimatname — tek makinede tam yığın (ADR-0012 md.4).
+#
+# Bu dosya hem geliştirme hem staging için: aradaki **tek fark ortam
+# değişkenleri**. Sağlayıcıya özel hiçbir hizmet yok — standart
+# PostgreSQL, S3 uyumlu depolama, Docker. Taşınabilirlik iddiası
+# böyle kanıtlanıyor; yazmakla değil, koşturmakla.
+#
+#   cp infra/.env.ornek .env && nano .env
+#   docker compose up -d --build
+#   docker compose run --rm goc           # göçler
+#   docker compose run --rm tohum         # örnek veri (yalnızca staging)
+#
+# Üretimde (Türkiye) `minio` kaldırılır ve OBJECT_STORE_* değerleri
+# sağlayıcının kovasını gösterir; başka değişiklik gerekmiyor.
+
+name: talimatname
+
+x-api-ortam: &api-ortam
+  ENVIRONMENT: ${ENVIRONMENT:-staging}
+  LOG_LEVEL: ${LOG_LEVEL:-INFO}
+  DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-talimatname_owner}:${POSTGRES_PASSWORD:?parola gerekli}@postgres:5432/${POSTGRES_DB:-talimatname}
+  JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY:?anahtar gerekli}
+  JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:?anahtar gerekli}
+  OBJECT_STORE_ENDPOINT: ${OBJECT_STORE_ENDPOINT:-http://minio:9000}
+  OBJECT_STORE_BUCKET: ${OBJECT_STORE_BUCKET:-talimatname-kanit}
+  OBJECT_STORE_ACCESS_KEY: ${OBJECT_STORE_ACCESS_KEY:-talimatname}
+  OBJECT_STORE_SECRET_KEY: ${OBJECT_STORE_SECRET_KEY:?parola gerekli}
+  CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8080}
+
+services:
+  postgres:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-talimatname_owner}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?parola gerekli}
+      POSTGRES_DB: ${POSTGRES_DB:-talimatname}
+    volumes:
+      - pg-veri:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-talimatname_owner} -d ${POSTGRES_DB:-talimatname}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # S3 uyumlu depolama. Üretimde yerine sağlayıcının kovası geçer;
+  # uygulama farkı görmez (ADR-0012 md.4).
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    command: server /veri --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${OBJECT_STORE_ACCESS_KEY:-talimatname}
+      MINIO_ROOT_PASSWORD: ${OBJECT_STORE_SECRET_KEY:?parola gerekli}
+    volumes:
+      - minio-veri:/veri
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # Göçler **ayrı ve elle**: uygulama açılışında otomatik göç, iki
+  # kapsayıcı aynı anda kalktığında yarışır ve geri alınamaz bir
+  # şemayı sessizce uygular (ADR-0014 md.11).
+  goc:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    environment: *api-ortam
+    command: ["alembic", "upgrade", "head"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    profiles: ["arac"]
+
+  tohum:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    environment: *api-ortam
+    command: ["python", "-m", "talimatname.seed"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    profiles: ["arac"]
+
+  api:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    restart: unless-stopped
+    environment: *api-ortam
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_started
+    expose:
+      - "8000"
+
+  # Zamanlayıcı ayrı süreç (01-teknik-mimari `SCH`): pencere açılışı,
+  # hatırlatma, eskalasyon, sabah özeti ve kanıt damgası bu döngüde.
+  # Ayakta değilse ürünün zamana bağlı yarısı çalışmaz.
+  zamanlayici:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    restart: unless-stopped
+    environment: *api-ortam
+    command: ["python", "-m", "talimatname.scheduler", "--interval", "60"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  web:
+    build:
+      context: .
+      dockerfile: web/Dockerfile
+    restart: unless-stopped
+    environment:
+      # Yerelde ":80" (sertifikasız). Alan adı yazılırsa Caddy
+      # sertifikayı kendi alır ve yeniler; o zaman WEB_PORT=80 ve
+      # WEB_TLS_PORT=443 verilir ki doğrulama trafiği ulaşsın.
+      SITE_ADRESI: ${SITE_ADRESI:-:80}
+    ports:
+      - "${WEB_PORT:-8080}:80"
+      - "${WEB_TLS_PORT:-8443}:443"
+    depends_on:
+      - api
+    volumes:
+      - caddy-veri:/data
+      - caddy-yapilandirma:/config
+
+volumes:
+  pg-veri:
+  minio-veri:
+  caddy-veri:
+  caddy-yapilandirma:

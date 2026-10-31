@@ -4583,7 +4583,7 @@
           "object_store_configured": {
             "type": "boolean",
             "title": "Object Store Configured",
-            "description": "Nesne depolama uç noktası tanımlı mı"
+            "description": "Nesne depolama **tam** yapılandırılmış mı (uç nokta, kova, anahtarlar)"
           }
         },
         "type": "object",

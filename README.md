@@ -270,6 +270,27 @@ Kuyruk sınırlarını (500 kanıt / 72 saat, FR-0706) sunucu **söyler**, cihaz
 
 **Yazma yolu ayrı değil:** senk cevabı `ExecutionService`e, kanıtı `EvidenceService`e indirir. Senk için ikinci bir yazma yolu yazmak, iki yolun kurallarının zamanla ayrışması demekti.
 
+## Dağıtım: tek makinede tam yığın
+
+```bash
+cp infra/.env.ornek .env     # dört değer: iki parola, iki anahtar
+docker compose build
+docker compose run --rm goc  # şema
+docker compose up -d
+```
+
+Ayrıntı: [infra/dagitim.md](infra/dagitim.md).
+
+**Sağlayıcıdan bağımsız** (ADR-0012 md.4): standart PostgreSQL, S3 uyumlu kova, Docker. Türkiye'deki üretime geçerken değişen şey kod değil, beş ortam değişkeni — `minio` servisi çıkar, `OBJECT_STORE_*` sağlayıcının kovasını gösterir, `ENVIRONMENT=prod` ayarların katı kontrollerini açar (anahtarlar, veritabanı ve kova zorunlu olur; eksikse uygulama **açılmaz**).
+
+**Zamanlayıcı ayrı bir servis ve kapatılamaz.** Pencere açılışı, hatırlatma, eskalasyon, sabah özeti ve kanıt damgası orada: ayakta değilse ürünün zamana bağlı yarısı çalışmıyor demektir. Uykuya geçen ücretsiz katmanlar bu yüzden uygun değil.
+
+**Göç elle ve ayrı** (`docker compose run --rm goc`): açılışta otomatik göç, iki kapsayıcı aynı anda kalktığında yarışır ve geri alınamaz bir şemayı sessizce uygular.
+
+**Yazı tipi imajın içinde.** Damga Türkçe harf çiziyor ve Pillow'un gömülü yazı tipinde ş, ğ, İ yok; ince bir imajda damga sessizce basılmaz hâle gelirdi.
+
+**Doğrulama CI'da, bu makinede değil.** Her commit'te temiz bir koşucu imajları kuruyor, yığını kaldırıyor, göçü koşuyor, `/health`'in veritabanını ve kovayı gördüğünü, panelin açıldığını, zamanlayıcının tur attığını ve kanıtın gerçekten kovaya yazılıp okunduğunu sınıyor.
+
 ## Sürekli tümleştirme
 
 `.github/workflows/kontrol.yml` üç iş koşuyor; üçü bağımsız, böylece tek koşuda bütün sorunlar görülüyor:

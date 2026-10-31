@@ -1951,7 +1951,7 @@ export interface components {
             database_configured: boolean;
             /**
              * Object Store Configured
-             * @description Nesne depolama uç noktası tanımlı mı
+             * @description Nesne depolama **tam** yapılandırılmış mı (uç nokta, kova, anahtarlar)
              */
             object_store_configured: boolean;
         };

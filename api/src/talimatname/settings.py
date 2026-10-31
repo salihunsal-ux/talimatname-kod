@@ -31,6 +31,11 @@ class Settings(BaseSettings):
     # Kanıt dosyaları: S3 uyumlu uç nokta; dev'de yerel dizin adaptörü kullanılır.
     object_store_endpoint: str | None = None
     object_store_bucket: str | None = None
+    object_store_access_key: str | None = None
+    object_store_secret_key: str | None = None
+    #: S3 imzası bölge ister; MinIO ve çoğu yerli sağlayıcı için fark
+    #: etmiyor ama boş bırakılamıyor.
+    object_store_region: str = "us-east-1"
     #: S3 yokken kanıtların yazıldığı yerel dizin. Üretimde
     #: kullanılmaz: tek makineye bağlı, yedeği ve şifrelemesi yok.
     evidence_dir: str = "var/evidence"
@@ -57,6 +62,8 @@ class Settings(BaseSettings):
         "database_url",
         "object_store_endpoint",
         "object_store_bucket",
+        "object_store_access_key",
+        "object_store_secret_key",
         "jwt_private_key",
         "jwt_public_key",
         mode="before",
@@ -71,6 +78,22 @@ class Settings(BaseSettings):
         if isinstance(deger, str) and not deger.strip():
             return None
         return deger
+
+    @property
+    def object_store_configured(self) -> bool:
+        """S3 ayarlarının **tamamı** var mı.
+
+        Yarım yapılandırma (uç nokta var, anahtar yok) sessizce yerel
+        diske düşmemeli: üretimde kanıtın nerede durduğu belirsiz kalır.
+        """
+        return all(
+            (
+                self.object_store_endpoint,
+                self.object_store_bucket,
+                self.object_store_access_key,
+                self.object_store_secret_key,
+            )
+        )
 
     def require_database_url(self) -> str:
         if not self.database_url:
@@ -93,6 +116,18 @@ class Settings(BaseSettings):
                     "prod ortamında JWT_PRIVATE_KEY ve JWT_PUBLIC_KEY zorunlu: "
                     "geçici anahtar üretimi yalnızca geliştirme içindir"
                 )
+            if not self.object_store_configured:
+                raise RuntimeError(
+                    "prod ortamında nesne depolama zorunlu (OBJECT_STORE_*): "
+                    "yerel dizin tek makineye bağlı, yedeği ve şifrelemesi yok"
+                )
+        if any((self.object_store_endpoint, self.object_store_bucket)) and not (
+            self.object_store_configured
+        ):
+            raise RuntimeError(
+                "Nesne depolama yarım yapılandırılmış: OBJECT_STORE_ENDPOINT, "
+                "_BUCKET, _ACCESS_KEY ve _SECRET_KEY birlikte verilir"
+            )
 
 
 @lru_cache

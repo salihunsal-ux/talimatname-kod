@@ -170,3 +170,75 @@ jobs:
                   print("BOZUK", yol, e); hata = 1
           sys.exit(hata)
           PY
+
+  dagitim:
+    name: Dağıtım (imajlar · compose dumanı)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Ortam dosyası (yalnızca CI için üretilen anahtarlar)
+        # Gerçek anahtar yok: her koşuda yenisi üretiliyor. Üretim
+        # anahtarları ücretsiz/AB ortama hiç inmez (ADR-0012).
+        run: |
+          openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out ozel.pem 2>/dev/null
+          openssl rsa -in ozel.pem -pubout -out acik.pem 2>/dev/null
+          {
+            echo "ENVIRONMENT=staging"
+            echo "POSTGRES_PASSWORD=$(openssl rand -hex 16)"
+            echo "OBJECT_STORE_SECRET_KEY=$(openssl rand -hex 16)"
+            echo "JWT_PRIVATE_KEY=$(python -c "print(open('ozel.pem').read().replace(chr(10), '\n'))")"
+            echo "JWT_PUBLIC_KEY=$(python -c "print(open('acik.pem').read().replace(chr(10), '\n'))")"
+          } > .env
+          rm ozel.pem acik.pem
+
+      - name: İmajları kur
+        run: docker compose build
+
+      - name: Yığını ayağa kaldır
+        run: |
+          docker compose up -d postgres minio
+          docker compose run --rm goc
+          docker compose run --rm tohum
+          docker compose up -d api zamanlayici web
+
+      - name: Sağlık ve panel yanıt veriyor mu
+        # Dağıtımın gerçek sorusu: temiz bir makinede açılıyor mu.
+        run: |
+          for i in $(seq 1 30); do
+            if curl -fsS http://localhost:8080/api/v1/health > /tmp/saglik.json; then break; fi
+            sleep 2
+          done
+          cat /tmp/saglik.json
+          grep -q '"database_configured":true' /tmp/saglik.json
+          grep -q '"object_store_configured":true' /tmp/saglik.json
+          curl -fsS http://localhost:8080/ | grep -qi "talimatname"
+
+      - name: Zamanlayıcı turu koştu mu
+        # Ürünün zamana bağlı yarısı bu süreçte: ayakta değilse
+        # pencere açılışı, hatırlatma, eskalasyon ve damga çalışmaz.
+        run: |
+          sleep 15
+          docker compose logs zamanlayici | tail -20
+          docker compose logs zamanlayici | grep -q "zamanlayici.tur"
+
+      - name: Kanıt kovası gerçekten S3'te mi
+        run: |
+          docker compose exec -T api python - <<'PY'
+          from talimatname.api.bagimliliklar import _nesne_deposu
+          depo = _nesne_deposu()
+          print("adaptör:", type(depo).__name__)
+          assert type(depo).__name__ == "S3ObjectStore", "yerel dizine düşmüş"
+          depo.put("ci/deneme.txt", b"merhaba")
+          assert depo.get("ci/deneme.txt") == b"merhaba"
+          depo.delete("ci/deneme.txt")
+          print("kova yazma/okuma tamam")
+          PY
+
+      - name: Günlükler (hata olursa)
+        if: failure()
+        run: docker compose logs --tail 80
+
+      - name: Kapat
+        if: always()
+        run: docker compose down -v

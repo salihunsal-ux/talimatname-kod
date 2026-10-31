@@ -41,7 +41,7 @@ from talimatname.services.reminders import ReminderService
 from talimatname.services.reports import ReportService
 from talimatname.services.scheduler import SchedulerService
 from talimatname.services.setup import SettingsRepository, SetupService
-from talimatname.services.storage import LocalObjectStore, ObjectStore
+from talimatname.services.storage import LocalObjectStore, ObjectStore, S3ObjectStore
 from talimatname.services.sync import SyncService
 from talimatname.services.templates import TemplateRepository, TemplateService
 from talimatname.services.users import UserRepository, UserService
@@ -167,8 +167,28 @@ def _ayar_deposu() -> SettingsRepository:
 
 @lru_cache
 def _nesne_deposu() -> ObjectStore:
-    """S3 yokken yerel dizin (ADR-0012 md.4; sağlayıcı kararı beklemiyor)."""
-    return LocalObjectStore(ayarlar().evidence_dir)
+    """S3 ayarlıysa kova, değilse yerel dizin (ADR-0012 md.4).
+
+    Seçim tek yerde ve **yarım yapılandırma yok**: ayarlar sınıfı
+    uç nokta verilip anahtar verilmediğinde açılışta hata veriyor,
+    böylece kanıtın nerede durduğu hiçbir zaman belirsiz kalmıyor.
+    """
+    ayar = ayarlar()
+    if ayar.object_store_configured:
+        assert ayar.object_store_endpoint
+        assert ayar.object_store_bucket
+        assert ayar.object_store_access_key
+        assert ayar.object_store_secret_key
+        kova = S3ObjectStore(
+            endpoint=ayar.object_store_endpoint,
+            bucket=ayar.object_store_bucket,
+            access_key=ayar.object_store_access_key,
+            secret_key=ayar.object_store_secret_key,
+            region=ayar.object_store_region,
+        )
+        kova.ensure_bucket()
+        return kova
+    return LocalObjectStore(ayar.evidence_dir)
 
 
 # --- servisler --------------------------------------------------------

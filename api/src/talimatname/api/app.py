@@ -57,7 +57,9 @@ class HealthResponse(BaseModel):
     version: str = Field(description="API sürümü")
     environment: str = Field(description="dev | test | staging | prod")
     database_configured: bool = Field(description="DATABASE_URL tanımlı mı")
-    object_store_configured: bool = Field(description="Nesne depolama uç noktası tanımlı mı")
+    object_store_configured: bool = Field(
+        description="Nesne depolama **tam** yapılandırılmış mı (uç nokta, kova, anahtarlar)"
+    )
 
 
 def build_router(settings: Settings) -> APIRouter:
@@ -74,7 +76,7 @@ def build_router(settings: Settings) -> APIRouter:
             version=__version__,
             environment=settings.environment,
             database_configured=settings.database_url is not None,
-            object_store_configured=settings.object_store_endpoint is not None,
+            object_store_configured=settings.object_store_configured,
         )
 
     router.include_router(auth.router)

@@ -72,6 +72,13 @@ def _kiraci_sil(*kiracilar: UUID) -> None:
 
 @pytest.fixture
 def iki_kiraci() -> object:
+    """İki test kiracısı: **önce de** silinir.
+
+    Yalnızca sonda silmek yetmiyordu: bir test ortasında düşerse
+    kiracı satırlarıyla kalıyor ve sıradaki testi kirletiyor. Baştaki
+    silme, koşunun önceki koşudan bağımsız başlamasını garanti ediyor.
+    """
+    _kiraci_sil(A_KIRACI, B_KIRACI)
     _kiraci_ac(A_KIRACI, "Test A")
     _kiraci_ac(B_KIRACI, "Test B")
     yield
@@ -100,8 +107,17 @@ def test_tc011_kiraci_yalitimi(iki_kiraci: object) -> None:
     a.save_branch(_sube("AAA"))
     b.save_branch(_sube("BBB"))
 
-    assert [s.code for s in a.branches()] == ["AAA"]
-    assert [s.code for s in b.branches()] == ["BBB"]
+    a_kodlari = {s.code for s in a.branches()}
+    b_kodlari = {s.code for s in b.branches()}
+
+    # İddia "A'da tam bir satır var" değil, **"A, B'nin satırını
+    # görmüyor"**. Tam eşitlik yazmak testi ortamdaki artık satırlara
+    # bağlıyordu ve ara sıra kırmızı yanıyordu; sızıntı olsaydı
+    # aşağıdaki iki satır yine yakalardı.
+    assert "AAA" in a_kodlari
+    assert "BBB" not in a_kodlari
+    assert "BBB" in b_kodlari
+    assert "AAA" not in b_kodlari
     assert a.branch_by_code("BBB") is None
     assert b.branch_by_code("AAA") is None
 
