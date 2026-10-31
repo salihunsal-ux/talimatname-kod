@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+import json
 from functools import lru_cache
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import Field, field_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 Environment = Literal["dev", "test", "staging", "prod"]
 
@@ -53,10 +54,27 @@ class Settings(BaseSettings):
 
     # Tarayıcıdan çağıran kaynaklar. Yalnızca burada yazılı olanlar;
     # joker (*) kullanılmaz — kimlik bilgisi taşıyan istekler için güvensiz.
-    cors_origins: list[str] = Field(
+    #: NoDecode: pydantic-settings karmaşık alanları varsayılan olarak
+    #: JSON sanıyor; `CORS_ORIGINS=http://localhost:8080` yazan bir
+    #: `.env` uygulamayı açılışta düşürüyordu. Çözüm aşağıdaki
+    #: ayrıştırıcı: virgüllü liste de JSON dizisi de kabul.
+    cors_origins: Annotated[list[str], NoDecode] = Field(
         default=["http://localhost:5173", "http://127.0.0.1:5173"],
         description="Virgülle ayrılmış kaynak listesi (CORS_ORIGINS)",
     )
+
+    @field_validator("cors_origins", mode="before")
+    @classmethod
+    def _kaynak_listesi(cls, deger: object) -> object:
+        """`a,b` ya da `["a","b"]` — ikisi de okunur, boşluklar atılır."""
+        if not isinstance(deger, str):
+            return deger
+        metin = deger.strip()
+        if not metin:
+            return []
+        if metin.startswith("["):
+            return json.loads(metin)
+        return [parca.strip() for parca in metin.split(",") if parca.strip()]
 
     @field_validator("jwt_private_key", "jwt_public_key", mode="before")
     @classmethod

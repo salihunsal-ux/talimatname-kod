@@ -119,3 +119,29 @@ def test_pem_gercek_satirlarla_da_calisir() -> None:
     ozel, acik = tokens._gecici_anahtar()
     ayar = _ayar(jwt_private_key=ozel, jwt_public_key=acik)
     assert ayar.jwt_private_key == ozel
+
+
+def test_cors_virgullu_ortam_degiskeninden_okunur(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """`.env` örneklerindeki biçim bu: `CORS_ORIGINS=a,b`.
+
+    pydantic-settings karmaşık alanları varsayılan olarak JSON sanıyor;
+    bu biçim ayrıştırılamayınca uygulama açılışta düşüyordu (compose
+    dumanında yakalandı).
+    """
+    monkeypatch.setenv("CORS_ORIGINS", "http://localhost:8080, https://panel.ornek.test")
+    ayar = _ayar()
+    assert ayar.cors_origins == ["http://localhost:8080", "https://panel.ornek.test"]
+
+
+def test_cors_json_dizisi_de_okunur(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Eski biçimi kıran bir değişiklik yapmıyoruz."""
+    monkeypatch.setenv("CORS_ORIGINS", '["http://localhost:8080"]')
+    assert _ayar().cors_origins == ["http://localhost:8080"]
+
+
+def test_cors_bos_birakilabilir(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Panel API ile aynı kaynaktan servis edilirse CORS gerekmiyor."""
+    monkeypatch.setenv("CORS_ORIGINS", "")
+    assert _ayar().cors_origins == []

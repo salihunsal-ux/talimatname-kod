@@ -41,6 +41,10 @@ dev = [
   "boto3-stubs[s3]>=1.35",
   # S3 adaptörünü kova olmadan sınamak için (CI'da MinIO kaldırmadan).
   "moto[s3]>=5",
+  # Compose'un uygulamaya verdiği ortamı okuyup Settings ile
+  # sınamak için (test_compose_ortami).
+  "pyyaml>=6",
+  "types-PyYAML>=6",
 ]
 
 [build-system]
