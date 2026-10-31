@@ -438,6 +438,26 @@ def test_damga_bekleyenler_veritabaninda_suzuluyor(iki_kiraci: object) -> None:
     assert [k.id for k in gelen] == [bekleyen.id]
 
 
+def test_supurulecek_bekleyenler_veritabaninda_suzuluyor(iki_kiraci: object) -> None:
+    """Süpürücü de tam tarama yapmaz: yaş süzgeci sorguda.
+
+    `dataclasses.replace` ile eski tarihli bir kayıt bırakıyoruz:
+    bekleyen kayıt baytı gelmediği için `created_at` dışında bir
+    yaşlanma işareti taşımıyor.
+    """
+    run = _calistirma(A_KIRACI)
+    depo = SqlEvidenceRepository(A_KIRACI)
+    an = datetime.now(UTC)
+    eski = replace(_kanit(run, "1" * 64), created_at=an - timedelta(days=10))
+    depo.save_evidence(eski)
+    depo.save_evidence(_kanit(run, "2" * 64))  # taze: dokunulmaz
+    depo.save_evidence(_kanit(run, "3" * 64).stored(an))  # baytı gelmiş
+
+    gelen = depo.pending_evidences(an - timedelta(days=7), 10)
+
+    assert [k.id for k in gelen] == [eski.id]
+
+
 def test_toplu_calistirma_yazma_tek_islemde(iki_kiraci: object) -> None:
     """Ufuk üretimi onlarca satır yazıyor; satır başına işlem pahalı.
 

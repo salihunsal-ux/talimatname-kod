@@ -3248,6 +3248,18 @@ export interface components {
              * @default 0
              */
             stamped?: number;
+            /**
+             * Swept
+             * @description Baytı hiç gelmediği için silinen bekleyen kanıt sayısı
+             * @default 0
+             */
+            swept?: number;
+            /**
+             * Recovered
+             * @description Baytı depoda bulunup tamamlanan kanıt sayısı: istemci `complete` demeden düşmüş
+             * @default 0
+             */
+            recovered?: number;
         };
         /** UretimYaniti */
         UretimYaniti: {

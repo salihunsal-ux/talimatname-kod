@@ -277,6 +277,15 @@ class TurYaniti(BaseModel):
         default=0, description="Gönderilemeyen bildirim: sürücü yoksa hepsi buraya düşer"
     )
     stamped: int = Field(default=0, description="Damgalanan kanıt sayısı (ST-040)")
+    swept: int = Field(
+        default=0, description="Baytı hiç gelmediği için silinen bekleyen kanıt sayısı"
+    )
+    recovered: int = Field(
+        default=0,
+        description=(
+            "Baytı depoda bulunup tamamlanan kanıt sayısı: istemci `complete` demeden düşmüş"
+        ),
+    )
 
 
 @router.post("/plans/{plan_id}/generate", summary="Çalıştırmaları şimdi üret")
@@ -304,6 +313,8 @@ def zamanlayici_turu(servis: ZamanlayiciServis, _: Yonetici) -> TurYaniti:
         sent=sonuc.sent,
         failed=sonuc.failed,
         stamped=sonuc.stamped,
+        swept=sonuc.swept,
+        recovered=sonuc.recovered,
     )
 
 

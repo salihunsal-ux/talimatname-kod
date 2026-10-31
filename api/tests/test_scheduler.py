@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from dataclasses import replace
 from datetime import UTC, datetime, time, timedelta
-from uuid import UUID
+from pathlib import Path
+from uuid import UUID, uuid4
 
 import pytest
 from fastapi.testclient import TestClient
@@ -13,12 +14,17 @@ from conftest import oturum_ac
 from talimatname.api.app import create_app
 from talimatname.domain.plans import Run
 from talimatname.infra.memory import (
+    MemoryEvidenceRepository,
     MemoryOrganizationRepository,
     MemoryPlanRepository,
     MemoryTemplateRepository,
+    MemoryUserRepository,
     sabit_id,
 )
+from talimatname.services.evidence import EvidenceService
+from talimatname.services.plans import PlanService
 from talimatname.services.scheduler import SchedulerService
+from talimatname.services.storage import LocalObjectStore
 from talimatname.settings import Settings
 
 BESIKTAS = sabit_id("sube:BSK")
@@ -120,6 +126,53 @@ def test_kapanis_kendi_basina_cagrilabilir() -> None:
 
     assert sayac > 0
     assert all(r.status != "scheduled" for r in depo.runs())
+
+
+# --- bekleyen kanıt süpürücüsü ----------------------------------------
+
+
+def test_tur_bekleyen_kaniti_supuruyor(tmp_path: Path) -> None:
+    """Süpürücü turun parçası: kimse elle çağırmayacak.
+
+    Baytı gelmemiş kayıt özet kilidini (FR-0614) tutuyor; kilidi
+    açacak tek yer zamanlayıcı.
+    """
+    gecmis = datetime.now(UTC) - timedelta(days=30)
+    saat = [gecmis]  # kayıt geçmişte açılıyor, süpürme bugün koşuyor
+    planlar = MemoryPlanRepository()
+    org = MemoryOrganizationRepository()
+    PlanService(planlar, org, MemoryTemplateRepository(), now=lambda: gecmis).generate_all()
+    kanitlar = MemoryEvidenceRepository()
+    kanit_servisi = EvidenceService(
+        kanitlar,
+        planlar,
+        org,
+        LocalObjectStore(tmp_path),
+        MemoryUserRepository(),
+        settings=Settings(environment="dev"),
+        now=lambda: saat[0],
+    )
+    kanit_servisi.start(
+        run_id=planlar.runs()[0].id,
+        answer_id=uuid4(),
+        item_id=sabit_id("madde:1"),
+        sha256="a" * 64,
+        content_type="image/jpeg",
+        size_bytes=1024,
+    )
+    saat[0] = datetime.now(UTC)
+
+    servis = SchedulerService(
+        planlar,
+        org,
+        MemoryTemplateRepository(),
+        evidence=kanit_servisi,
+        now=lambda: datetime.now(UTC),
+    )
+    sonuc = servis.tick()
+
+    assert sonuc.swept == 1
+    assert kanitlar.evidences() == []
 
 
 # --- uç nokta ---------------------------------------------------------

@@ -19,7 +19,7 @@ günlüğe yazıyoruz — bayrak suçlama değil, kayıt tutmaktır.
 from __future__ import annotations
 
 from collections.abc import Callable
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 from zoneinfo import ZoneInfo
 
@@ -56,6 +56,17 @@ VIEW_SCOPE = "evidence-view"
 #: Bir turda kaç kanıt damgalanır. İşçi turludur (ST-027): yüklemenin
 #: yanıt süresini görsel işlemeye bağlamak, kanıt yüklemeyi yavaşlatırdı.
 STAMP_BATCH = 50
+
+#: Baytı gelmemiş kayıt ne kadar beklerse süpürülür. Cömert:
+#: geç senk penceresi 72 saat (FR-0706) ve yarım kalan yükleme
+#: kuyruktan tekrar denenebiliyor. Erken süpürmek, yoldaki kanıtı
+#: silmek demek olurdu.
+PENDING_TTL = timedelta(days=7)
+
+#: Bir turda kaç bekleyen kayıt incelenir. Her biri depoya bir
+#: soru demek: turu uzun tutmak zamanlayıcının öbür işlerini
+#: geciktirir.
+SWEEP_BATCH = 200
 
 
 class EvidenceNotFound(DomainError):
@@ -103,6 +114,12 @@ class EvidenceRepository:
     def stored_evidences(self, limit: int) -> list[Evidence]:  # pragma: no cover
         """Damgalanmayı bekleyenler. Süzgeç **depoda**: işçi her turda
         tüm kanıt tablosunu okumamalı — tablo en hızlı büyüyen tablo."""
+        raise NotImplementedError
+
+    def pending_evidences(  # pragma: no cover - arayüz
+        self, before: datetime, limit: int
+    ) -> list[Evidence]:
+        """Baytı hâlâ gelmemiş ve `before`dan eski kayıtlar (süpürücü)."""
         raise NotImplementedError
 
     def save_evidence(self, evidence: Evidence) -> None:  # pragma: no cover
@@ -324,6 +341,58 @@ class EvidenceService:
         tamam = kanit.stored(an)
         self._repo.save_evidence(tamam)
         return tamam
+
+    # --- bekleyen kanıt süpürücüsü -------------------------------------
+
+    def sweep_pending(
+        self, *, older_than: timedelta = PENDING_TTL, limit: int = SWEEP_BATCH
+    ) -> dict[str, int]:
+        """Baytı hiç gelmemiş eski kayıtları temizler; geleni kurtarır.
+
+        Neden gerekli: `start()` kaydı **yüklemeden önce** açıyor ve
+        özet tekilliğini (FR-0614) o anda kilitliyor. Yükleme yarıda
+        kalırsa kayıt `pending` kalır ve kilidi tutar: kullanıcı aynı
+        kareyi bir daha yükleyemez, sebebini de anlamaz ("bu dosya
+        daha önce yüklendi" der, oysa yüklenmemiştir).
+
+        Süpürücü önce **depoya bakar**. Baytlar oradaysa ve özet
+        tutuyorsa kayıt silinmez, tamamlanır: istemci yüklemeyi
+        bitirip `complete` çağrısından önce düşmüş olabilir ve o
+        bayt gerçek kanıttır — atmak, kanıtı yok etmek olurdu.
+
+        Eşik cömert (`PENDING_TTL`): geç senk penceresi 72 saat
+        (FR-0706) ve yarıda kalan yükleme kuyruktan tekrar denenebilir.
+        """
+        an = self._now()
+        sinir = an - older_than
+        sayac = {"incelenen": 0, "kurtarilan": 0, "silinen": 0}
+
+        for kanit in self._repo.pending_evidences(sinir, limit):
+            sayac["incelenen"] += 1
+            try:
+                baytlar = self._store.get(kanit.storage_key)
+            except ObjectMissing:
+                baytlar = None
+
+            if baytlar is not None and digest(baytlar) == kanit.sha256:
+                self._repo.save_evidence(kanit.stored(an))
+                sayac["kurtarilan"] += 1
+                log.info("kanit.supuruldu_kurtarildi", kanit=str(kanit.id))
+                continue
+
+            # Yarım ya da hiç gelmemiş bayt: kayıt da kopyası da gider.
+            if baytlar is not None:
+                self._store.delete(kanit.storage_key)
+            self._repo.delete_evidence(kanit.id)
+            sayac["silinen"] += 1
+            log.info(
+                "kanit.supuruldu_silindi",
+                kanit=str(kanit.id),
+                calistirma=str(kanit.run_id),
+                yas_saat=round((an - kanit.created_at).total_seconds() / 3600),
+                yarim_bayt=baytlar is not None,
+            )
+        return sayac
 
     # --- damgalama işçisi (ST-040) -------------------------------------
 

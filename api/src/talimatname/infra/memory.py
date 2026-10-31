@@ -535,6 +535,13 @@ class MemoryEvidenceRepository:
     def stored_evidences(self, limit: int) -> list[Evidence]:
         return [k for k in self._evidences.values() if k.status == "stored"][:limit]
 
+    def pending_evidences(self, before: datetime, limit: int) -> list[Evidence]:
+        return [
+            k
+            for k in sorted(self._evidences.values(), key=lambda k: k.created_at)
+            if k.status == "pending" and k.created_at < before
+        ][:limit]
+
     def evidence_by_digest(self, sha256: str) -> Evidence | None:
         kimlik = self._by_digest.get(sha256)
         return self._evidences.get(kimlik) if kimlik else None

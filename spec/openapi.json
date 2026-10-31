@@ -7625,6 +7625,18 @@
             "title": "Stamped",
             "description": "Damgalanan kanıt sayısı (ST-040)",
             "default": 0
+          },
+          "swept": {
+            "type": "integer",
+            "title": "Swept",
+            "description": "Baytı hiç gelmediği için silinen bekleyen kanıt sayısı",
+            "default": 0
+          },
+          "recovered": {
+            "type": "integer",
+            "title": "Recovered",
+            "description": "Baytı depoda bulunup tamamlanan kanıt sayısı: istemci `complete` demeden düşmüş",
+            "default": 0
           }
         },
         "type": "object",

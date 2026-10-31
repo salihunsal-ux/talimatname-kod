@@ -11,7 +11,7 @@ kalıcılığı servis katmanına sızdırmak olurdu.
 
 from __future__ import annotations
 
-from datetime import date, time
+from datetime import date, datetime, time
 from typing import Any
 from uuid import UUID, uuid5
 
@@ -775,6 +775,17 @@ class SqlEvidenceRepository(_TenantRepository):
             satirlar = o.scalars(
                 select(m.Evidence)
                 .where(m.Evidence.status == "stored")
+                .order_by(m.Evidence.created_at)
+                .limit(limit)
+            ).all()
+            return [_kanit(k) for k in satirlar]
+
+    def pending_evidences(self, before: datetime, limit: int) -> list[Evidence]:
+        """Baytı gelmemiş eski kayıtlar: süzgeç yine **depoda** kalıyor."""
+        with tenant_session(self._tenant) as o:
+            satirlar = o.scalars(
+                select(m.Evidence)
+                .where(m.Evidence.status == "pending", m.Evidence.created_at < before)
                 .order_by(m.Evidence.created_at)
                 .limit(limit)
             ).all()

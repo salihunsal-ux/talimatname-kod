@@ -58,6 +58,8 @@ class TickResult:
     sent: int = 0
     failed: int = 0
     stamped: int = 0
+    swept: int = 0
+    recovered: int = 0
 
     @property
     def quiet(self) -> bool:
@@ -72,6 +74,8 @@ class TickResult:
             and self.sent == 0
             and self.failed == 0
             and self.stamped == 0
+            and self.swept == 0
+            and self.recovered == 0
         )
 
 
@@ -113,6 +117,9 @@ class SchedulerService:
         merdiven = self._eskalasyon.run(an) if self._eskalasyon else {}
         ozet = self._ozet.schedule(an) if self._ozet else 0
         gonderim = self._bildirim.dispatch(an) if self._bildirim else {}
+        # Süpürme damgadan **önce**: kurtarılan kayıt `stored` olur ve
+        # aynı turda damgalanır, bir tur beklemez.
+        supurme = self._kanit.sweep_pending() if self._kanit else {}
         damga = self._kanit.stamp_pending() if self._kanit else {}
         return TickResult(
             at=an,
@@ -128,6 +135,8 @@ class SchedulerService:
             sent=gonderim.get("sent", 0),
             failed=gonderim.get("failed", 0),
             stamped=damga.get("stamped", 0),
+            swept=supurme.get("silinen", 0),
+            recovered=supurme.get("kurtarilan", 0),
         )
 
     def close_expired(self, now: datetime) -> int:
