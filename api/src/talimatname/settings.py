@@ -58,6 +58,20 @@ class Settings(BaseSettings):
         description="Virgülle ayrılmış kaynak listesi (CORS_ORIGINS)",
     )
 
+    @field_validator("jwt_private_key", "jwt_public_key", mode="before")
+    @classmethod
+    def _pem_satirlari(cls, deger: object) -> object:
+        """`.env` tek satırlıktır: PEM'deki yeni satırlar `\\n` ile yazılır.
+
+        Docker Compose'un `.env` çözümleyicisi çok satırlı değer kabul
+        etmiyor; PEM gövdesini olduğu gibi yazmak dosyayı bozuyor. Bu
+        yüzden `\\n` kaçışı burada gerçek yeni satıra çevriliyor —
+        yoksa `.env.ornek`'teki tarif geçersiz bir anahtar üretirdi.
+        """
+        if isinstance(deger, str) and "\\n" in deger:
+            return deger.replace("\\n", "\n")
+        return deger
+
     @field_validator(
         "database_url",
         "object_store_endpoint",

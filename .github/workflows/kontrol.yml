@@ -183,14 +183,32 @@ jobs:
         run: |
           openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out ozel.pem 2>/dev/null
           openssl rsa -in ozel.pem -pubout -out acik.pem 2>/dev/null
-          {
-            echo "ENVIRONMENT=staging"
-            echo "POSTGRES_PASSWORD=$(openssl rand -hex 16)"
-            echo "OBJECT_STORE_SECRET_KEY=$(openssl rand -hex 16)"
-            echo "JWT_PRIVATE_KEY=$(python -c "print(open('ozel.pem').read().replace(chr(10), '\n'))")"
-            echo "JWT_PUBLIC_KEY=$(python -c "print(open('acik.pem').read().replace(chr(10), '\n'))")"
-          } > .env
+          python - <<'PY'
+          import pathlib, secrets
+
+          # PEM tek satıra indiriliyor: Compose'un `.env` çözümleyicisi
+          # çok satırlı değer kabul etmiyor. Kaçışı uygulama tarafında
+          # Settings._pem_satirlari geri açıyor.
+          def tek_satir(ad: str) -> str:
+              return pathlib.Path(ad).read_text().strip().replace("\n", r"\n")
+
+          pathlib.Path(".env").write_text(
+              "ENVIRONMENT=staging\n"
+              f"POSTGRES_PASSWORD={secrets.token_hex(16)}\n"
+              f"OBJECT_STORE_SECRET_KEY={secrets.token_hex(16)}\n"
+              f"JWT_PRIVATE_KEY={tek_satir('ozel.pem')}\n"
+              f"JWT_PUBLIC_KEY={tek_satir('acik.pem')}\n",
+              encoding="utf-8",
+          )
+          PY
           rm ozel.pem acik.pem
+
+      - name: Ortam dosyası Compose tarafından okunabiliyor mu
+        # Çok satırlı bir değer buraya sızarsa `docker compose build`
+        # ayrıştırma hatasıyla düşer; hatayı kaynağında yakalıyoruz.
+        run: |
+          docker compose config -q
+          awk '!/^[A-Z_]+=./ {print "BOZUK SATIR " NR ": " $0; hata=1} END {exit hata}' .env
 
       - name: İmajları kur
         run: docker compose build
@@ -221,6 +239,37 @@ jobs:
           sleep 15
           docker compose logs zamanlayici | tail -20
           docker compose logs zamanlayici | grep -q "zamanlayici.tur"
+
+      - name: Belirteç anahtarı .env'den geçerli geldi mi
+        # `.env` tek satırlık olduğu için PEM kaçışla yazılıyor.
+        # Kaçış çözülmezse anahtar geçersiz PEM olur ve ilk oturum
+        # açışta patlar. Kabın aldığı anahtarla imza üretip aynı
+        # belirteci HTTP üzerinden doğruluyoruz.
+        run: |
+          docker compose exec -T api python - > cikti.txt <<'PY'
+          from datetime import timedelta
+
+          from talimatname.infra.memory import sabit_id
+          from talimatname.services import tokens
+          from talimatname.services.auth import SCOPE
+          from talimatname.settings import get_settings
+
+          ayar = get_settings()
+          ozel = ayar.jwt_private_key or ""
+          assert "BEGIN" in ozel, "JWT_PRIVATE_KEY kaba ulasmadi"
+          assert chr(10) in ozel, "PEM tek satir kalmis: kacis cozulmemis"
+          konu = str(sabit_id("kullanici:+905321110001"))
+          belirtec = tokens.imzala(
+              ayar, subject=konu, scope=SCOPE, ttl=timedelta(minutes=5)
+          )
+          print("BELIRTEC:" + belirtec)
+          PY
+          BELIRTEC=$(sed -n 's/^BELIRTEC://p' cikti.txt | head -1)
+          test -n "$BELIRTEC"
+          curl -fsS -H "Authorization: Bearer $BELIRTEC" http://localhost:8080/api/v1/auth/me > ben.json
+          cat ben.json
+          grep -q 905321110001 ben.json
+          rm cikti.txt ben.json
 
       - name: Kanıt kovası gerçekten S3'te mi
         run: |

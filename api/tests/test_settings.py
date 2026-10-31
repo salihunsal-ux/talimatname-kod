@@ -7,8 +7,11 @@ ne kadar yaşadığını belirsiz bırakırdı.
 
 from __future__ import annotations
 
+from datetime import timedelta
+
 import pytest
 
+from talimatname.services import tokens
 from talimatname.settings import Settings
 
 TAM_KOVA = {
@@ -88,3 +91,31 @@ def test_prod_zaman_yolculugu_acik_olamaz() -> None:
 def test_cors_jokeri_kabul_edilmez() -> None:
     with pytest.raises(RuntimeError, match="joker"):
         _ayar(cors_origins=["*"])
+
+
+def test_pem_tek_satir_kacisi_cozulur() -> None:
+    """`.env` tek satırlık: PEM `\\n` ile yazılıyor (bkz. infra/.env.ornek).
+
+    Docker Compose'un `.env` çözümleyicisi çok satırlı değer kabul
+    etmiyor. Kaçış çözülmezse anahtar geçerli PEM olmaz ve ilk
+    oturum açışta patlar — bu test tarifi doğruluyor.
+    """
+    ozel, acik = tokens._gecici_anahtar()
+    ayar = _ayar(
+        jwt_private_key=ozel.replace(chr(10), "\\n"),
+        jwt_public_key=acik.replace(chr(10), "\\n"),
+    )
+
+    assert ayar.jwt_private_key == ozel
+    assert ayar.jwt_public_key == acik
+
+    # Gerçek imza/çözme: kaçış çözülmüş anahtar kullanılabilir olmalı.
+    belirtec = tokens.imzala(ayar, subject="u1", scope="oturum", ttl=timedelta(minutes=5))
+    assert tokens.coz(ayar, belirtec, scope="oturum")["sub"] == "u1"
+
+
+def test_pem_gercek_satirlarla_da_calisir() -> None:
+    """Kasadan çok satırlı gelen anahtar (ör. sağlayıcı sırrı) bozulmamalı."""
+    ozel, acik = tokens._gecici_anahtar()
+    ayar = _ayar(jwt_private_key=ozel, jwt_public_key=acik)
+    assert ayar.jwt_private_key == ozel

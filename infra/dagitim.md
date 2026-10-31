@@ -38,10 +38,15 @@ openssl rand -base64 32          # OBJECT_STORE_SECRET_KEY
 # Belirteç imzası (RS256)
 openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out ozel.pem
 openssl rsa -in ozel.pem -pubout -out acik.pem
-python -c "print(open('ozel.pem').read().replace(chr(10), '\\n'))"   # JWT_PRIVATE_KEY
-python -c "print(open('acik.pem').read().replace(chr(10), '\\n'))"   # JWT_PUBLIC_KEY
+python3 -c 'import pathlib;print(pathlib.Path("ozel.pem").read_text().strip().replace(chr(10), chr(92)+"n"))'   # JWT_PRIVATE_KEY
+python3 -c 'import pathlib;print(pathlib.Path("acik.pem").read_text().strip().replace(chr(10), chr(92)+"n"))'   # JWT_PUBLIC_KEY
 rm ozel.pem acik.pem
 ```
+
+PEM'ler **tek satıra** indirilip tırnaksız yazılıyor: Compose'un
+`.env` çözümleyicisi çok satırlı değer kabul etmiyor. Uygulama `\n`
+kaçışını okurken geri açıyor, yani anahtar ister tek satır ister
+kasadan gelen gerçek satırlarla verilsin çalışır.
 
 Anahtarı kaybetmek, herkesin oturumunu düşürmek demek — `.env`
 yedeklenmeli ve depoya **girmemeli** (`.gitignore`'da).
