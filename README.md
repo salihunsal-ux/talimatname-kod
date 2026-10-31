@@ -184,6 +184,18 @@ GET /reports/measurements?first&last → sıcaklıklar ne durumda (FR-1207)
 GET /reports/gallery?first&last      → kanıtı göster (FR-1208)
 ```
 
+Üçünün de kâğıt karşılığı var; dördüncüsü denetçiye verilen asıl belge:
+
+```
+GET /reports/monthly.pdf             → aylık özet (FR-1220)
+GET /reports/measurements.pdf        → ölçüm günlüğü / dönem PDF'i (FR-1214)
+GET /runs/{id}/pdf                   → çalıştırma PDF'i (FR-1213)
+```
+
+**Çalıştırma PDF'i** maddeleri, cevapları, kanıt küçük resimlerini, zaman damgalarını ve sondaki denetim izi özetini taşır. Kâğıda **küçük resim** basılıyor, damgalı kopya değil: 30 maddelik bir listede fark on megabaytı geçiyor ve kâğıtta görünen aynı. Açılamayan ya da bulunamayan bir kanıt raporu **düşürmüyor**, o kare atlanıyor — denetim gününde eksik kâğıt, hiç kâğıttan iyidir.
+
+PDF'ler ekranla **aynı** servis çağrısını ve aynı kapsam süzgecini kullanıyor: şubesini göremeyen kullanıcı kâğıdını da alamaz. Kâğıt kendi sorgusunu yazsaydı en çok veri taşıyan çıktı en zayıf kapıdan geçerdi.
+
 **Rapor kendi "geç" tanımını yazmıyor.** Panonun kullandığı `Run.state_at` türetmesini kullanıyor; iki ayrı tanım, iki ayrı gerçek demekti.
 
 **Açık pencere yüzdeye girmiyor.** Ayın ortasında henüz olmamış işi kayıp saymak raporu yanlış okutur: yüzde yalnızca kapanmış çalıştırmalardan hesaplanıyor. Kapanmış hiçbir çalıştırma yoksa yüzde **null** — sıfır göstermek "hiçbiri zamanında değil" demek olurdu.
