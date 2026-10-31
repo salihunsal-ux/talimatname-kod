@@ -398,24 +398,37 @@ def duplicate_codes(rows: list[BranchRow]) -> list[RowError]:
     return hatalar
 
 
-#: Sihirbazdan toplu eklenebilen roller. Bölge müdürü ve yönetici
-#: listede yok: onlar bir zincirde iki-üç kişidir ve kapsamları
-#: (bölge, hesap) şube koduyla anlatılamaz — panelden eklenirler.
+#: Sihirbazdan toplu eklenebilen roller. Yönetici listede yok:
+#: kapsamı hesabın tamamı, bir sütunla anlatılacak bir şey değil ve
+#: zincirde bir-iki kişidir — panelden eklenir.
+#:
+#: Bölge müdürü **artık listede**: kapsamı şube kodu değil bölge adı,
+#: o da şube dosyasında zaten yazılıyor. Dışarıda bırakmak, 8 bölgeli
+#: bir zincirde kurulumu yarıda kesip panele gönderiyordu.
 BULK_ROLES: dict[str, str] = {
     "staff": "Personel",
     "branch_manager": "Şube müdürü",
+    "region_manager": "Bölge müdürü",
 }
+
+#: Kapsamı şube olan roller. Bölge müdürünün kapsamı bölge.
+BRANCH_SCOPED_ROLES = frozenset({"staff", "branch_manager"})
 
 
 @dataclass(frozen=True, slots=True)
 class StaffRow:
-    """Doğrulanmış personel satırı. Telefon E.164'e çevrilmiş hâliyle."""
+    """Doğrulanmış personel satırı. Telefon E.164'e çevrilmiş hâliyle.
+
+    Kapsam **iki alandan biri**: şube kodu ya da bölge adı. Hangisi
+    olduğunu rol belirliyor; ikisi birden dolu olamaz.
+    """
 
     row: int
     full_name: str
     phone: str
     role: str
-    branch_code: str
+    branch_code: str = ""
+    region_name: str = ""
     email: str | None = None
 
 
@@ -424,11 +437,14 @@ def staff_row(
     values: dict[str, str],
     *,
     branch_codes: set[str],
+    region_names: set[str] | None = None,
 ) -> StaffRow | list[RowError]:
     """Personel satırını doğrular (FR-0105, FR-0106, BR-17).
 
-    Şube kodu **hesapta var olmalı**: yazım hatası yüzünden yanlış
-    şubeye personel bağlamak, yanlış kişiye liste göndermek demek.
+    Şube kodu ve bölge adı **hesapta var olmalı**: yazım hatası
+    yüzünden yanlış şubeye personel bağlamak, yanlış kişiye liste
+    göndermek demek. Bölge müdüründe yanlış bölge, bütün bir bölgenin
+    raporunu yanlış kişiye açmak demek.
     """
     hatalar: list[RowError] = []
 
@@ -453,10 +469,9 @@ def staff_row(
         hatalar.append(RowError(row, "rol", f"Rol {secenekler} olmalı"))
 
     kod = values.get("sube_kodu", "").strip().upper()
-    if not kod:
-        hatalar.append(RowError(row, "sube_kodu", "Şube kodu zorunlu"))
-    elif kod not in branch_codes:
-        hatalar.append(RowError(row, "sube_kodu", f"Bu kodla şube yok: {kod}"))
+    bolge = values.get("bolge", "").strip()
+    bolgeler = region_names or set()
+    hatalar += _kapsam_hatalari(row, rol, kod, bolge, branch_codes, bolgeler)
 
     eposta = values.get("eposta", "").strip() or None
     if eposta and "@" not in eposta:
@@ -465,7 +480,50 @@ def staff_row(
     if hatalar:
         return hatalar
     assert rol is not None
-    return StaffRow(row=row, full_name=ad, phone=telefon, role=rol, branch_code=kod, email=eposta)
+    return StaffRow(
+        row=row,
+        full_name=ad,
+        phone=telefon,
+        role=rol,
+        branch_code=kod if rol in BRANCH_SCOPED_ROLES else "",
+        region_name="" if rol in BRANCH_SCOPED_ROLES else bolge,
+        email=eposta,
+    )
+
+
+def _kapsam_hatalari(
+    row: int,
+    rol: str | None,
+    kod: str,
+    bolge: str,
+    branch_codes: set[str],
+    region_names: set[str],
+) -> list[RowError]:
+    """Kapsam sütunlarının doğruluğu: hangisi dolu, hangisi boş.
+
+    İkisi birden dolu olduğunda satır **reddedilir**, biri seçilmez:
+    hangisinin kazandığını tahmin ettirmek, yanlış kapsamı sessizce
+    yazmak demek olurdu.
+    """
+    if rol is None:  # rol hatası zaten yazıldı; kapsam kuralı rolden türüyor
+        return []
+
+    if rol in BRANCH_SCOPED_ROLES:
+        if bolge:
+            return [RowError(row, "bolge", "Bölge yalnızca bölge müdürü satırında doldurulur")]
+        if not kod:
+            return [RowError(row, "sube_kodu", "Şube kodu zorunlu")]
+        if kod not in branch_codes:
+            return [RowError(row, "sube_kodu", f"Bu kodla şube yok: {kod}")]
+        return []
+
+    if kod:
+        return [RowError(row, "sube_kodu", "Bölge müdürü satırında şube kodu boş bırakılır")]
+    if not bolge:
+        return [RowError(row, "bolge", "Bölge müdürü için bölge adı zorunlu")]
+    if bolge not in region_names:
+        return [RowError(row, "bolge", f"Bu adla bölge yok: {bolge}")]
+    return []
 
 
 def _rol_kodu(deger: str) -> str | None:

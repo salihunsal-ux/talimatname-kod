@@ -230,13 +230,14 @@ class SetupService:
     # --- adım 5: personel -------------------------------------------
 
     def staff_template_file(self) -> bytes:
-        """Doldurulacak personel Excel'i; şube kodları dosyanın içinde."""
+        """Doldurulacak personel Excel'i; şube kodları ve bölgeler içinde."""
         ayar = self._repo.settings()
         return staff_template(
             brand_name=ayar.brand_name if ayar else "Talimatname",
             branch_codes=sorted(
                 sube.code for sube in self._org.branches() if sube.status == "active"
             ),
+            region_names=sorted(bolge.name for bolge in self._org.regions()),
         )
 
     def import_staff(
@@ -253,7 +254,8 @@ class SetupService:
         yazıyor.
         """
         subeler = {sube.code: sube for sube in self._org.branches()}
-        rapor = parse_staff(data, branch_codes=set(subeler))
+        bolgeler = {bolge.name: bolge for bolge in self._org.regions()}
+        rapor = parse_staff(data, branch_codes=set(subeler), region_names=set(bolgeler))
         if rapor.rejected and raise_on_reject:
             log.warning(
                 "kurulum.personel_dosyasi_reddedildi",
@@ -272,8 +274,14 @@ class SetupService:
         servis = UserService(self._users, self._org, now=self._now)
         yeni, guncel = 0, 0
         for satir in rapor.rows:
-            sube = subeler[satir.branch_code]
-            atama = RoleAssignment(role=satir.role, scope_id=sube.id)  # type: ignore[arg-type]
+            # Kapsam rolden okunuyor: şube kodu ya da bölge adı, ikisi
+            # birden değil (domain/setup._kapsam_hatalari).
+            kapsam = (
+                subeler[satir.branch_code].id
+                if satir.branch_code
+                else bolgeler[satir.region_name].id
+            )
+            atama = RoleAssignment(role=satir.role, scope_id=kapsam)  # type: ignore[arg-type]
             mevcut = self._users.user_by_phone(satir.phone)
             if mevcut is None:
                 servis.invite(

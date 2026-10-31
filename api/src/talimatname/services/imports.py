@@ -149,11 +149,14 @@ def branch_template(
     return tampon.getvalue()
 
 
+#: Kapsam iki sütun: biri şube kodu, biri bölge adı. Yıldız ikisinde
+#: de yok çünkü hangisinin zorunlu olduğunu **rol** belirliyor.
 STAFF_COLUMNS: dict[str, str] = {
     "ad": "Ad soyad*",
     "telefon": "Telefon*",
     "rol": "Rol*",
-    "sube_kodu": "Şube kodu*",
+    "sube_kodu": "Şube kodu",
+    "bolge": "Bölge",
     "eposta": "E-posta",
 }
 
@@ -162,15 +165,18 @@ STAFF_HINTS: dict[str, str] = {
     "telefon": "0532 111 00 05",
     "rol": "Personel",
     "sube_kodu": "KDK",
+    "bolge": "",
     "eposta": "",
 }
 
 
-def staff_template(*, brand_name: str, branch_codes: list[str]) -> bytes:
+def staff_template(
+    *, brand_name: str, branch_codes: list[str], region_names: list[str] | None = None
+) -> bytes:
     """Personel Excel şablonu (FR-0105).
 
-    Şube kodları ikinci sayfada yazılı: yönetici "kodum neydi" diye
-    panele dönmesin, dosyanın içinde dursun.
+    Şube kodları ve bölge adları ikinci sayfada yazılı: yönetici
+    "kodum neydi" diye panele dönmesin, dosyanın içinde dursun.
     """
     kitap = Workbook()
     sayfa = kitap.active
@@ -196,12 +202,16 @@ def staff_template(*, brand_name: str, branch_codes: list[str]) -> bytes:
     satirlar = [
         "Yıldızlı sütunlar zorunludur.",
         "Rol: " + " ya da ".join(BULK_ROLES.values()) + ".",
-        "Bölge müdürü ve yönetici panelden eklenir: kapsamları şube koduyla anlatılamaz.",
+        "Personel ve şube müdürü satırında Şube kodu doldurulur, Bölge boş bırakılır.",
+        "Bölge müdürü satırında Bölge doldurulur, Şube kodu boş bırakılır.",
+        "Yönetici panelden eklenir: kapsamı hesabın tamamı, bir sütunla anlatılamaz.",
         "Telefon kişinin kimliğidir (giriş SMS koduyla); aynı numara iki satırda olamaz.",
         "Var olan numara güncellenir, ikinci kullanıcı açılmaz.",
         "Şube kodları:",
     ]
     satirlar += [f"    {kod}" for kod in branch_codes] or ["    (henüz şube yok)"]
+    satirlar.append("Bölgeler:")
+    satirlar += [f"    {ad}" for ad in (region_names or [])] or ["    (henüz bölge yok)"]
     satirlar.append(f"Şablon sürümü: {TEMPLATE_VERSION}")
     for sira, metin in enumerate(satirlar, start=1):
         aciklama.cell(row=sira, column=1, value=metin)
@@ -211,7 +221,9 @@ def staff_template(*, brand_name: str, branch_codes: list[str]) -> bytes:
     return tampon.getvalue()
 
 
-def parse_staff(data: bytes, *, branch_codes: set[str]) -> StaffReport:
+def parse_staff(
+    data: bytes, *, branch_codes: set[str], region_names: set[str] | None = None
+) -> StaffReport:
     """Personel dosyasını okur ve doğrular; **yazmaz**."""
     tum_satirlar, anahtarlar = _sayfa_ve_anahtarlar(data, STAFF_COLUMNS, ("ad", "telefon"))
 
@@ -227,7 +239,7 @@ def parse_staff(data: bytes, *, branch_codes: set[str]) -> StaffReport:
         toplam += 1
         if toplam > MAX_ROWS:
             raise ImportFailed(f"En çok {MAX_ROWS} satır yüklenebilir")
-        sonuc = staff_row(sira, degerler, branch_codes=branch_codes)
+        sonuc = staff_row(sira, degerler, branch_codes=branch_codes, region_names=region_names)
         if isinstance(sonuc, StaffRow):
             satirlar.append(sonuc)
         else:

@@ -117,8 +117,10 @@ export const tr = {
     planiOlustur: 'Planı oluştur',
     personelBaslik: 'Adım 5 · Personel',
     personelAciklama:
-      'Şablonu indirin, personeli doldurun ve yükleyin. Davetler kuyruğa ' +
-      'alınır; SMS sağlayıcısı bağlanana kadar gönderilmez.',
+      'Şablonu indirin, personeli doldurun ve yükleyin. Personel ve şube ' +
+      'müdürü satırında şube kodu, bölge müdürü satırında bölge adı ' +
+      'yazılır. Davetler kuyruğa alınır; SMS sağlayıcısı bağlanana kadar ' +
+      'gönderilmez.',
     personelSablonu: 'Personel şablonunu indir',
     personeliDavetEt: '{n} kişiyi davet et',
     panelden: 'Bu adım panelin kendi ekranından yapılıyor; buraya sihirbaz akışı eklenecek.',

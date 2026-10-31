@@ -20,6 +20,7 @@ from talimatname.api.app import create_app
 from talimatname.domain.setup import (
     REJECT_RATIO,
     AccountSettings,
+    StaffRow,
     branch_row,
     duplicate_codes,
     duplicate_phones,
@@ -763,16 +764,82 @@ def test_olmayan_sube_kodu_hata() -> None:
     assert sonuc[0].field == "sube_kodu"
 
 
-def test_bolge_muduru_toplu_yuklemede_yok() -> None:
-    """Kapsamı şube koduyla anlatılamaz; panelden eklenir."""
+def test_bolge_muduru_bolge_adiyla_yuklenir() -> None:
+    """Kapsam bölge adı: şube dosyasında zaten yazılan ad."""
     sonuc = staff_row(
         4,
-        {"ad": "Deniz", "telefon": "+905321112233", "rol": "Bölge müdürü", "sube_kodu": "KDK"},
+        {"ad": "Deniz", "telefon": "+905321112233", "rol": "Bölge müdürü", "bolge": "Anadolu"},
         branch_codes={"KDK"},
+        region_names={"Anadolu"},
+    )
+
+    assert isinstance(sonuc, StaffRow)
+    assert sonuc.role == "region_manager"
+    assert sonuc.region_name == "Anadolu"
+    assert sonuc.branch_code == ""
+
+
+def test_bolge_muduru_sube_koduyla_yuklenmez() -> None:
+    """İki kapsam birden: hangisinin kazandığı tahmin ettirilmez."""
+    sonuc = staff_row(
+        4,
+        {
+            "ad": "Deniz",
+            "telefon": "+905321112233",
+            "rol": "Bölge müdürü",
+            "sube_kodu": "KDK",
+            "bolge": "Anadolu",
+        },
+        branch_codes={"KDK"},
+        region_names={"Anadolu"},
     )
 
     assert isinstance(sonuc, list)
-    assert sonuc[0].field == "rol"
+    assert sonuc[0].field == "sube_kodu"
+
+
+def test_bolge_muduru_bolgesiz_olmaz() -> None:
+    sonuc = staff_row(
+        4,
+        {"ad": "Deniz", "telefon": "+905321112233", "rol": "Bölge müdürü"},
+        branch_codes={"KDK"},
+        region_names={"Anadolu"},
+    )
+
+    assert isinstance(sonuc, list)
+    assert sonuc[0].field == "bolge"
+
+
+def test_olmayan_bolge_reddedilir() -> None:
+    """Yanlış bölge, bütün bir bölgenin raporunu yanlış kişiye açardı."""
+    sonuc = staff_row(
+        4,
+        {"ad": "Deniz", "telefon": "+905321112233", "rol": "Bölge müdürü", "bolge": "Ege"},
+        branch_codes={"KDK"},
+        region_names={"Anadolu"},
+    )
+
+    assert isinstance(sonuc, list)
+    assert sonuc[0].field == "bolge"
+    assert "Ege" in sonuc[0].message
+
+
+def test_personel_satirinda_bolge_doldurulmaz() -> None:
+    sonuc = staff_row(
+        4,
+        {
+            "ad": "Emre",
+            "telefon": "+905321112233",
+            "rol": "Personel",
+            "sube_kodu": "KDK",
+            "bolge": "Anadolu",
+        },
+        branch_codes={"KDK"},
+        region_names={"Anadolu"},
+    )
+
+    assert isinstance(sonuc, list)
+    assert sonuc[0].field == "bolge"
 
 
 def test_dosyadaki_tekrar_eden_telefon_hata() -> None:
@@ -818,6 +885,65 @@ def test_personel_yuklemesi_davet_kuyruga_alir(servis: SetupService) -> None:
     mudur = servis._users.user_by_phone("+905321112234")
     assert mudur is not None
     assert mudur.assignments[0].role == "branch_manager"
+
+
+def test_bolge_muduru_sihirbazdan_yuklenebilir(servis: SetupService) -> None:
+    """Bölge müdürü artık dosyada: kapsamı şube dosyasında yazan bölge.
+
+    Önce dışarıda bırakılmıştı; 8 bölgeli bir zincirde bu, kurulumu
+    yarıda kesip yöneticiyi panele gönderiyordu.
+    """
+    servis.import_branches(
+        _dosya(
+            [
+                _sube("KDK", "Kadıköy", bolge="Anadolu"),
+                _sube("BKR", "Bakırköy", bolge="Avrupa"),
+            ]
+        )
+    )
+
+    rapor = servis.import_staff(
+        _personel_dosyasi(
+            [
+                _kisi("Emre Yılmaz", "0532 111 22 33"),
+                {
+                    "ad": "Murat Bölge",
+                    "telefon": "0532 111 22 40",
+                    "rol": "Bölge müdürü",
+                    "bolge": "Anadolu",
+                },
+            ]
+        )
+    )
+
+    assert (rapor.created, rapor.error_rows) == (2, 0)
+    murat = servis._users.user_by_phone("+905321112240")
+    assert murat is not None
+    atama = murat.assignments[0]
+    assert atama.role == "region_manager"
+    assert atama.scope_type == "region"
+    anadolu = next(b for b in servis._org.regions() if b.name == "Anadolu")
+    assert atama.scope_id == anadolu.id
+
+
+def test_olmayan_bolgeyle_personel_dosyasi_reddedilir(servis: SetupService) -> None:
+    servis.import_branches(_dosya([_sube("KDK", "Kadıköy", bolge="Anadolu")]))
+
+    with pytest.raises(ImportFailed) as hata:
+        servis.import_staff(
+            _personel_dosyasi(
+                [
+                    {
+                        "ad": "Murat Bölge",
+                        "telefon": "0532 111 22 40",
+                        "rol": "Bölge müdürü",
+                        "bolge": "Ege",
+                    }
+                ]
+            )
+        )
+
+    assert hata.value.extra["errors"][0]["field"] == "bolge"
 
 
 def test_ayni_telefon_ikinci_kez_gunceller(servis: SetupService) -> None:
