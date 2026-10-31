@@ -3008,6 +3008,117 @@
           }
         }
       }
+    },
+    "/api/v1/reports/monthly.pdf": {
+      "get": {
+        "tags": [
+          "rapor"
+        ],
+        "summary": "Aylık özetin PDF'i (FR-1220)",
+        "operationId": "aylik_ozet_pdf_api_v1_reports_monthly_pdf_get",
+        "parameters": [
+          {
+            "name": "year",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 2100,
+              "minimum": 2020,
+              "title": "Year"
+            }
+          },
+          {
+            "name": "month",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 12,
+              "minimum": 1,
+              "title": "Month"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "PDF",
+            "content": {
+              "application/pdf": {}
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/reports/measurements.pdf": {
+      "get": {
+        "tags": [
+          "rapor"
+        ],
+        "summary": "Ölçüm günlüğünün PDF'i (FR-1214)",
+        "description": "Soğuk zincir denetiminin istediği kâğıt: ne, nerede, ne zaman, kaç.",
+        "operationId": "olcum_gunlugu_pdf_api_v1_reports_measurements_pdf_get",
+        "parameters": [
+          {
+            "name": "first_day",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "title": "First Day"
+            }
+          },
+          {
+            "name": "last_day",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "title": "Last Day"
+            }
+          },
+          {
+            "name": "only_out_of_range",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Only Out Of Range"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "PDF",
+            "content": {
+              "application/pdf": {}
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {

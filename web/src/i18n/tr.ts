@@ -63,6 +63,10 @@ export const tr = {
     aralikDisi: 'aralık dışı',
     yalnizBayrakli: 'Yalnızca bayraklı kanıtlar',
     kanitYok: 'Bu aralıkta kanıt yok.',
+    pdfIndir: 'PDF indir',
+    pdfHazirlaniyor: 'PDF hazırlanıyor…',
+    pdfHata: 'PDF üretilemedi. Tekrar deneyin.',
+    pdfAciklama: 'Denetçiye verilebilecek kâğıt: belge kodu ve üretim zamanı sayfa altında.',
   },
   kurulum: {
     baslik: 'Kurulum sihirbazı',

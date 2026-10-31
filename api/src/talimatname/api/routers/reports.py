@@ -1,35 +1,48 @@
-"""Rapor uç noktaları (ST-088, ST-145; FR-1207, FR-1208, FR-1220).
+"""Rapor uç noktaları (ST-088, ST-145, ST-092; FR-1207, FR-1208, FR-1220, FR-1214).
 
 ```
-GET /reports/monthly?year&month     → ayın tek sayfası, şube kırılımı
-GET /reports/measurements?from&to   → ölçüm günlüğü (sıcaklık, sayı)
-GET /reports/gallery?from&to        → kanıt ızgarası
+GET /reports/monthly?year&month      → ayın tek sayfası, şube kırılımı
+GET /reports/monthly.pdf?year&month  → aynı sayfa, kâğıda (FR-1220)
+GET /reports/measurements?from&to    → ölçüm günlüğü (sıcaklık, sayı)
+GET /reports/measurements.pdf        → dönem PDF'i (FR-1214)
+GET /reports/gallery?from&to         → kanıt ızgarası
 ```
 
 Hepsi **kapsamla süzülür**: bölge müdürü bölgesini, şube müdürü
 şubesini görür. Kapsam belirteçten değil kullanıcıdan okunuyor.
+
+PDF'ler ekranla **aynı** servis çağrısını kullanıyor: kâğıt kendi
+sorgusunu yazsaydı iki çıktı zamanla ayrışırdı — denetimde elde
+ekrandan farklı bir kâğıt olurdu.
 """
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Response
 from pydantic import BaseModel, Field
 
-from talimatname.api.bagimliliklar import organizasyon_servisi, rapor_servisi
+from talimatname.api.bagimliliklar import (
+    kurulum_servisi,
+    organizasyon_servisi,
+    rapor_servisi,
+)
 from talimatname.api.guvenlik import Kullanici, erisilebilir_sube_idleri
 from talimatname.domain.evidence import FLAG_LABELS
 from talimatname.domain.reports import Counters, MonthlySummary
 from talimatname.services.organization import OrganizationService
+from talimatname.services.pdf import Brand, measurements_pdf, monthly_pdf
 from talimatname.services.reports import MeasurementSeries, ReportService
+from talimatname.services.setup import SetupService
 
 router = APIRouter(tags=["rapor"])
 
 Servis = Annotated[ReportService, Depends(rapor_servisi)]
 OrgServis = Annotated[OrganizationService, Depends(organizasyon_servisi)]
+KurulumServis = Annotated[SetupService, Depends(kurulum_servisi)]
 
 AY_ADLARI = (
     "Ocak",
@@ -237,3 +250,99 @@ def kanit_galerisi(
         )
         for kanit in kanitlar
     ]
+
+
+# --- PDF çıktıları (FR-1220, FR-1214) ---------------------------------
+
+
+def _marka(kurulum: KurulumServis) -> Brand:
+    """Kâğıdın üstündeki hesap adı ve saat dilimi.
+
+    Sihirbaz bitmemişse marka adı henüz yok: rapor üretilir ama
+    kâğıtta ürünün adı görünür. Üretmemek daha kötü olurdu — kurulumun
+    ortasında da rapor alınabilmeli.
+    """
+    ayar = kurulum.settings()
+    if ayar is None:
+        return Brand(name="Talimatname")
+    return Brand(name=ayar.brand_name, timezone=ayar.timezone)
+
+
+def _sube_kodlari(org: OrgServis) -> dict[UUID, str]:
+    """Ölçüm satırında şube **kodu** görünüyor: kâğıtta yer dar.
+
+    Kapalı şubeler de alınıyor: geçmiş dönemin ölçümü kapanmış bir
+    şubeye ait olabilir ve kod yerine `—` basmak kaydı okunamaz kılar.
+    """
+    return {
+        sube.id: sube.code for bolge in org.tree(include_inactive=True) for sube in bolge.branches
+    }
+
+
+def _pdf(icerik: bytes, *, dosya_adi: str) -> Response:
+    return Response(
+        content=icerik,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{dosya_adi}"'},
+    )
+
+
+@router.get(
+    "/reports/monthly.pdf",
+    summary="Aylık özetin PDF'i (FR-1220)",
+    response_class=Response,
+    responses={200: {"content": {"application/pdf": {}}, "description": "PDF"}},
+)
+def aylik_ozet_pdf(
+    servis: Servis,
+    org: OrgServis,
+    kurulum: KurulumServis,
+    kullanici: Kullanici,
+    year: Annotated[int, Query(ge=2020, le=2100)],
+    month: Annotated[int, Query(ge=1, le=12)],
+) -> Response:
+    ozet = servis.monthly(year, month, branch_ids=erisilebilir_sube_idleri(kullanici, org))
+    icerik = monthly_pdf(
+        ozet,
+        brand=_marka(kurulum),
+        generated_at=datetime.now(UTC),
+        generated_by=kullanici.full_name,
+    )
+    return _pdf(icerik, dosya_adi=f"talimatname-{year}-{month:02d}-aylik-ozet.pdf")
+
+
+@router.get(
+    "/reports/measurements.pdf",
+    summary="Ölçüm günlüğünün PDF'i (FR-1214)",
+    response_class=Response,
+    responses={200: {"content": {"application/pdf": {}}, "description": "PDF"}},
+)
+def olcum_gunlugu_pdf(
+    servis: Servis,
+    org: OrgServis,
+    kurulum: KurulumServis,
+    kullanici: Kullanici,
+    first_day: date,
+    last_day: date,
+    only_out_of_range: bool = False,
+) -> Response:
+    """Soğuk zincir denetiminin istediği kâğıt: ne, nerede, ne zaman, kaç."""
+    seriler = servis.measurements(
+        first_day=first_day,
+        last_day=last_day,
+        branch_ids=erisilebilir_sube_idleri(kullanici, org),
+        only_out_of_range=only_out_of_range,
+    )
+    icerik = measurements_pdf(
+        seriler,
+        brand=_marka(kurulum),
+        first_day=first_day,
+        last_day=last_day,
+        branch_codes=_sube_kodlari(org),
+        generated_at=datetime.now(UTC),
+        generated_by=kullanici.full_name,
+    )
+    return _pdf(
+        icerik,
+        dosya_adi=f"talimatname-olcum-gunlugu-{first_day:%Y%m%d}-{last_day:%Y%m%d}.pdf",
+    )

@@ -25,6 +25,31 @@ export type Problem = {
 };
 
 /**
+ * Sunucunun problem+json **olmayan** hata yanıtı (ara sunucunun HTML
+ * 500'ü, ağ geçidinin düz metni) istemci tarafında üretilen problem
+ * gövdesine çevrilir.
+ *
+ * Neden: openapi-fetch gövdeyi çözemediğinde hem `data` hem `error`
+ * boş dönüyor; çağrı yeri `if (error) throw` ile kurtulamıyor ve
+ * ekran tanımsız veriyle çiziliyordu. Giriş ekranı böyle beyaz
+ * kalıyordu (API kapalıyken tarayıcıda görüldü) — yani sunucu
+ * düştüğünde kullanıcı hata yerine boş sayfa görüyordu.
+ */
+api.use({
+  onResponse({ response }) {
+    if (response.ok) return response;
+    if ((response.headers.get('content-type') ?? '').includes('json')) return response;
+    const problem: Problem = {
+      type: 'urn:talimatname:yanit-cozulemedi',
+      title: 'Sunucuya ulaşılamadı',
+      status: response.status,
+      detail: `Sunucu beklenmeyen bir yanıt verdi (HTTP ${response.status}).`,
+    };
+    throw problem;
+  },
+});
+
+/**
  * Hata nesnesinden problem gövdesini çıkarır. İstemci davranışı `type`
  * alanına bakar — Türkçe `title` metni değişebilir, `type` sözleşmedir.
  */

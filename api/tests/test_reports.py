@@ -360,3 +360,67 @@ def test_plan_servisi_ile_ayni_gercek(tmp_path: Path) -> None:
 
     assert ozet.counters.total == len(kosular)
     assert ozet.counters.open + ozet.counters.closed + ozet.counters.cancelled == len(kosular)
+
+
+# --- PDF uç noktaları (FR-1220, FR-1214) ------------------------------
+
+
+def _pdf_metni(baytlar: bytes) -> str:
+    from io import BytesIO
+
+    from pypdf import PdfReader
+
+    return "\n".join(s.extract_text() or "" for s in PdfReader(BytesIO(baytlar)).pages)
+
+
+def test_uc_nokta_aylik_pdf(tmp_path: Path) -> None:
+    bugun = datetime.now(UTC).date()
+
+    yanit = _istemci(tmp_path).get(
+        "/api/v1/reports/monthly.pdf", params={"year": bugun.year, "month": bugun.month}
+    )
+
+    assert yanit.status_code == 200
+    assert yanit.headers["content-type"] == "application/pdf"
+    assert "attachment" in yanit.headers["content-disposition"]
+    assert ".pdf" in yanit.headers["content-disposition"]
+    assert yanit.content.startswith(b"%PDF")
+
+
+def test_uc_nokta_olcum_pdf(tmp_path: Path) -> None:
+    bugun = datetime.now(UTC).date()
+
+    yanit = _istemci(tmp_path).get(
+        "/api/v1/reports/measurements.pdf",
+        params={"first_day": str(bugun - timedelta(days=7)), "last_day": str(bugun)},
+    )
+
+    assert yanit.status_code == 200
+    assert yanit.content.startswith(b"%PDF")
+
+
+def test_pdf_ekranla_ayni_kapsami_kullanir(tmp_path: Path) -> None:
+    """Personelin PDF'i de yalnızca kendi şubesini içerir (FR-0205).
+
+    Kâğıt kendi sorgusunu yazsa kapsam süzgeci atlanabilirdi: denetime
+    giden belge, ekranda görünenden fazlasını gösterirdi.
+    """
+    bugun = datetime.now(UTC).date()
+    personel = _istemci(tmp_path, "staff")
+
+    ekran = personel.get(
+        "/api/v1/reports/monthly", params={"year": bugun.year, "month": bugun.month}
+    ).json()
+    kagit = personel.get(
+        "/api/v1/reports/monthly.pdf", params={"year": bugun.year, "month": bugun.month}
+    )
+
+    assert kagit.status_code == 200
+    assert all(s["branch_code"] == "KDK" for s in ekran["branches"])
+    assert "BSK" not in _pdf_metni(kagit.content)
+
+
+def test_pdf_gecersiz_ay_reddedilir(tmp_path: Path) -> None:
+    yanit = _istemci(tmp_path).get("/api/v1/reports/monthly.pdf", params={"year": 2026, "month": 0})
+
+    assert yanit.status_code == 422

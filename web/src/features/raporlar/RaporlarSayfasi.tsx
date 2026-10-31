@@ -4,8 +4,11 @@ import { useState } from 'react';
 import { kanitBaglantisi } from '../../api/kanitlar';
 import {
   aylikOzet,
+  aylikOzetPdf,
+  dosyayiIndir,
   kanitGalerisi,
   olcumGunlugu,
+  olcumGunluguPdf,
   type AylikOzet,
   type GaleriKanidi,
   type OlcumSerisi,
@@ -71,6 +74,53 @@ export function RaporlarSayfasi() {
   );
 }
 
+/**
+ * PDF indirme düğmesi (FR-1220, FR-1214).
+ *
+ * Kendi durumunu tutuyor: PDF sunucuda üretiliyor ve 60 şubelik bir
+ * ayda bu bir saniyeyi geçebiliyor. Tıklayıp hiçbir şey olmaması,
+ * kullanıcıyı ikinci kez tıklamaya iter.
+ */
+function PdfDugmesi({ uret, dosyaAdi }: { uret: () => Promise<Blob>; dosyaAdi: string }) {
+  const [durum, setDurum] = useState<'bos' | 'calisiyor' | 'hata'>('bos');
+
+  async function tikla() {
+    setDurum('calisiyor');
+    try {
+      dosyayiIndir(await uret(), dosyaAdi);
+      setDurum('bos');
+    } catch {
+      setDurum('hata');
+    }
+  }
+
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={tikla}
+        disabled={durum === 'calisiyor'}
+        style={{
+          minHeight: 44,
+          padding: '0 var(--bosluk-4)',
+          borderRadius: 'var(--kose-dugme)',
+          border: '1px solid var(--renk-cizgi)',
+          background: 'var(--renk-yuzey2)',
+          color: 'var(--renk-murekkep)',
+          cursor: durum === 'calisiyor' ? 'progress' : 'pointer',
+        }}
+      >
+        {durum === 'calisiyor' ? tr.rapor.pdfHazirlaniyor : tr.rapor.pdfIndir}
+      </button>
+      {durum === 'hata' && (
+        <p role="alert" style={{ color: 'var(--renk-kritik)', fontSize: 'var(--etiket)' }}>
+          {tr.rapor.pdfHata}
+        </p>
+      )}
+    </div>
+  );
+}
+
 function aralik(gunSayisi: number): { ilk: string; son: string } {
   const son = new Date();
   const ilk = new Date(son.getTime() - gunSayisi * 24 * 60 * 60 * 1000);
@@ -114,7 +164,14 @@ function AylikOzetBolumu({
             style={{ ...alan, width: 120 }}
           />
         </label>
+        <PdfDugmesi
+          uret={() => aylikOzetPdf(yil, ay)}
+          dosyaAdi={`talimatname-${yil}-${String(ay).padStart(2, '0')}-aylik-ozet.pdf`}
+        />
       </div>
+      <p style={{ color: 'var(--renk-murekkep2)', fontSize: 'var(--etiket)' }}>
+        {tr.rapor.pdfAciklama}
+      </p>
 
       {ozet.isPending && <p style={{ color: 'var(--renk-sessiz)' }}>{tr.genel.yukleniyor}</p>}
       {ozet.isError && (
@@ -238,6 +295,12 @@ function OlcumBolumu() {
       <p style={{ color: 'var(--renk-murekkep2)', fontSize: 'var(--etiket)' }}>
         {tr.rapor.olcumAciklamasi}
       </p>
+      <div style={{ margin: 'var(--bosluk-3) 0' }}>
+        <PdfDugmesi
+          uret={() => olcumGunluguPdf(ilk, son, yalnizAralikDisi)}
+          dosyaAdi={`talimatname-olcum-gunlugu-${ilk.replaceAll('-', '')}-${son.replaceAll('-', '')}.pdf`}
+        />
+      </div>
 
       {seriler.isPending && <p style={{ color: 'var(--renk-sessiz)' }}>{tr.genel.yukleniyor}</p>}
       {seriler.data?.length === 0 && (

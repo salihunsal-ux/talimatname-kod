@@ -5,8 +5,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   aylikOzet,
+  aylikOzetPdf,
+  dosyayiIndir,
   kanitGalerisi,
   olcumGunlugu,
+  olcumGunluguPdf,
   type AylikOzet,
   type OlcumSerisi,
 } from '../../api/raporlar';
@@ -17,6 +20,9 @@ vi.mock('../../api/kanitlar');
 const ozetGetir = vi.mocked(aylikOzet);
 const olcumGetir = vi.mocked(olcumGunlugu);
 const galeriGetir = vi.mocked(kanitGalerisi);
+const aylikPdf = vi.mocked(aylikOzetPdf);
+const olcumPdf = vi.mocked(olcumGunluguPdf);
+const indir = vi.mocked(dosyayiIndir);
 
 const SAYAC = {
   total: 10,
@@ -94,6 +100,8 @@ describe('RaporlarSayfasi', () => {
     ozetGetir.mockResolvedValue(OZET);
     olcumGetir.mockResolvedValue([SERI]);
     galeriGetir.mockResolvedValue([]);
+    aylikPdf.mockResolvedValue(new Blob([new Uint8Array([37, 80, 68, 70])]));
+    olcumPdf.mockResolvedValue(new Blob([new Uint8Array([37, 80, 68, 70])]));
   });
 
   it('aylık özet sayıları ve yüzdeyi gösterir', async () => {
@@ -149,6 +157,41 @@ describe('RaporlarSayfasi', () => {
     await userEvent.click(screen.getByLabelText('Yalnızca aralık dışı ölçümler'));
 
     expect(olcumGetir).toHaveBeenLastCalledWith(expect.any(String), expect.any(String), true);
+  });
+
+  it('aylık özet PDF olarak indirilir', async () => {
+    kur();
+    await screen.findByText('%67');
+
+    await userEvent.click(screen.getByRole('button', { name: 'PDF indir' }));
+
+    // Ekranda seçili ay bugünün ayı: beklenti veriden değil takvimden.
+    const bugun = new Date();
+    expect(aylikPdf).toHaveBeenCalledWith(bugun.getFullYear(), bugun.getMonth() + 1);
+    expect(indir).toHaveBeenCalledWith(expect.any(Blob), expect.stringContaining('aylik-ozet.pdf'));
+  });
+
+  it('ölçüm günlüğü PDF ekrandaki süzgeci taşır', async () => {
+    kur();
+    await userEvent.click(screen.getByRole('tab', { name: 'Ölçüm günlüğü' }));
+    await screen.findByText('Süt dolabı sıcaklığı');
+    await userEvent.click(screen.getByLabelText('Yalnızca aralık dışı ölçümler'));
+
+    await userEvent.click(screen.getByRole('button', { name: 'PDF indir' }));
+
+    // Kâğıt ekranda görünenin aynısı olmalı: süzgeç de gider.
+    expect(olcumPdf).toHaveBeenCalledWith(expect.any(String), expect.any(String), true);
+  });
+
+  it('PDF üretilemezse hata görünür', async () => {
+    aylikPdf.mockRejectedValue(new Error('500'));
+    kur();
+    await screen.findByText('%67');
+
+    await userEvent.click(screen.getByRole('button', { name: 'PDF indir' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('PDF üretilemedi');
+    expect(indir).not.toHaveBeenCalled();
   });
 
   it('galeri boşken bunu söyler', async () => {

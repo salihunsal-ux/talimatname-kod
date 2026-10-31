@@ -99,7 +99,7 @@ export function GirisSayfasi({ onGiris }: { onGiris: () => void }) {
               });
             }}
           >
-            {bilgi !== null && !bilgi.delivered && (
+            {bilgi != null && !bilgi.delivered && (
               <p role="status" style={uyari}>
                 {tr.giris.gonderilmedi}
                 {bilgi.dev_code !== null && bilgi.dev_code !== undefined && (

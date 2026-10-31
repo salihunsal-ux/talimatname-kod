@@ -100,4 +100,18 @@ describe('GirisSayfasi', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('kayıtlı kullanıcı yok');
     expect(screen.queryByLabelText('Doğrulama kodu')).not.toBeInTheDocument();
   });
+
+  it('yanıt gövdesi boş gelse de ekran beyaz kalmaz', async () => {
+    /* Ara sunucunun HTML 500'ünde openapi-fetch hem `data` hem
+       `error` boş bırakıyordu: `bilgi` tanımsız kalıp giriş ekranı
+       çöküyordu (tarayıcıda görüldü). İstemci artık böyle yanıtı
+       problem gövdesine çeviriyor; burada en kötü hâli taklit edip
+       ekranın ayakta kaldığını sınıyoruz. */
+    iste.mockResolvedValue(undefined as never);
+    render(<GirisSayfasi onGiris={vi.fn()} />);
+
+    await telefonAdimi();
+
+    expect(screen.getByRole('heading', { name: 'Talimatname' })).toBeInTheDocument();
+  });
 });

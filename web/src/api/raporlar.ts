@@ -34,6 +34,51 @@ export async function olcumGunlugu(
   return data;
 }
 
+/**
+ * Aylık özetin PDF'i (FR-1220). Belirteç `api.use` ara katmanından
+ * geliyor: `<a href>` ile indirmek belirteci URL'ye koymak ya da
+ * kanıt bağlantısı gibi ikinci bir imza düzeni kurmak demek olurdu.
+ */
+export async function aylikOzetPdf(yil: number, ay: number): Promise<Blob> {
+  const { data, error } = await api.GET('/api/v1/reports/monthly.pdf', {
+    params: { query: { year: yil, month: ay } },
+    parseAs: 'blob',
+  });
+  if (error) throw error;
+  return data;
+}
+
+/** Ölçüm günlüğünün PDF'i (FR-1214) — denetçiye verilen kâğıt. */
+export async function olcumGunluguPdf(
+  ilkGun: string,
+  sonGun: string,
+  yalnizAralikDisi = false,
+): Promise<Blob> {
+  const { data, error } = await api.GET('/api/v1/reports/measurements.pdf', {
+    params: {
+      query: { first_day: ilkGun, last_day: sonGun, only_out_of_range: yalnizAralikDisi },
+    },
+    parseAs: 'blob',
+  });
+  if (error) throw error;
+  return data;
+}
+
+/**
+ * Blob'u kullanıcıya indirir. Nesne URL'si hemen geri veriliyor:
+ * bırakılmış URL sekme kapanana kadar belleği tutar.
+ */
+export function dosyayiIndir(blob: Blob, dosyaAdi: string): void {
+  const url = URL.createObjectURL(blob);
+  const bag = document.createElement('a');
+  bag.href = url;
+  bag.download = dosyaAdi;
+  document.body.appendChild(bag);
+  bag.click();
+  bag.remove();
+  URL.revokeObjectURL(url);
+}
+
 export async function kanitGalerisi(
   ilkGun: string,
   sonGun: string,
