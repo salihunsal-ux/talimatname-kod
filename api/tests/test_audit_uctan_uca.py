@@ -24,6 +24,21 @@ from talimatname.settings import Settings
 YONETICI = "+905321110001"
 
 
+def _giris(istemci: TestClient, **ek: object) -> None:
+    """Kod iste → doğrula. Ara adımları **sınıyor**: kod gelmezse ya da
+    doğrulama başarısızsa, "olay günlüğü boş" demek yerine nedenini
+    söylesin (CI'da bir kez boş listeyle uğraşıldı)."""
+    yanit = istemci.post("/api/v1/auth/request-code", json={"phone": YONETICI})
+    govde = yanit.json()
+    assert govde.get("dev_code"), f"kod yanıtta yok: {yanit.status_code} {govde}"
+    dogrulama = istemci.post(
+        "/api/v1/auth/verify",
+        json={"phone": YONETICI, "code": govde["dev_code"]},
+        **ek,  # type: ignore[arg-type]
+    )
+    assert dogrulama.status_code == 200, f"oturum açılmadı: {dogrulama.text}"
+
+
 @pytest.fixture
 def istemci(tmp_path: Path) -> TestClient:
     """Ortam **dev**: oturum testleri doğrulama kodunu yanıttan okuyor.
@@ -45,9 +60,7 @@ def _iz() -> list[tuple[str, str | None]]:
 
 
 def test_oturum_acilisi_gunluge_dusuyor(istemci: TestClient) -> None:
-    kod = istemci.post("/api/v1/auth/request-code", json={"phone": YONETICI}).json()["dev_code"]
-
-    istemci.post("/api/v1/auth/verify", json={"phone": YONETICI, "code": kod})
+    _giris(istemci)
 
     turler = [t for t, _ in _iz()]
     assert "oturum.acildi" in turler
@@ -66,11 +79,8 @@ def test_reddedilen_deneme_de_gunluge_dusuyor(istemci: TestClient) -> None:
 
 def test_istek_baglami_olaya_giriyor(istemci: TestClient) -> None:
     """IP ve cihaz yalnızca HTTP katmanında biliniyor; olaya oradan geçiyor."""
-    kod = istemci.post("/api/v1/auth/request-code", json={"phone": YONETICI}).json()["dev_code"]
-
-    istemci.post(
-        "/api/v1/auth/verify",
-        json={"phone": YONETICI, "code": kod},
+    _giris(
+        istemci,
         headers={"X-Forwarded-For": "198.51.100.7, 10.0.0.1", "User-Agent": "Talimatname/1.0"},
     )
 
@@ -83,8 +93,7 @@ def test_istek_baglami_olaya_giriyor(istemci: TestClient) -> None:
 
 def test_telefon_numarasi_gunluge_yazilmiyor(istemci: TestClient) -> None:
     """Kişisel veri günlükte durmaz (BR-21): kayıt kimlikle bağlanıyor."""
-    kod = istemci.post("/api/v1/auth/request-code", json={"phone": YONETICI}).json()["dev_code"]
-    istemci.post("/api/v1/auth/verify", json={"phone": YONETICI, "code": kod})
+    _giris(istemci)
 
     servis = bagimliliklar.izi_servisi()
     metin = str([(o.before, o.after) for o in servis._repo.events(limit=100)])
