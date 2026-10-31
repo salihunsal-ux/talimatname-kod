@@ -26,7 +26,12 @@ YONETICI = "+905321110001"
 
 @pytest.fixture
 def istemci(tmp_path: Path) -> TestClient:
-    return TestClient(create_app(Settings(evidence_dir=str(tmp_path))))
+    """Ortam **dev**: oturum testleri doğrulama kodunu yanıttan okuyor.
+
+    CI `ENVIRONMENT=test` ile koşuyor ve orada kod yanıta konmuyor
+    (doğru davranış); kodu alamayan test oturum açamıyordu.
+    """
+    return TestClient(create_app(Settings(environment="dev", evidence_dir=str(tmp_path))))
 
 
 def _iz() -> list[tuple[str, str | None]]:
