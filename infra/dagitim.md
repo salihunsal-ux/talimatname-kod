@@ -67,6 +67,48 @@ alır ve yeniler.
 veriyi karıştırmak, "bu kayıt gerçek mi" sorusunu kalıcı hale getirir
 (ADR-0003).
 
+## Deneme sürümü: erişilebilir ama gerçek verisiz
+
+Pilottan önce ürünün ayakta ve telefondan erişilebilir olması gerekiyor:
+denemeler, ekran turları, "şunu da görelim" soruları. O sürümde **gerçek
+veri tutulmuyor** — şubeler, çalışanlar ve fotoğraflar tohum verisinden
+geliyor.
+
+Bunun pratik sonucu şu: **sağlayıcı ve ülke bu aşamada serbest.**
+ADR-0003'ün "kanıt kovası Türkiye'de" şartını tetikleyen şey kişisel
+veri; uydurma veride o şart yok. Yer kararı, gerçek şube verisi girdiği
+gün verilir — ve aynı compose dosyası orada da kalkar.
+
+Serbest olmayan tek şey, uyuyan makine. Zamanlayıcı dakikada bir tur
+atmazsa liste açılmaz, hatırlatma gitmez, kaçırma yazılmaz (yukarı
+bakın, ADR-0012 md.3). Aranan şey basit: Docker koşan, uykuya geçmeyen,
+~2 vCPU / 4 GB bir makine ve A kaydı ona bakan bir alan adı. Alan adı
+sertifika için gerekli — telefon tarayıcıları sertifikasız bir panele
+kamera izni vermez, yani kanıt fotoğrafı akışı denenemez.
+
+```bash
+git clone <depo> && cd talimatname-kod
+sudo bash infra/sunucu_hazirla.sh panel.ornek.com
+```
+
+Betik Docker'ı kurar, güvenlik duvarını kapatır ve `.env`'i üretir:
+parolalar ile RS256 anahtarı **sunucuda** üretilip doğrudan dosyaya
+yazılır, ekrana basılmaz. Gerisi yukarıdaki ilk kurulum adımları.
+
+Deneme sürümünde:
+
+- `ENVIRONMENT=staging` kalır; üretim katılığı (zorunlu anahtar, kapalı
+  zaman yolculuğu) burada aranmaz, çünkü zaman yolculuğu denemenin
+  kendisi için lazım.
+- `tohum` **koşulur**. Üretimde koşulmaz (ADR-0003): aynı makinede hem
+  uydurma hem gerçek şube olursa "bu kayıt gerçek mi" sorusu kalıcı
+  hale gelir. Bu yüzden deneme makinesi pilot makinesi olmaz — pilot
+  temiz bir kurulumla başlar.
+- `TSA_URL` boş bırakılır: çıpalama kapalı, `/health` bunu söylüyor.
+  Zaman damgası sağlayıcısı bir hukuk kararı, demo için gerekmiyor.
+- Erişimi dar tutmak isterseniz güvenlik duvarında kaynak IP sınırı en
+  ucuz çözüm; panelde ayrı bir "demo kapısı" yok.
+
 ## Sürüm geçişi
 
 ```bash
