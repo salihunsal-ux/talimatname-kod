@@ -19,6 +19,7 @@ from talimatname.domain.actions import Action
 from talimatname.domain.answers import Answer, RunLock
 from talimatname.domain.audit import AuditEvent, SequenceTaken
 from talimatname.domain.evidence import Evidence
+from talimatname.domain.exports import ExportJob
 from talimatname.domain.notifications import Notification
 from talimatname.domain.organization import Branch, Region, Station, uniform_hours
 from talimatname.domain.plans import Assignment, Plan, Run
@@ -484,6 +485,15 @@ class MemoryPlanRepository:
     def runs_between(self, first_day: date, last_day: date) -> list[Run]:
         return [r for r in self._runs.values() if first_day <= r.business_day <= last_day]
 
+    def count_runs_between(
+        self, first_day: date, last_day: date, *, branch_ids: set[UUID] | None = None
+    ) -> int:
+        return sum(
+            1
+            for r in self.runs_between(first_day, last_day)
+            if branch_ids is None or r.branch_id in branch_ids
+        )
+
     def save_runs(self, runs: list[Run]) -> None:
         for run in runs:
             self.save_run(run)
@@ -613,6 +623,35 @@ class MemoryAnswerRepository:
             self._locks.pop(run_id, None)
         else:
             self._locks[run_id] = lock
+
+
+class MemoryExportJobRepository:
+    """`ExportJobRepository` portunun bellek içi karşılığı (FR-1217)."""
+
+    def __init__(self) -> None:
+        self._jobs: dict[UUID, ExportJob] = {}
+
+    def job(self, job_id: UUID) -> ExportJob | None:
+        return self._jobs.get(job_id)
+
+    def jobs_for_user(self, user_id: UUID, *, limit: int = 20) -> list[ExportJob]:
+        kisinin = [i for i in self._jobs.values() if i.requested_by == user_id]
+        return sorted(kisinin, key=lambda i: i.requested_at, reverse=True)[:limit]
+
+    def save_job(self, job: ExportJob) -> None:
+        self._jobs[job.id] = job
+
+    def queued_jobs(self, limit: int) -> list[ExportJob]:
+        sirada = [i for i in self._jobs.values() if i.state == "queued"]
+        return sorted(sirada, key=lambda i: i.requested_at)[:limit]
+
+    def files_before(self, before: datetime, limit: int) -> list[ExportJob]:
+        eskiler = [
+            i
+            for i in self._jobs.values()
+            if i.object_key is not None and i.finished_at is not None and i.finished_at < before
+        ]
+        return sorted(eskiler, key=lambda i: i.finished_at or before)[:limit]
 
 
 class MemoryAuditRepository:

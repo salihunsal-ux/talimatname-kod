@@ -10,9 +10,12 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 
 from talimatname.api.bagimliliklar import organizasyon_servisi, pano_servisi
-from talimatname.api.guvenlik import Kullanici, erisilebilir_sube_idleri
+from talimatname.api.guvenlik import Kullanici
 from talimatname.services.dashboard import Board, DashboardService
-from talimatname.services.organization import OrganizationService
+from talimatname.services.organization import (
+    OrganizationService,
+    erisilebilir_sube_idleri,
+)
 
 router = APIRouter(tags=["pano"])
 

@@ -5,6 +5,7 @@
  * şubesini görüyor. Panel kapsam hesaplamıyor.
  */
 import { api } from './client';
+import { pdfSonucu, type PdfSonucu } from './ciktilar';
 import type { components } from './schema';
 
 export type AylikOzet = components['schemas']['AylikOzet'];
@@ -38,14 +39,17 @@ export async function olcumGunlugu(
  * Aylık özetin PDF'i (FR-1220). Belirteç `api.use` ara katmanından
  * geliyor: `<a href>` ile indirmek belirteci URL'ye koymak ya da
  * kanıt bağlantısı gibi ikinci bir imza düzeni kurmak demek olurdu.
+ *
+ * Eşiği geçen dönemde sunucu dosya yerine **iş kaydı** dönüyor
+ * (202, FR-1217); sonuç iki hâli de taşıyor.
  */
-export async function aylikOzetPdf(yil: number, ay: number): Promise<Blob> {
-  const { data, error } = await api.GET('/api/v1/reports/monthly.pdf', {
+export async function aylikOzetPdf(yil: number, ay: number): Promise<PdfSonucu> {
+  const { data, error, response } = await api.GET('/api/v1/reports/monthly.pdf', {
     params: { query: { year: yil, month: ay } },
     parseAs: 'blob',
   });
   if (error) throw error;
-  return data;
+  return pdfSonucu(data, response.status);
 }
 
 /** Ölçüm günlüğünün PDF'i (FR-1214) — denetçiye verilen kâğıt. */
@@ -53,15 +57,15 @@ export async function olcumGunluguPdf(
   ilkGun: string,
   sonGun: string,
   yalnizAralikDisi = false,
-): Promise<Blob> {
-  const { data, error } = await api.GET('/api/v1/reports/measurements.pdf', {
+): Promise<PdfSonucu> {
+  const { data, error, response } = await api.GET('/api/v1/reports/measurements.pdf', {
     params: {
       query: { first_day: ilkGun, last_day: sonGun, only_out_of_range: yalnizAralikDisi },
     },
     parseAs: 'blob',
   });
   if (error) throw error;
-  return data;
+  return pdfSonucu(data, response.status);
 }
 
 /**

@@ -1331,6 +1331,60 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/reports/exports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Arka plan çıktılarım (FR-1217)
+         * @description Yalnızca **kendi** istekleri: çıktı isteyenin kapsamıyla üretiliyor.
+         */
+        get: operations["ciktilarim_api_v1_reports_exports_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/exports/{job_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Çıktı isteğinin durumu */
+        get: operations["cikti_api_v1_reports_exports__job_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/exports/{job_id}/dosya": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Hazır çıktıyı indir */
+        get: operations["cikti_dosyasi_api_v1_reports_exports__job_id__dosya_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/verify/{code}": {
         parameters: {
             query?: never;
@@ -1844,6 +1898,64 @@ export interface components {
              */
             outcome: "accepted" | "rejected";
             error?: components["schemas"]["KayitHatasi"] | null;
+        };
+        /**
+         * CiktiIsi
+         * @description Bir çıktı isteğinin durumu.
+         */
+        CiktiIsi: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Kind
+             * @description aylik-ozet | olcum-gunlugu
+             */
+            kind: string;
+            /** Kind Label */
+            kind_label: string;
+            /**
+             * Params
+             * @description Dönem bilgisi: yıl/ay ya da ilk/son gün
+             */
+            params: {
+                [key: string]: string;
+            };
+            /**
+             * State
+             * @description queued | running | ready | failed
+             */
+            state: string;
+            /** State Label */
+            state_label: string;
+            /**
+             * Run Count
+             * @description Kapsadığı çalıştırma sayısı: arka plana düşme sebebi
+             */
+            run_count: number;
+            /**
+             * Requested At
+             * Format: date-time
+             */
+            requested_at: string;
+            /** Finished At */
+            finished_at?: string | null;
+            /** Size Bytes */
+            size_bytes?: number | null;
+            /**
+             * Document Code
+             * @description Kâğıttaki belge kodu (FR-1218); doğrulama sayfasında sorulur
+             */
+            document_code?: string | null;
+            /**
+             * Error Code
+             * @description Düştüyse sebebin kısa karşılığı — gizlenmiyor
+             */
+            error_code?: string | null;
+            /** Downloadable */
+            downloadable: boolean;
         };
         /**
          * DavetYaniti
@@ -3361,6 +3473,24 @@ export interface components {
              * @default 0
              */
             recovered?: number;
+            /**
+             * Exports Done
+             * @description Üretilen arka plan çıktısı (FR-1217)
+             * @default 0
+             */
+            exports_done?: number;
+            /**
+             * Exports Failed
+             * @description Üretilemeyen çıktı: sebebi iş kaydında duruyor
+             * @default 0
+             */
+            exports_failed?: number;
+            /**
+             * Export Files Swept
+             * @description Süresi dolduğu için silinen çıktı dosyası sayısı
+             * @default 0
+             */
+            export_files_swept?: number;
         };
         /** UretimYaniti */
         UretimYaniti: {
@@ -5679,6 +5809,15 @@ export interface operations {
                     "application/pdf": unknown;
                 };
             };
+            /** @description Büyük çıktı arka plana alındı (FR-1217) */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CiktiIsi"];
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -5699,6 +5838,97 @@ export interface operations {
             };
             header?: never;
             path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description PDF */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": unknown;
+                };
+            };
+            /** @description Büyük çıktı arka plana alındı (FR-1217) */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CiktiIsi"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ciktilarim_api_v1_reports_exports_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CiktiIsi"][];
+                };
+            };
+        };
+    };
+    cikti_api_v1_reports_exports__job_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CiktiIsi"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cikti_dosyasi_api_v1_reports_exports__job_id__dosya_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: string;
+            };
             cookie?: never;
         };
         requestBody?: never;

@@ -16,6 +16,9 @@ Zamanlayıcı **iki** iş yapar ve ikisi de idempotenttir:
 5. **Kapanış** — toleransı dolmuş, hâlâ başlanmamış ya da yarım kalmış
    çalıştırmaları `missed` olarak **kalıcı** işaretler (FR-0514), ve
    kaçırılan her liste için aksiyon açar (FR-0902; idempotent).
+6. **Büyük çıktılar** — eşiği geçen dönem raporları burada üretilir ve
+   süresi dolan dosyalar silinir (FR-1217). İstek içinde üretmek bir web
+   işçisini dakikalarca bloklardı.
 
 İkinci iş neden gerekli? Pano "kaçırıldı"yı zaten zamandan türetiyor
 (`Run.state_at`), yani ekran için yazmaya gerek yok. Ama kaçırma bir
@@ -37,6 +40,7 @@ from talimatname.services.audit import RequestContext, using_context
 from talimatname.services.digest import DigestService
 from talimatname.services.escalation import EscalationService
 from talimatname.services.evidence import EvidenceService
+from talimatname.services.export_jobs import ExportJobService
 from talimatname.services.notifications import NotificationService
 from talimatname.services.organization import OrganizationRepository
 from talimatname.services.plans import HORIZON_DAYS, PlanRepository, PlanService
@@ -61,6 +65,9 @@ class TickResult:
     stamped: int = 0
     swept: int = 0
     recovered: int = 0
+    exports_done: int = 0
+    exports_failed: int = 0
+    export_files_swept: int = 0
 
     @property
     def quiet(self) -> bool:
@@ -77,6 +84,9 @@ class TickResult:
             and self.stamped == 0
             and self.swept == 0
             and self.recovered == 0
+            and self.exports_done == 0
+            and self.exports_failed == 0
+            and self.export_files_swept == 0
         )
 
 
@@ -92,6 +102,7 @@ class SchedulerService:
         escalation: EscalationService | None = None,
         digest: DigestService | None = None,
         evidence: EvidenceService | None = None,
+        exports: ExportJobService | None = None,
         *,
         now: Callable[[], datetime] = lambda: datetime.now(UTC),
     ) -> None:
@@ -103,6 +114,7 @@ class SchedulerService:
         self._eskalasyon = escalation
         self._ozet = digest
         self._kanit = evidence
+        self._cikti = exports
         self._now = now
 
     def tick(self, *, days: int = HORIZON_DAYS) -> TickResult:
@@ -134,6 +146,10 @@ class SchedulerService:
         # aynı turda damgalanır, bir tur beklemez.
         supurme = self._kanit.sweep_pending() if self._kanit else {}
         damga = self._kanit.stamp_pending() if self._kanit else {}
+        # Çıktı üretimi turun **sonunda**: dakikalar sürebilir ve
+        # pencere açılışı gibi zamana bağlı işleri geciktirmemeli.
+        uretilen, dusen = self._cikti.run_pending() if self._cikti else (0, 0)
+        silinen_dosya = self._cikti.sweep_files() if self._cikti else 0
         return TickResult(
             at=an,
             created=eklenen,
@@ -150,6 +166,9 @@ class SchedulerService:
             stamped=damga.get("stamped", 0),
             swept=supurme.get("silinen", 0),
             recovered=supurme.get("kurtarilan", 0),
+            exports_done=uretilen,
+            exports_failed=dusen,
+            export_files_swept=silinen_dosya,
         )
 
     def close_expired(self, now: datetime) -> int:

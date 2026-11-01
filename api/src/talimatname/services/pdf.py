@@ -62,6 +62,7 @@ from reportlab.platypus import (
 )
 
 from talimatname.domain.reports import MonthlySummary
+from talimatname.domain.setup import AccountSettings
 from talimatname.services.imaging import FontMissing, find_font
 from talimatname.services.reports import MeasurementSeries
 
@@ -130,6 +131,21 @@ class Brand:
     @property
     def zone(self) -> ZoneInfo:
         return ZoneInfo(self.timezone)
+
+
+def brand_for(account: AccountSettings | None, *, verify_url: str | None = None) -> Brand:
+    """Kâğıdın üstündeki hesap: kurulum ayarından marka.
+
+    Sihirbaz bitmemişse marka adı henüz yok; kâğıtta ürünün adı
+    görünür. Rapor üretmemek daha kötü olurdu — kurulumun ortasında
+    da rapor alınabilmeli.
+
+    Uç nokta ve arka plan işçisi aynı kâğıdı basıyor, bu yüzden
+    başlığı kuran yer de tek (FR-1217).
+    """
+    if account is None:
+        return Brand(name="Talimatname", verify_url=verify_url)
+    return Brand(name=account.brand_name, timezone=account.timezone, verify_url=verify_url)
 
 
 def _kalin_aday(normal: str) -> str | None:

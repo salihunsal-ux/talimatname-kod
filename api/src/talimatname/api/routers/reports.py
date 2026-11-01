@@ -22,21 +22,32 @@ from datetime import UTC, date, datetime
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, Response
+from fastapi import APIRouter, Depends, Query, Response, status
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from talimatname.api.bagimliliklar import (
+    ayarlar,
+    cikti_servisi,
     izi_servisi,
     kurulum_servisi,
+    marka,
     organizasyon_servisi,
     rapor_servisi,
 )
-from talimatname.api.belgeler import belge_kodu, marka
-from talimatname.api.guvenlik import Kullanici, erisilebilir_sube_idleri
+from talimatname.api.guvenlik import Kullanici
+from talimatname.api.routers.ciktilar import CiktiIsi, cikti_ciktisi
 from talimatname.domain.evidence import FLAG_LABELS
+from talimatname.domain.exports import ExportKind
 from talimatname.domain.reports import Counters, MonthlySummary
 from talimatname.services.audit import AuditService
-from talimatname.services.organization import OrganizationService
+from talimatname.services.export_jobs import ExportJobService
+from talimatname.services.exports import record_document
+from talimatname.services.organization import (
+    OrganizationService,
+    erisilebilir_sube_idleri,
+    sube_kodlari,
+)
 from talimatname.services.pdf import (
     measurements_code,
     measurements_pdf,
@@ -52,6 +63,7 @@ Servis = Annotated[ReportService, Depends(rapor_servisi)]
 OrgServis = Annotated[OrganizationService, Depends(organizasyon_servisi)]
 KurulumServis = Annotated[SetupService, Depends(kurulum_servisi)]
 Iz = Annotated[AuditService, Depends(izi_servisi)]
+Cikti = Annotated[ExportJobService, Depends(cikti_servisi)]
 
 AY_ADLARI = (
     "Ocak",
@@ -264,15 +276,26 @@ def kanit_galerisi(
 # --- PDF çıktıları (FR-1220, FR-1214) ---------------------------------
 
 
-def _sube_kodlari(org: OrgServis) -> dict[UUID, str]:
-    """Ölçüm satırında şube **kodu** görünüyor: kâğıtta yer dar.
+def _arka_plana(
+    servis: ExportJobService,
+    user_id: UUID,
+    *,
+    kind: ExportKind,
+    params: dict[str, str],
+    run_count: int,
+) -> Response:
+    """Eşiği geçen çıktıyı kuyruğa alır ve **202** döner (FR-1217).
 
-    Kapalı şubeler de alınıyor: geçmiş dönemin ölçümü kapanmış bir
-    şubeye ait olabilir ve kod yerine `—` basmak kaydı okunamaz kılar.
+    Kararı sunucu veriyor, istemci değil: mobil de panel de aynı uç
+    noktayı çağırıyor ve hiçbiri yanlışlıkla binlerce çalıştırmayı
+    istek içinde ürettiremiyor. Yanıt, işin kendisi — panel oradan
+    takip ediyor.
     """
-    return {
-        sube.id: sube.code for bolge in org.tree(include_inactive=True) for sube in bolge.branches
-    }
+    is_kaydi = servis.queue(user_id, kind=kind, params=params, run_count=run_count)
+    return JSONResponse(
+        cikti_ciktisi(is_kaydi).model_dump(mode="json"),
+        status_code=status.HTTP_202_ACCEPTED,
+    )
 
 
 def _pdf(icerik: bytes, *, dosya_adi: str) -> Response:
@@ -287,20 +310,35 @@ def _pdf(icerik: bytes, *, dosya_adi: str) -> Response:
     "/reports/monthly.pdf",
     summary="Aylık özetin PDF'i (FR-1220)",
     response_class=Response,
-    responses={200: {"content": {"application/pdf": {}}, "description": "PDF"}},
+    responses={
+        200: {"content": {"application/pdf": {}}, "description": "PDF"},
+        202: {"model": CiktiIsi, "description": "Büyük çıktı arka plana alındı (FR-1217)"},
+    },
 )
 def aylik_ozet_pdf(
     servis: Servis,
     org: OrgServis,
     kurulum: KurulumServis,
     iz: Iz,
+    cikti: Cikti,
     kullanici: Kullanici,
     year: Annotated[int, Query(ge=2020, le=2100)],
     month: Annotated[int, Query(ge=1, le=12)],
 ) -> Response:
-    ozet = servis.monthly(year, month, branch_ids=erisilebilir_sube_idleri(kullanici, org))
-    hesap = marka(kurulum)
-    kod = belge_kodu(
+    kapsam = erisilebilir_sube_idleri(kullanici, org)
+    buyukluk = servis.monthly_run_count(year, month, branch_ids=kapsam)
+    if buyukluk >= ayarlar().export_background_threshold:
+        return _arka_plana(
+            cikti,
+            kullanici.id,
+            kind="aylik-ozet",
+            params={"year": str(year), "month": str(month)},
+            run_count=buyukluk,
+        )
+
+    ozet = servis.monthly(year, month, branch_ids=kapsam)
+    hesap = marka()
+    kod = record_document(
         iz,
         tur="aylik-ozet",
         donem=f"{year}-{month:02d}",
@@ -320,27 +358,46 @@ def aylik_ozet_pdf(
     "/reports/measurements.pdf",
     summary="Ölçüm günlüğünün PDF'i (FR-1214)",
     response_class=Response,
-    responses={200: {"content": {"application/pdf": {}}, "description": "PDF"}},
+    responses={
+        200: {"content": {"application/pdf": {}}, "description": "PDF"},
+        202: {"model": CiktiIsi, "description": "Büyük çıktı arka plana alındı (FR-1217)"},
+    },
 )
 def olcum_gunlugu_pdf(
     servis: Servis,
     org: OrgServis,
     kurulum: KurulumServis,
     iz: Iz,
+    cikti: Cikti,
     kullanici: Kullanici,
     first_day: date,
     last_day: date,
     only_out_of_range: bool = False,
 ) -> Response:
     """Soğuk zincir denetiminin istediği kâğıt: ne, nerede, ne zaman, kaç."""
+    kapsam = erisilebilir_sube_idleri(kullanici, org)
+    buyukluk = servis.run_count(first_day, last_day, branch_ids=kapsam)
+    if buyukluk >= ayarlar().export_background_threshold:
+        return _arka_plana(
+            cikti,
+            kullanici.id,
+            kind="olcum-gunlugu",
+            params={
+                "first_day": first_day.isoformat(),
+                "last_day": last_day.isoformat(),
+                "only_out_of_range": "1" if only_out_of_range else "0",
+            },
+            run_count=buyukluk,
+        )
+
     seriler = servis.measurements(
         first_day=first_day,
         last_day=last_day,
-        branch_ids=erisilebilir_sube_idleri(kullanici, org),
+        branch_ids=kapsam,
         only_out_of_range=only_out_of_range,
     )
-    hesap = marka(kurulum)
-    kod = belge_kodu(
+    hesap = marka()
+    kod = record_document(
         iz,
         tur="olcum-gunlugu",
         donem=f"{first_day:%Y-%m-%d}/{last_day:%Y-%m-%d}",
@@ -351,7 +408,7 @@ def olcum_gunlugu_pdf(
         brand=hesap,
         first_day=first_day,
         last_day=last_day,
-        branch_codes=_sube_kodlari(org),
+        branch_codes=sube_kodlari(org),
         generated_at=datetime.now(UTC),
         generated_by=kullanici.full_name,
         code=kod,

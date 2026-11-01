@@ -31,7 +31,7 @@ from pydantic import BaseModel, Field
 
 from talimatname.api.bagimliliklar import organizasyon_servisi, senk_servisi
 from talimatname.api.errors import URN_PREFIX
-from talimatname.api.guvenlik import Kullanici, erisilebilir_sube_idleri
+from talimatname.api.guvenlik import Kullanici
 from talimatname.domain.evidence import MAX_BYTES
 from talimatname.domain.sync import (
     MANIFEST_HORIZON_HOURS,
@@ -39,7 +39,10 @@ from talimatname.domain.sync import (
     MAX_BATCH_ANSWERS,
     MAX_BATCH_EVIDENCE,
 )
-from talimatname.services.organization import OrganizationService
+from talimatname.services.organization import (
+    OrganizationService,
+    erisilebilir_sube_idleri,
+)
 from talimatname.services.sync import (
     BatchResult,
     ClockReading,

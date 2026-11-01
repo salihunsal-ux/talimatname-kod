@@ -13,10 +13,12 @@ from talimatname.api.bagimliliklar import kullanici_servisi, organizasyon_servis
 from talimatname.api.guvenlik import (
     Yonetici,
     YoneticiVeyaBolge,
-    erisilebilir_sube_idleri,
 )
 from talimatname.domain.users import ROLE_LABELS, Role, RoleAssignment, User
-from talimatname.services.organization import OrganizationService
+from talimatname.services.organization import (
+    OrganizationService,
+    erisilebilir_sube_idleri,
+)
 from talimatname.services.users import UserService
 
 router = APIRouter(tags=["personel"])

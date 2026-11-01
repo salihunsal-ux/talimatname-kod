@@ -145,6 +145,15 @@ export const tr = {
   genel: {
     yukleniyor: 'Yükleniyor…',
   },
+  cikti: {
+    baslik: 'Hazırlanan çıktılar',
+    aciklama:
+      'Büyük dönem raporları arka planda üretilir; hazır olunca burada indirilebilir ve bildirim düşer.',
+    kuyruga: 'Bu dönem büyük: çıktı arka planda hazırlanıyor. Aşağıdaki listede görünecek.',
+    calistirma: (sayi: number) => `${sayi} çalıştırma`,
+    suresiDoldu: 'Dosyanın süresi doldu; yeniden isteyebilirsiniz.',
+    uretilemedi: (sebep: string) => `Üretilemedi${sebep ? ` (${sebep})` : ''}`,
+  },
   giris: {
     aciklama: 'Telefonunuza gelen kodla girin',
     telefon: 'Telefon numarası',

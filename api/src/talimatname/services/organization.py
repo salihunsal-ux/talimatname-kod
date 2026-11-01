@@ -17,6 +17,7 @@ from uuid import UUID, uuid4
 
 from talimatname.domain.errors import DomainError, ErrorKind
 from talimatname.domain.organization import Branch, Region, Station
+from talimatname.domain.users import User, can_access
 
 
 class BranchCodeTaken(DomainError):
@@ -149,3 +150,30 @@ class OrganizationService:
             return
         if all(r.id != region_id for r in self._repo.regions()):
             raise RegionNotFound(f"Bölge id: {region_id}")
+
+
+def erisilebilir_sube_idleri(kullanici: User, org: OrganizationService) -> set[UUID]:
+    """Kullanıcının kapsamındaki şube kimlikleri — liste süzgeçlerinin temeli.
+
+    Sunum katmanındaydı; arka planda rapor üreten işçi de aynı kuralı
+    uygulamak zorunda olduğu için buraya taşındı (FR-1217). İki ayrı
+    kapsam hesabı, arka plandaki çıktının kullanıcının göremeyeceği
+    şubeleri taşıması demek olurdu.
+    """
+    return {
+        sube.id
+        for dugum in org.tree(include_inactive=True)
+        for sube in dugum.branches
+        if can_access(kullanici, sube)
+    }
+
+
+def sube_kodlari(org: OrganizationService) -> dict[UUID, str]:
+    """Şube kimliği → kod. Kâğıtta yer dar, kod yazılıyor.
+
+    Kapalı şubeler de alınıyor: geçmiş dönemin ölçümü kapanmış bir
+    şubeye ait olabilir ve kod yerine tire basmak kaydı okunamaz kılar.
+    """
+    return {
+        sube.id: sube.code for dugum in org.tree(include_inactive=True) for sube in dugum.branches
+    }

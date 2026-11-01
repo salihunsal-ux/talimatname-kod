@@ -18,6 +18,7 @@ from sqlalchemy.exc import IntegrityError, ProgrammingError
 from talimatname.domain.answers import Answer
 from talimatname.domain.audit import GENESIS, AuditEvent, SequenceTaken, sealed
 from talimatname.domain.evidence import Evidence
+from talimatname.domain.exports import ExportJob
 from talimatname.domain.notifications import Notification
 from talimatname.domain.organization import Branch, uniform_hours
 from talimatname.domain.plans import Plan, Run
@@ -39,6 +40,7 @@ from talimatname.infra.db.adapters import (  # noqa: E402
     SqlAnswerRepository,
     SqlAuditRepository,
     SqlEvidenceRepository,
+    SqlExportJobRepository,
     SqlNotificationRepository,
     SqlOrganizationRepository,
     SqlPlanRepository,
@@ -523,6 +525,45 @@ def test_tc100_uygulama_rolu_gunlugu_degistiremez(iki_kiraci: object) -> None:
         o.execute(text("UPDATE audit_event SET hash = 'x'"))
     with tenant_session(A_KIRACI) as o, pytest.raises(ProgrammingError, match="permission denied"):
         o.execute(text("DELETE FROM audit_event"))
+
+
+def test_cikti_isi_gidip_geliyor_ve_kiraciya_bagli(iki_kiraci: object) -> None:
+    """Arka plan çıktısının iş kaydı (FR-1217).
+
+    Durum geçişi **aynı satırı** güncelliyor: her tur yeni satır
+    açsaydı kullanıcı aynı raporu üç kez görürdü.
+    """
+    depo = SqlExportJobRepository(A_KIRACI)
+    an = datetime.now(UTC)
+    is_kaydi = ExportJob(
+        id=uuid4(),
+        kind="aylik-ozet",
+        params={"year": "2026", "month": "11"},
+        requested_by=uuid4(),
+        requested_at=an,
+        run_count=900,
+    )
+    depo.save_job(is_kaydi)
+
+    assert [i.id for i in depo.queued_jobs(5)] == [is_kaydi.id]
+
+    hazir = is_kaydi.claimed(an).completed(
+        an, key="exports/x.pdf", size=1234, code="AAAA-BBBB-CCCC"
+    )
+    depo.save_job(hazir)
+
+    geri = depo.job(is_kaydi.id)
+    assert geri is not None
+    assert (geri.state, geri.attempts, geri.size_bytes) == ("ready", 1, 1234)
+    assert geri.params == {"year": "2026", "month": "11"}
+    assert depo.queued_jobs(5) == []
+    assert [i.id for i in depo.jobs_for_user(is_kaydi.requested_by)] == [is_kaydi.id]
+    assert [i.id for i in depo.files_before(an + timedelta(days=8), 5)] == [is_kaydi.id]
+    assert depo.files_before(an - timedelta(days=1), 5) == []
+
+    # Başka hesabın çıktısı görünmüyor: RLS burada da geçerli.
+    assert SqlExportJobRepository(B_KIRACI).job(is_kaydi.id) is None
+    assert SqlExportJobRepository(B_KIRACI).queued_jobs(5) == []
 
 
 def test_belge_kodu_kaydi_buluyor_ve_kiraciya_bagli(iki_kiraci: object) -> None:

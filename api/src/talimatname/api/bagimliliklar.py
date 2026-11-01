@@ -18,6 +18,7 @@ from talimatname.infra.memory import (
     MemoryAnswerRepository,
     MemoryAuditRepository,
     MemoryEvidenceRepository,
+    MemoryExportJobRepository,
     MemoryNotificationRepository,
     MemoryOrganizationRepository,
     MemoryPlanRepository,
@@ -33,12 +34,14 @@ from talimatname.services.digest import DigestService
 from talimatname.services.escalation import EscalationService
 from talimatname.services.evidence import EvidenceRepository, EvidenceService
 from talimatname.services.execution import AnswerRepository, ExecutionService
+from talimatname.services.export_jobs import ExportJobRepository, ExportJobService
 from talimatname.services.exports import ExportService
 from talimatname.services.notifications import (
     NotificationRepository,
     NotificationService,
 )
 from talimatname.services.organization import OrganizationRepository, OrganizationService
+from talimatname.services.pdf import Brand, brand_for
 from talimatname.services.plans import PlanRepository, PlanService
 from talimatname.services.reminders import ReminderService
 from talimatname.services.reports import ReportService
@@ -158,6 +161,35 @@ def _kanit_deposu() -> EvidenceRepository:
 
         return SqlEvidenceRepository(_kiraci())  # type: ignore[arg-type,return-value]
     return MemoryEvidenceRepository()  # type: ignore[return-value]
+
+
+@lru_cache
+def _cikti_deposu() -> ExportJobRepository:
+    if sql_modu():
+        from talimatname.infra.db.adapters import SqlExportJobRepository
+
+        return SqlExportJobRepository(_kiraci())  # type: ignore[arg-type]
+    return MemoryExportJobRepository()
+
+
+def cikti_servisi() -> ExportJobService:
+    """Arka planda üretilen çıktılar (FR-1217).
+
+    Kendi okuma yolunu kurmuyor: rapor servisi, organizasyon ve kanıt
+    deposu aynı — kâğıt, ekranın gördüğü veriyle aynı yerden besleniyor.
+    Olay günlüğü de bağlı: arka planda üretilen rapor da doğrulama
+    sayfasından sorulabilsin (FR-1218).
+    """
+    return ExportJobService(
+        _cikti_deposu(),
+        rapor_servisi(),
+        organizasyon_servisi(),
+        _kullanici_deposu(),
+        _nesne_deposu(),
+        brand=marka,
+        audit=izi_servisi(),
+        notifications=bildirim_servisi(),
+    )
 
 
 @lru_cache
@@ -283,6 +315,7 @@ def zamanlayici_servisi() -> SchedulerService:
         eskalasyon_servisi(),
         ozet_servisi(),
         kanit_servisi(),
+        cikti_servisi(),
     )
 
 
@@ -364,6 +397,15 @@ def kurulum_servisi() -> SetupService:
     )
 
 
+def marka() -> Brand:
+    """Kâğıdın üstündeki hesap: kurulum ayarı + doğrulama adresi.
+
+    Tek yerde: uç noktalar da arka plan işçisi de (FR-1217) aynı
+    başlığı basıyor. İki ayrı kuruluş, iki farklı kâğıt demekti.
+    """
+    return brand_for(kurulum_servisi().settings(), verify_url=ayarlar().verify_url)
+
+
 def dogrulama_servisi() -> VerificationService:
     """Belge doğrulama (FR-1218). Kendi okuma yolu yok: olay günlüğü.
 
@@ -412,6 +454,7 @@ _ONBELLEKLER = (
     _kanit_deposu,
     _izi_deposu,
     izi_servisi,
+    _cikti_deposu,
     _ayar_deposu,
     _nesne_deposu,
     _kimlik_servisi,

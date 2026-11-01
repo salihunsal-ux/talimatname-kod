@@ -32,6 +32,7 @@ from uuid import UUID
 
 import structlog
 
+from talimatname.domain.audit import format_code
 from talimatname.domain.evidence import Evidence
 from talimatname.domain.plans import RUN_RESULT_LABELS, RUN_STATUS_LABELS
 from talimatname.domain.scoring import ANSWER_STATE_LABELS
@@ -188,10 +189,54 @@ class ExportService:
         return tuple(satirlar)
 
 
+def record_document(
+    audit: AuditService | None,
+    *,
+    tur: str,
+    icerik_kodu: str,
+    donem: str | None = None,
+    sube: str | None = None,
+    nesne_turu: str = "rapor",
+    nesne_id: UUID | None = None,
+) -> str | None:
+    """Raporu olay günlüğüne yazar ve kâğıttaki kodu döner (FR-1218).
+
+    Kâğıttaki kod, **olayın zincir özeti**: doğrulama sayfası koda göre
+    bu kaydı buluyor. Kaydın içinde raporun içerik kodu da duruyor,
+    böylece "hangi veri dökülmüş" sorusu da cevaplanıyor.
+
+    `donem` ve `sube` kayda yazılıyor çünkü doğrulama sayfası bunları
+    gösteriyor: denetçi elindeki kâğıtla karşılaştırabilsin. Fazlası
+    (puan, madde sonuçları, kimin ürettiği) **yazılmıyor** — sayfa onu
+    göstermiyor, günlüğe de iş için gerekmeyen veri girmemeli (BR-21).
+
+    Günlük yazılamazsa None dönüyor: rapor yine üretiliyor ama kâğıtta
+    kodun zincire bağlı **olmadığı** yazıyor. Bağlıymış gibi yazmak,
+    olmayan bir güvence vermek olurdu.
+
+    Senkron uç nokta da arka plan işçisi de (FR-1217) burayı çağırıyor:
+    iki yoldan çıkan kâğıdın kodu aynı kuralla üretilmek zorunda.
+    """
+    if audit is None:
+        return None
+    ozet: dict[str, object] = {"tur": tur, "icerik": icerik_kodu}
+    if donem is not None:
+        ozet["donem"] = donem
+    if sube is not None:
+        ozet["sube"] = sube
+    olay = audit.record(
+        "rapor.uretildi",
+        object_type=nesne_turu,
+        object_id=nesne_id,
+        after=ozet,
+    )
+    return format_code(olay.hash) if olay else None
+
+
 def pdf_filename(report: RunReport) -> str:
     """ASCII dosya adı: Content-Disposition'da Türkçe harf sorun çıkarıyor."""
     kod = report.branch_code.encode("ascii", "ignore").decode() or "sube"
     return f"talimatname-calistirma-{kod}-{report.business_day:%Y%m%d}.pdf"
 
 
-__all__ = ["ExportService", "pdf_filename"]
+__all__ = ["ExportService", "pdf_filename", "record_document"]

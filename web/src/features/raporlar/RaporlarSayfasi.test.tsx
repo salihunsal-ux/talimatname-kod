@@ -13,16 +13,38 @@ import {
   type AylikOzet,
   type OlcumSerisi,
 } from '../../api/raporlar';
+import { ciktilarim, type CiktiIsi } from '../../api/ciktilar';
 import { RaporlarSayfasi } from './RaporlarSayfasi';
 
 vi.mock('../../api/raporlar');
 vi.mock('../../api/kanitlar');
+vi.mock('../../api/ciktilar');
 const ozetGetir = vi.mocked(aylikOzet);
 const olcumGetir = vi.mocked(olcumGunlugu);
 const galeriGetir = vi.mocked(kanitGalerisi);
 const aylikPdf = vi.mocked(aylikOzetPdf);
 const olcumPdf = vi.mocked(olcumGunluguPdf);
 const indir = vi.mocked(dosyayiIndir);
+const ciktiListesi = vi.mocked(ciktilarim);
+
+/** PDF'in ilk dört baytı: testte içerik değil **tür** önemli. */
+const PDF = new Blob([new Uint8Array([37, 80, 68, 70])]);
+
+const IS_KAYDI: CiktiIsi = {
+  id: '00000000-0000-0000-0000-0000000000f1',
+  kind: 'aylik-ozet',
+  kind_label: 'Aylık özet raporu',
+  params: { year: '2026', month: '11' },
+  state: 'queued',
+  state_label: 'Sırada',
+  run_count: 820,
+  requested_at: '2026-11-01T09:00:00Z',
+  finished_at: null,
+  size_bytes: null,
+  document_code: null,
+  error_code: null,
+  downloadable: false,
+};
 
 const SAYAC = {
   total: 10,
@@ -100,8 +122,9 @@ describe('RaporlarSayfasi', () => {
     ozetGetir.mockResolvedValue(OZET);
     olcumGetir.mockResolvedValue([SERI]);
     galeriGetir.mockResolvedValue([]);
-    aylikPdf.mockResolvedValue(new Blob([new Uint8Array([37, 80, 68, 70])]));
-    olcumPdf.mockResolvedValue(new Blob([new Uint8Array([37, 80, 68, 70])]));
+    aylikPdf.mockResolvedValue({ tur: 'dosya', blob: PDF });
+    olcumPdf.mockResolvedValue({ tur: 'dosya', blob: PDF });
+    ciktiListesi.mockResolvedValue([]);
   });
 
   it('aylık özet sayıları ve yüzdeyi gösterir', async () => {
@@ -200,5 +223,53 @@ describe('RaporlarSayfasi', () => {
     await userEvent.click(screen.getByRole('tab', { name: 'Kanıt galerisi' }));
 
     expect(await screen.findByText('Bu aralıkta kanıt yok.')).toBeInTheDocument();
+  });
+
+  // --- arka plan çıktıları (FR-1217) ---------------------------------
+
+  it('büyük dönemde dosya inmez, arka plana alındığı söylenir', async () => {
+    aylikPdf.mockResolvedValue({ tur: 'is', is: IS_KAYDI });
+    kur();
+    await screen.findByText('%67');
+
+    await userEvent.click(screen.getByRole('button', { name: 'PDF indir' }));
+
+    expect(await screen.findByRole('status')).toHaveTextContent('arka planda hazırlanıyor');
+    expect(indir).not.toHaveBeenCalled();
+  });
+
+  it('hazırlanan çıktılar listeleniyor ve hazır olan indirilebiliyor', async () => {
+    ciktiListesi.mockResolvedValue([
+      { ...IS_KAYDI, state: 'ready', state_label: 'Hazır', downloadable: true },
+    ]);
+    kur();
+
+    expect(await screen.findByText(/Aylık özet raporu · Kasım 2026/)).toBeInTheDocument();
+    expect(screen.getByText('Hazır')).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'PDF indir' }).length).toBe(2);
+  });
+
+  it('süresi dolan dosya için yeniden istenebileceği yazar', async () => {
+    ciktiListesi.mockResolvedValue([
+      { ...IS_KAYDI, state: 'ready', state_label: 'Hazır', downloadable: false },
+    ]);
+    kur();
+
+    expect(await screen.findByText(/süresi doldu/)).toBeInTheDocument();
+  });
+
+  it('düşen iş sebebiyle görünür', async () => {
+    ciktiListesi.mockResolvedValue([
+      {
+        ...IS_KAYDI,
+        state: 'failed',
+        state_label: 'Üretilemedi',
+        error_code: 'Timeout',
+        downloadable: false,
+      },
+    ]);
+    kur();
+
+    expect(await screen.findByText(/Üretilemedi \(Timeout\)/)).toBeInTheDocument();
   });
 });

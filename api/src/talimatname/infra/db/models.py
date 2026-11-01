@@ -57,6 +57,7 @@ TENANT_TABLES: tuple[str, ...] = (
     "notification",
     "evidence",
     "audit_event",
+    "export_job",
 )
 
 
@@ -422,3 +423,34 @@ class AuditEvent(Base):
     after: Mapped[Any] = mapped_column(JSONB, default=dict)
     prev_hash: Mapped[str] = mapped_column(String(64))
     hash: Mapped[str] = mapped_column(String(64))
+
+
+class ExportJob(Base):
+    """Arka planda üretilen çıktının iş kaydı (FR-1217).
+
+    Süreç içi bir kuyruk değil tablo: API ya da zamanlayıcı yeniden
+    başladığında kullanıcının beklediği rapor kaybolmasın ve "neden
+    gelmedi" sorusunun cevabı burada olsun (göç 0008).
+    """
+
+    __tablename__ = "export_job"
+    __table_args__ = (
+        Index("ix_cikti_kisi", "tenant_id", "requested_by", "requested_at"),
+        Index("ix_cikti_durum", "tenant_id", "state", "requested_at"),
+    )
+
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True)
+    tenant_id: Mapped[UUID] = _tenant_column()
+    kind: Mapped[str] = mapped_column(String(30))
+    params: Mapped[Any] = mapped_column(JSONB, default=dict)
+    requested_by: Mapped[UUID] = mapped_column(Uuid)
+    requested_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    run_count: Mapped[int] = mapped_column(Integer, default=0)
+    state: Mapped[str] = mapped_column(String(10), default="queued")
+    attempts: Mapped[int] = mapped_column(Integer, default=0)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    object_key: Mapped[str | None] = mapped_column(String(200))
+    size_bytes: Mapped[int | None] = mapped_column(Integer)
+    document_code: Mapped[str | None] = mapped_column(String(20))
+    error_code: Mapped[str | None] = mapped_column(String(60))

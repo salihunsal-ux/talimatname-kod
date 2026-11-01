@@ -44,6 +44,7 @@ NotificationKind = Literal[
     "action_opened",
     "critical_failed",
     "daily_digest",
+    "export_ready",
 ]
 
 #: Teslimat durumu (FR-1005). "sent" **sürücüye verildi** demektir,
@@ -70,8 +71,13 @@ CRITICAL_KINDS: frozenset[str] = frozenset({"critical_failed", "run_missed"})
 #: kişinin hatırlatması değil.
 WORK_KINDS: frozenset[str] = frozenset({"run_opened", "reminder", "window_closing"})
 
+#: Kişinin **kendi** istediği işin bitişi (FR-1217). Erteleme, kimsenin
+#: istemediği bir bildirimi uygun saate taşımak içindir; raporunu
+#: bekleyen kişiyi sabaha kadar bekletmek için değil.
+SELF_REQUESTED_KINDS: frozenset[str] = frozenset({"export_ready"})
+
 #: Sessiz saat kuralının dışında kalan her şey.
-QUIET_HOURS_EXEMPT: frozenset[str] = CRITICAL_KINDS | WORK_KINDS
+QUIET_HOURS_EXEMPT: frozenset[str] = CRITICAL_KINDS | WORK_KINDS | SELF_REQUESTED_KINDS
 
 
 def notification_id(kind: str, user_id: UUID, subject_id: UUID, slot: str = "") -> UUID:

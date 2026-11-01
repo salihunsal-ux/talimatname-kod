@@ -3088,6 +3088,16 @@
               "application/pdf": {}
             }
           },
+          "202": {
+            "description": "Büyük çıktı arka plana alındı (FR-1217)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CiktiIsi"
+                }
+              }
+            }
+          },
           "422": {
             "description": "Validation Error",
             "content": {
@@ -3138,6 +3148,124 @@
               "type": "boolean",
               "default": false,
               "title": "Only Out Of Range"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "PDF",
+            "content": {
+              "application/pdf": {}
+            }
+          },
+          "202": {
+            "description": "Büyük çıktı arka plana alındı (FR-1217)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CiktiIsi"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/reports/exports": {
+      "get": {
+        "tags": [
+          "rapor"
+        ],
+        "summary": "Arka plan çıktılarım (FR-1217)",
+        "description": "Yalnızca **kendi** istekleri: çıktı isteyenin kapsamıyla üretiliyor.",
+        "operationId": "ciktilarim_api_v1_reports_exports_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CiktiIsi"
+                  },
+                  "type": "array",
+                  "title": "Response Ciktilarim Api V1 Reports Exports Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/reports/exports/{job_id}": {
+      "get": {
+        "tags": [
+          "rapor"
+        ],
+        "summary": "Çıktı isteğinin durumu",
+        "operationId": "cikti_api_v1_reports_exports__job_id__get",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CiktiIsi"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/reports/exports/{job_id}/dosya": {
+      "get": {
+        "tags": [
+          "rapor"
+        ],
+        "summary": "Hazır çıktıyı indir",
+        "operationId": "cikti_dosyasi_api_v1_reports_exports__job_id__dosya_get",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Job Id"
             }
           }
         ],
@@ -4383,6 +4511,116 @@
           "outcome"
         ],
         "title": "CevapSonucu"
+      },
+      "CiktiIsi": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "kind": {
+            "type": "string",
+            "title": "Kind",
+            "description": "aylik-ozet | olcum-gunlugu"
+          },
+          "kind_label": {
+            "type": "string",
+            "title": "Kind Label"
+          },
+          "params": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Params",
+            "description": "Dönem bilgisi: yıl/ay ya da ilk/son gün"
+          },
+          "state": {
+            "type": "string",
+            "title": "State",
+            "description": "queued | running | ready | failed"
+          },
+          "state_label": {
+            "type": "string",
+            "title": "State Label"
+          },
+          "run_count": {
+            "type": "integer",
+            "title": "Run Count",
+            "description": "Kapsadığı çalıştırma sayısı: arka plana düşme sebebi"
+          },
+          "requested_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Requested At"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "size_bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Size Bytes"
+          },
+          "document_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Document Code",
+            "description": "Kâğıttaki belge kodu (FR-1218); doğrulama sayfasında sorulur"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code",
+            "description": "Düştüyse sebebin kısa karşılığı — gizlenmiyor"
+          },
+          "downloadable": {
+            "type": "boolean",
+            "title": "Downloadable"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "kind_label",
+          "params",
+          "state",
+          "state_label",
+          "run_count",
+          "requested_at",
+          "downloadable"
+        ],
+        "title": "CiktiIsi",
+        "description": "Bir çıktı isteğinin durumu."
       },
       "DavetYaniti": {
         "properties": {
@@ -7798,6 +8036,24 @@
             "type": "integer",
             "title": "Recovered",
             "description": "Baytı depoda bulunup tamamlanan kanıt sayısı: istemci `complete` demeden düşmüş",
+            "default": 0
+          },
+          "exports_done": {
+            "type": "integer",
+            "title": "Exports Done",
+            "description": "Üretilen arka plan çıktısı (FR-1217)",
+            "default": 0
+          },
+          "exports_failed": {
+            "type": "integer",
+            "title": "Exports Failed",
+            "description": "Üretilemeyen çıktı: sebebi iş kaydında duruyor",
+            "default": 0
+          },
+          "export_files_swept": {
+            "type": "integer",
+            "title": "Export Files Swept",
+            "description": "Süresi dolduğu için silinen çıktı dosyası sayısı",
             "default": 0
           }
         },

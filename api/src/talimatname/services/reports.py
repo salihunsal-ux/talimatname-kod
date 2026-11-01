@@ -81,6 +81,27 @@ class ReportService:
         self._evidence = evidence
         self._now = now
 
+    # --- büyüklük (FR-1217) ------------------------------------------
+
+    def run_count(
+        self, first_day: date, last_day: date, *, branch_ids: set[UUID] | None = None
+    ) -> int:
+        """Bu dönem kaç çalıştırma kapsıyor: çıktı arka plana mı düşsün?
+
+        Ölçü çıktının boyutu değil **okunacak verinin** büyüklüğü:
+        aylık özet tek sayfadır ama binlerce çalıştırmayı okuyarak
+        üretilir.
+        """
+        return self._plans.count_runs_between(first_day, last_day, branch_ids=branch_ids)
+
+    def monthly_run_count(
+        self, year: int, month: int, *, branch_ids: set[UUID] | None = None
+    ) -> int:
+        """Ayın büyüklüğü. Ay aritmetiği tek yerde kalsın diye burada."""
+        ilk = date(year, month, 1)
+        son = date(year, month, monthrange(year, month)[1])
+        return self.run_count(ilk, son, branch_ids=branch_ids)
+
     # --- aylık özet (FR-1220) ----------------------------------------
 
     def monthly(

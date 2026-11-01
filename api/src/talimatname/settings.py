@@ -9,6 +9,8 @@ from typing import Annotated, Literal
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
+from talimatname.domain.exports import BACKGROUND_THRESHOLD
+
 Environment = Literal["dev", "test", "staging", "prod"]
 
 
@@ -51,6 +53,13 @@ class Settings(BaseSettings):
     #: kâğıt bağlantı değil sayfanın adını yazar — yanlış bir adres
     #: basmak, doğrulanamayan bir belge demek olurdu.
     panel_url: str | None = None
+
+    #: Kaç çalıştırmadan sonra dönem raporu arka plana düşer (FR-1217).
+    #: Varsayılan alan katmanında yazılı; burada **ayarlanabilir**
+    #: çünkü eşik bir ürün kuralı değil kapasite kararı: güçlü bir
+    #: sunucuda daha büyük rapor istek içinde üretilebilir, zayıf
+    #: olanda eşik düşürülür.
+    export_background_threshold: int = Field(default=BACKGROUND_THRESHOLD, ge=1)
 
     access_token_minutes: int = Field(default=30, ge=5, le=240)
 

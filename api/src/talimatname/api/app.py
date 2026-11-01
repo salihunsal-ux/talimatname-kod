@@ -17,6 +17,7 @@ from talimatname.api.istek import cihaz, istemci_ip
 from talimatname.api.routers import (
     actions,
     auth,
+    ciktilar,
     dashboard,
     dogrulama,
     evidence,
@@ -95,6 +96,7 @@ def build_router(settings: Settings) -> APIRouter:
     router.include_router(sync.router)
     router.include_router(setup.router)
     router.include_router(reports.router)
+    router.include_router(ciktilar.router)
     # Oturumsuz: kâğıdı eline alan denetçi panele giremez (FR-1218).
     router.include_router(dogrulama.router)
     return router

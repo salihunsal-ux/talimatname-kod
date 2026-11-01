@@ -63,6 +63,18 @@ class PlanRepository(Protocol):
         """Aralık okuması: aylık rapor bir ayı okur, tüm tabloyu değil."""
         ...
 
+    def count_runs_between(
+        self, first_day: date, last_day: date, *, branch_ids: set[UUID] | None = None
+    ) -> int:
+        """Aralıktaki çalıştırma **sayısı** (FR-1217).
+
+        Satırları getirmeden sayıyor: bu soru her dönem PDF isteğinde
+        soruluyor (çıktı arka plana mı düşsün) ve cevabı almak için
+        binlerce satırı belleğe çekmek, kaçınmaya çalıştığımız işin
+        ta kendisi olurdu.
+        """
+        ...
+
     def save_run(self, run: Run) -> None: ...
 
     def save_runs(self, runs: list[Run]) -> None:

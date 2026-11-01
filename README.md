@@ -66,6 +66,25 @@ cd api
 
 Rapor PDF'lerindeki belge kodu bu zincire bağlı (FR-1218): kod, raporun üretildiği anın olay kaydının özeti. Günlüğe yazılamazsa kâğıtta kodun zincire bağlı olmadığı yazar.
 
+### Büyük çıktılar arka planda (FR-1217)
+
+Bir dönem raporu **500 çalıştırmadan** çok veri kapsıyorsa uç nokta PDF yerine **202** ile bir iş kaydı döner:
+
+```
+GET /reports/monthly.pdf?year&month      → 200 PDF  |  202 iş kaydı
+GET /reports/measurements.pdf?from&to    → 200 PDF  |  202 iş kaydı
+GET /reports/exports                     → kendi çıktı isteklerim
+GET /reports/exports/{id}/dosya          → hazır PDF
+```
+
+Kararı **sunucu** veriyor: mobil de panel de aynı uç noktayı çağırıyor ve hiçbiri yanlışlıkla binlerce çalıştırmayı istek içinde ürettiremiyor. Eşik `EXPORT_BACKGROUND_THRESHOLD` ile ayarlanabilir — ürün kuralı değil kapasite kararı.
+
+Üretim zamanlayıcı sürecinde (ST-027) yapılıyor; istek arkasına iliştirilen bir görev web işçisini dakikalarca meşgul eder ve yeniden başlatmada iz bırakmadan kaybolurdu. İş kaydı tabloda durur: durumu, kaç kez denendiği ve düştüyse sebebi görünür (üç denemeden sonra `failed`).
+
+Üç şey senkron yoldakiyle **aynı**: kâğıdın başlığı, kapsam süzgeci (kapsam işte dondurulmuyor, üretim anında rolden okunuyor) ve belge kodu — arka planda üretilen rapor da doğrulama sayfasından sorulabiliyor (FR-1218), olayın aktörü de raporu isteyen kişi.
+
+Hazır dosya nesne deposunda **bir hafta** kalır, sonra süpürülür; iş kaydı kalır ve dosyanın süresinin dolduğunu söyler. Üretilmiş rapor iş verisi taşır, sonsuza kadar saklamıyoruz.
+
 ### Belge doğrulama sayfası (FR-1218)
 
 Kâğıdı eline alan denetçi `/dogrula/<kod>` adresinden kodu soruyor; uç nokta **oturum istemiyor** (denetçi bir kullanıcı değil, panele giremez):

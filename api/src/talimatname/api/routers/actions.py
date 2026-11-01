@@ -12,12 +12,14 @@ from pydantic import BaseModel, Field
 from talimatname.api.bagimliliklar import aksiyon_servisi, organizasyon_servisi
 from talimatname.api.guvenlik import (
     Kullanici,
-    erisilebilir_sube_idleri,
     sube_erisimi_zorunlu,
 )
 from talimatname.domain.actions import PRIORITY_LABELS, SOURCE_LABELS, Action, Priority
 from talimatname.services.actions import ActionService
-from talimatname.services.organization import OrganizationService
+from talimatname.services.organization import (
+    OrganizationService,
+    erisilebilir_sube_idleri,
+)
 
 router = APIRouter(tags=["aksiyon"])
 

@@ -22,6 +22,7 @@ from talimatname.domain.actions import Action
 from talimatname.domain.answers import Answer, RunLock
 from talimatname.domain.audit import CODE_PREFIX_LENGTH, AuditEvent, SequenceTaken
 from talimatname.domain.evidence import Evidence
+from talimatname.domain.exports import ExportJob
 from talimatname.domain.notifications import Notification
 from talimatname.domain.organization import Branch, Region, Station
 from talimatname.domain.plans import Assignment, Plan, Run
@@ -484,6 +485,21 @@ class SqlPlanRepository(_TenantRepository):
             ).all()
             return [_run(r) for r in satirlar]
 
+    def count_runs_between(
+        self, first_day: date, last_day: date, *, branch_ids: set[UUID] | None = None
+    ) -> int:
+        sorgu = (
+            select(func.count())
+            .select_from(m.Run)
+            .where(m.Run.business_day >= first_day, m.Run.business_day <= last_day)
+        )
+        if branch_ids is not None:
+            if not branch_ids:
+                return 0
+            sorgu = sorgu.where(m.Run.branch_id.in_(branch_ids))
+        with tenant_session(self._tenant) as o:
+            return int(o.scalar(sorgu) or 0)
+
     def save_run(self, run: Run) -> None:
         self.save_runs([run])
 
@@ -849,6 +865,90 @@ def _olay(satir: m.AuditEvent) -> AuditEvent:
     )
 
 
+def _cikti(satir: m.ExportJob) -> ExportJob:
+    return ExportJob(
+        id=satir.id,
+        kind=satir.kind,  # type: ignore[arg-type]
+        params={str(a): str(d) for a, d in (satir.params or {}).items()},
+        requested_by=satir.requested_by,
+        requested_at=satir.requested_at,
+        run_count=satir.run_count,
+        state=satir.state,  # type: ignore[arg-type]
+        attempts=satir.attempts,
+        started_at=satir.started_at,
+        finished_at=satir.finished_at,
+        object_key=satir.object_key,
+        size_bytes=satir.size_bytes,
+        document_code=satir.document_code,
+        error_code=satir.error_code,
+    )
+
+
+class SqlExportJobRepository(_TenantRepository):
+    """`ExportJobRepository` portunun SQL karşılığı (FR-1217)."""
+
+    def job(self, job_id: UUID) -> ExportJob | None:
+        with tenant_session(self._tenant) as o:
+            satir = o.get(m.ExportJob, job_id)
+            return _cikti(satir) if satir else None
+
+    def jobs_for_user(self, user_id: UUID, *, limit: int = 20) -> list[ExportJob]:
+        sorgu = (
+            select(m.ExportJob)
+            .where(m.ExportJob.requested_by == user_id)
+            .order_by(m.ExportJob.requested_at.desc())
+            .limit(limit)
+        )
+        with tenant_session(self._tenant) as o:
+            return [_cikti(r) for r in o.scalars(sorgu).all()]
+
+    def save_job(self, job: ExportJob) -> None:
+        with tenant_session(self._tenant) as o:
+            o.merge(
+                m.ExportJob(
+                    id=job.id,
+                    tenant_id=self._tenant,
+                    kind=job.kind,
+                    params=dict(job.params),
+                    requested_by=job.requested_by,
+                    requested_at=job.requested_at,
+                    run_count=job.run_count,
+                    state=job.state,
+                    attempts=job.attempts,
+                    started_at=job.started_at,
+                    finished_at=job.finished_at,
+                    object_key=job.object_key,
+                    size_bytes=job.size_bytes,
+                    document_code=job.document_code,
+                    error_code=job.error_code,
+                )
+            )
+
+    def queued_jobs(self, limit: int) -> list[ExportJob]:
+        sorgu = (
+            select(m.ExportJob)
+            .where(m.ExportJob.state == "queued")
+            .order_by(m.ExportJob.requested_at)
+            .limit(limit)
+        )
+        with tenant_session(self._tenant) as o:
+            return [_cikti(r) for r in o.scalars(sorgu).all()]
+
+    def files_before(self, before: datetime, limit: int) -> list[ExportJob]:
+        sorgu = (
+            select(m.ExportJob)
+            .where(
+                m.ExportJob.object_key.is_not(None),
+                m.ExportJob.finished_at.is_not(None),
+                m.ExportJob.finished_at < before,
+            )
+            .order_by(m.ExportJob.finished_at)
+            .limit(limit)
+        )
+        with tenant_session(self._tenant) as o:
+            return [_cikti(r) for r in o.scalars(sorgu).all()]
+
+
 class SqlAuditRepository(_TenantRepository):
     """`AuditRepository` portunun SQL karşılığı (FR-1301).
 
@@ -935,6 +1035,7 @@ __all__ = [
     "SqlAnswerRepository",
     "SqlAuditRepository",
     "SqlEvidenceRepository",
+    "SqlExportJobRepository",
     "SqlNotificationRepository",
     "SqlOrganizationRepository",
     "SqlPlanRepository",

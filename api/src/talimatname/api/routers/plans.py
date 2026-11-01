@@ -15,10 +15,13 @@ from talimatname.api.bagimliliklar import (
     sablon_servisi,
     zamanlayici_servisi,
 )
-from talimatname.api.guvenlik import Kullanici, Yonetici, erisilebilir_sube_idleri
+from talimatname.api.guvenlik import Kullanici, Yonetici
 from talimatname.domain.plans import Assignment, Plan, Run
 from talimatname.domain.window import Anchor, WindowRule
-from talimatname.services.organization import OrganizationService
+from talimatname.services.organization import (
+    OrganizationService,
+    erisilebilir_sube_idleri,
+)
 from talimatname.services.plans import HORIZON_DAYS, PlanService
 from talimatname.services.scheduler import SchedulerService
 from talimatname.services.templates import TemplateService
@@ -286,6 +289,13 @@ class TurYaniti(BaseModel):
             "Baytı depoda bulunup tamamlanan kanıt sayısı: istemci `complete` demeden düşmüş"
         ),
     )
+    exports_done: int = Field(default=0, description="Üretilen arka plan çıktısı (FR-1217)")
+    exports_failed: int = Field(
+        default=0, description="Üretilemeyen çıktı: sebebi iş kaydında duruyor"
+    )
+    export_files_swept: int = Field(
+        default=0, description="Süresi dolduğu için silinen çıktı dosyası sayısı"
+    )
 
 
 @router.post("/plans/{plan_id}/generate", summary="Çalıştırmaları şimdi üret")
@@ -315,6 +325,9 @@ def zamanlayici_turu(servis: ZamanlayiciServis, _: Yonetici) -> TurYaniti:
         stamped=sonuc.stamped,
         swept=sonuc.swept,
         recovered=sonuc.recovered,
+        exports_done=sonuc.exports_done,
+        exports_failed=sonuc.exports_failed,
+        export_files_swept=sonuc.export_files_swept,
     )
 
 

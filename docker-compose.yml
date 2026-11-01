@@ -29,6 +29,8 @@ x-api-ortam: &api-ortam
   # Rapor PDF'lerine basılan doğrulama bağlantısı (FR-1218).
   # Boşsa kâğıt bağlantı değil sayfanın adını yazar.
   PANEL_URL: ${PANEL_URL:-}
+  # Kaç çalıştırmadan sonra dönem raporu arka plana düşer (FR-1217).
+  EXPORT_BACKGROUND_THRESHOLD: ${EXPORT_BACKGROUND_THRESHOLD:-500}
 
 services:
   postgres:

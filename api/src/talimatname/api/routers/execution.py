@@ -18,17 +18,17 @@ from talimatname.api.bagimliliklar import (
     disa_aktarim_servisi,
     izi_servisi,
     kurulum_servisi,
+    marka,
     organizasyon_servisi,
     sablon_servisi,
     yurutme_servisi,
 )
-from talimatname.api.belgeler import belge_kodu, marka
 from talimatname.api.guvenlik import Kullanici, sube_erisimi_zorunlu
 from talimatname.domain.sync import NOT_DONE_REASON_LABELS
 from talimatname.domain.templates import ITEM_TYPE_LABELS
 from talimatname.services.audit import AuditService
 from talimatname.services.execution import ExecutionService, RunView
-from talimatname.services.exports import ExportService, pdf_filename
+from talimatname.services.exports import ExportService, pdf_filename, record_document
 from talimatname.services.organization import OrganizationService
 from talimatname.services.pdf import run_code, run_pdf
 from talimatname.services.setup import SetupService
@@ -292,8 +292,8 @@ def calistirma_pdf(
     sube_erisimi_zorunlu(kullanici, gorunum.run.branch_id, org)
 
     rapor = disa.run_report(run_id)
-    hesap = marka(kurulum)
-    kod = belge_kodu(
+    hesap = marka()
+    kod = record_document(
         iz,
         tur="calistirma",
         icerik_kodu=run_code(rapor, brand=hesap),

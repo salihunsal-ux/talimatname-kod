@@ -1,6 +1,13 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 
+import {
+  bekleyenVar,
+  ciktiDosyasi,
+  ciktilarim,
+  type CiktiIsi,
+  type PdfSonucu,
+} from '../../api/ciktilar';
 import { kanitBaglantisi } from '../../api/kanitlar';
 import {
   aylikOzet,
@@ -70,6 +77,8 @@ export function RaporlarSayfasi() {
       {sekme === 'ozet' && <AylikOzetBolumu yil={yil} ay={ay} onYil={setYil} onAy={setAy} />}
       {sekme === 'olcum' && <OlcumBolumu />}
       {sekme === 'galeri' && <GaleriBolumu />}
+
+      <CiktilarBolumu />
     </div>
   );
 }
@@ -81,13 +90,22 @@ export function RaporlarSayfasi() {
  * ayda bu bir saniyeyi geçebiliyor. Tıklayıp hiçbir şey olmaması,
  * kullanıcıyı ikinci kez tıklamaya iter.
  */
-function PdfDugmesi({ uret, dosyaAdi }: { uret: () => Promise<Blob>; dosyaAdi: string }) {
-  const [durum, setDurum] = useState<'bos' | 'calisiyor' | 'hata'>('bos');
+function PdfDugmesi({ uret, dosyaAdi }: { uret: () => Promise<PdfSonucu>; dosyaAdi: string }) {
+  const [durum, setDurum] = useState<'bos' | 'calisiyor' | 'hata' | 'kuyrukta'>('bos');
+  const sorgular = useQueryClient();
 
   async function tikla() {
     setDurum('calisiyor');
     try {
-      dosyayiIndir(await uret(), dosyaAdi);
+      const sonuc = await uret();
+      if (sonuc.tur === 'is') {
+        // Eşiği geçen dönem: sunucu dosya yerine iş kaydı döndü
+        // (FR-1217). Liste aşağıda, hazır olunca orada görünecek.
+        setDurum('kuyrukta');
+        void sorgular.invalidateQueries({ queryKey: ['ciktilar'] });
+        return;
+      }
+      dosyayiIndir(sonuc.blob, dosyaAdi);
       setDurum('bos');
     } catch {
       setDurum('hata');
@@ -117,9 +135,124 @@ function PdfDugmesi({ uret, dosyaAdi }: { uret: () => Promise<Blob>; dosyaAdi: s
           {tr.rapor.pdfHata}
         </p>
       )}
+      {durum === 'kuyrukta' && (
+        <p role="status" style={{ color: 'var(--renk-murekkep2)', fontSize: 'var(--etiket)' }}>
+          {tr.cikti.kuyruga}
+        </p>
+      )}
     </div>
   );
 }
+
+/**
+ * Hazırlanan çıktılar (FR-1217).
+ *
+ * Eşiği geçen dönem raporu arka planda üretiliyor; kullanıcı neyin
+ * nerede olduğunu buradan görüyor. Bildirim de düşüyor ama panelde
+ * ikinci bir yol olmalı: bildirim sürücüsü bağlı değilken (ST-044)
+ * tek yol o olsaydı, çıktı kaybolmuş gibi görünürdü.
+ */
+function CiktilarBolumu() {
+  const isler = useQuery({
+    queryKey: ['ciktilar'],
+    queryFn: ciktilarim,
+    // Üretilen iş varken tazele: kullanıcı sayfayı yenilemek zorunda
+    // kalmasın. Hepsi bittiğinde yoklama da duruyor.
+    refetchInterval: (sorgu) => (bekleyenVar(sorgu.state.data ?? []) ? 5000 : false),
+  });
+
+  if (!isler.data || isler.data.length === 0) return null;
+
+  return (
+    <section style={{ marginTop: 'var(--bosluk-5)' }}>
+      <h2 style={{ fontSize: 'var(--baslik-kart)', margin: 0 }}>{tr.cikti.baslik}</h2>
+      <p style={{ color: 'var(--renk-murekkep2)', fontSize: 'var(--etiket)' }}>
+        {tr.cikti.aciklama}
+      </p>
+      <ul style={{ listStyle: 'none', padding: 0, margin: 'var(--bosluk-3) 0 0' }}>
+        {isler.data.map((is) => (
+          <CiktiSatiri key={is.id} is={is} />
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+function CiktiSatiri({ is }: { is: CiktiIsi }) {
+  const [hata, setHata] = useState(false);
+
+  async function indir() {
+    setHata(false);
+    try {
+      dosyayiIndir(await ciktiDosyasi(is.id), `${is.kind}-${is.id.slice(0, 8)}.pdf`);
+    } catch {
+      setHata(true);
+    }
+  }
+
+  return (
+    <li
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 'var(--bosluk-3)',
+        flexWrap: 'wrap',
+        padding: 'var(--bosluk-2) 0',
+        borderTop: '1px solid var(--renk-cizgi)',
+      }}
+    >
+      <span style={{ flex: '1 1 220px' }}>
+        {is.kind_label} · {donemMetni(is)}
+      </span>
+      <Cip
+        renk={is.state === 'ready' ? 'marka' : is.state === 'failed' ? 'kritik' : 'nötr'}
+        metin={is.state_label}
+      />
+      <span style={{ color: 'var(--renk-sessiz)', fontSize: 'var(--etiket)' }}>
+        {tr.cikti.calistirma(is.run_count)}
+      </span>
+      {is.downloadable && (
+        <button type="button" onClick={() => void indir()} style={ciktiDugmesi}>
+          {tr.rapor.pdfIndir}
+        </button>
+      )}
+      {is.state === 'ready' && !is.downloadable && (
+        <span style={{ color: 'var(--renk-sessiz)', fontSize: 'var(--etiket)' }}>
+          {tr.cikti.suresiDoldu}
+        </span>
+      )}
+      {is.state === 'failed' && (
+        <span style={{ color: 'var(--renk-kritik)', fontSize: 'var(--etiket)' }}>
+          {tr.cikti.uretilemedi(is.error_code ?? '')}
+        </span>
+      )}
+      {hata && (
+        <span role="alert" style={{ color: 'var(--renk-kritik)', fontSize: 'var(--etiket)' }}>
+          {tr.rapor.pdfHata}
+        </span>
+      )}
+    </li>
+  );
+}
+
+/** Kâğıdın dönemi: iki tür iki farklı parametre taşıyor. */
+function donemMetni(is: CiktiIsi): string {
+  if (is.kind === 'aylik-ozet') {
+    const ay = Number(is.params.month ?? 0);
+    return `${tr.rapor.aylar[ay - 1] ?? ''} ${is.params.year ?? ''}`.trim();
+  }
+  return `${is.params.first_day ?? ''} – ${is.params.last_day ?? ''}`;
+}
+
+const ciktiDugmesi = {
+  minHeight: 36,
+  padding: '0 var(--bosluk-3)',
+  borderRadius: 'var(--kose-dugme)',
+  border: '1px solid var(--renk-cizgi)',
+  background: 'var(--renk-yuzey2)',
+  color: 'var(--renk-murekkep)',
+  cursor: 'pointer',
+} as const;
 
 function aralik(gunSayisi: number): { ilk: string; son: string } {
   const son = new Date();

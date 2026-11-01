@@ -107,13 +107,3 @@ def sube_erisimi_zorunlu(
     if not can_access(kullanici, sube):
         raise Forbidden(f"Şube kapsamınızda değil: {sube.code}")
     return sube
-
-
-def erisilebilir_sube_idleri(kullanici: User, org: OrganizationService) -> set[UUID]:
-    """Kullanıcının kapsamındaki şube kimlikleri — liste süzgeçlerinin temeli."""
-    return {
-        sube.id
-        for dugum in org.tree(include_inactive=True)
-        for sube in dugum.branches
-        if can_access(kullanici, sube)
-    }
