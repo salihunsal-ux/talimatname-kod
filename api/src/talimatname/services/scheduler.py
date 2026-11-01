@@ -36,7 +36,7 @@ from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 
 from talimatname.services.actions import ActionService
-from talimatname.services.audit import RequestContext, using_context
+from talimatname.services.audit import AuditService, RequestContext, using_context
 from talimatname.services.digest import DigestService
 from talimatname.services.escalation import EscalationService
 from talimatname.services.evidence import EvidenceService
@@ -103,6 +103,7 @@ class SchedulerService:
         digest: DigestService | None = None,
         evidence: EvidenceService | None = None,
         exports: ExportJobService | None = None,
+        audit: AuditService | None = None,
         *,
         now: Callable[[], datetime] = lambda: datetime.now(UTC),
     ) -> None:
@@ -115,6 +116,7 @@ class SchedulerService:
         self._ozet = digest
         self._kanit = evidence
         self._cikti = exports
+        self._izi = audit
         self._now = now
 
     def tick(self, *, days: int = HORIZON_DAYS) -> TickResult:
@@ -184,5 +186,20 @@ class SchedulerService:
             if now < run.tolerance_end:
                 continue
             self._repo.save_run(replace(run, status="missed"))
+            # Olay **geçişte** yazılıyor: durum bir kez değişiyor, kayıt
+            # da bir kez düşüyor. Her turda yazsaydık zincir, hiçbir şey
+            # olmadığı hâlde dakikada bir büyürdü.
+            if self._izi is not None:
+                self._izi.record(
+                    "calistirma.kacirildi",
+                    object_type="calistirma",
+                    object_id=run.id,
+                    before={"durum": run.status},
+                    after={
+                        "durum": "missed",
+                        "is_gunu": run.business_day.isoformat(),
+                        "tolerans_bitisi": run.tolerance_end.isoformat(),
+                    },
+                )
             sayac += 1
         return sayac

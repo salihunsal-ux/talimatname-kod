@@ -24,6 +24,7 @@ from talimatname.domain.templates import (
     TemplateVersion,
     VersionSettings,
 )
+from talimatname.services.audit import AuditService
 
 
 class TemplateNotFound(DomainError):
@@ -68,10 +69,12 @@ class TemplateService:
     def __init__(
         self,
         repo: TemplateRepository,
+        audit: AuditService | None = None,
         *,
         now: Callable[[], datetime] = lambda: datetime.now(UTC),
     ) -> None:
         self._repo = repo
+        self._izi = audit
         self._now = now
 
     # --- okuma -------------------------------------------------------
@@ -173,4 +176,21 @@ class TemplateService:
 
         yayin = replace(surum, status="published", published_at=self._now())
         self._repo.save_version(yayin)
+        if self._izi is not None:
+            # Yayın, kontrolün **içeriğinin** değiştiği an: hangi
+            # maddelerin sorulduğu buradan sonra farklı. Denetimde
+            # "o gün hangi liste yürürlükteydi" sorusunun izi bu.
+            sablon = self._repo.template(yayin.template_id)
+            self._izi.record(
+                "sablon.yayinlandi",
+                object_type="sablon",
+                object_id=yayin.template_id,
+                before={"onceki_surum": str(onceki.version_no) if onceki else "-"},
+                after={
+                    "ad": sablon.name if sablon else "-",
+                    "surum": str(yayin.version_no),
+                    "madde": str(len(yayin.items)),
+                    "kritik": str(sum(1 for m in yayin.items if m.critical)),
+                },
+            )
         return yayin

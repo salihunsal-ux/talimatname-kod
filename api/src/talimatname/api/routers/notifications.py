@@ -42,6 +42,7 @@ TUR_ETIKETLERI: dict[str, str] = {
     "action_opened": "Aksiyon açıldı",
     "critical_failed": "Kritik madde başarısız",
     "daily_digest": "Günlük özet",
+    "export_ready": "Çıktı hazır",
 }
 
 

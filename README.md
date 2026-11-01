@@ -53,6 +53,15 @@ cd api
 
 Her olay bir öncekinin SHA-256 özetini taşır (FR-1301): bir kayıt sonradan değişirse özeti tutmaz ve kırılma noktası bulunur. Tablo **ekle-yalnız** — uygulama rolünün `UPDATE`/`DELETE` yetkisi yok (göç 0006) ve depo portunda böyle bir yöntem de yok.
 
+Günlüğe düşen olaylar: oturum (açıldı/reddedildi), çalıştırma (gönderildi/kaçırıldı), kanıt (alındı/tekrar denendi/süpürüldü), eskalasyon (adım yürüdü/alıcı yok, FR-0913 ve FR-0915), rapor üretimi, personel (davet/güncelleme/maskeleme), plan (kuruldu/değişti) ve şablon yayını. Türlerin tek kaynağı `domain/audit.py` içindeki `EVENT_TYPES`; **listede durup hiç yazılmayan tür olamaz**, bunu bir test tutuyor — günlüğe bakan birine tutulmayan söz vermek, kaydın hiç olmamasından kötüdür.
+
+İki kural olayların içeriğinde:
+
+* **Kişisel veri girmez** (BR-21). Personel olayında ad ve telefon değil, *hangi alanın* değiştiği yazılır; roller yazılır çünkü "bu kişiye yöneticiliği kim verdi" denetimin sorusudur ve rol kişisel veri değildir. Eskalasyonda kaç kişiye gittiği yazılır, kim oldukları değil. Maskelenmiş bir kullanıcının günlüğü de maskelenmiş kalır.
+* **Yalnızca değişen alan yazılır.** Değişmeyeni yazmak günlüğü şişirir; denetim konuşması "ne değişti" diye başlar.
+
+Zamanlayıcı dakikada bir koştuğu için iki yerde tekillik ayrıca düşünüldü: kaçırma olayı **durum geçişinde** yazılır, eskalasyon olayı ise yalnızca gerçekten **yeni bir bildirim kuyruğa girdiğinde**. Yoksa hiçbir şey olmadığı hâlde zincir her dakika büyürdü.
+
 ```bash
 cd api
 ./.venv/Scripts/python.exe -m talimatname.izi_dogrula              # tüm günlük

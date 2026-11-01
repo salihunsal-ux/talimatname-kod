@@ -16,6 +16,7 @@ from uuid import UUID
 
 from talimatname.domain.errors import DomainError, ErrorKind
 from talimatname.domain.plans import Plan, Run, merge_runs, plan_runs
+from talimatname.services.audit import AuditService
 from talimatname.services.organization import OrganizationRepository
 from talimatname.services.templates import TemplateRepository
 
@@ -98,12 +99,14 @@ class PlanService:
         repo: PlanRepository,
         org: OrganizationRepository,
         templates: TemplateRepository,
+        audit: AuditService | None = None,
         *,
         now: Callable[[], datetime] = lambda: datetime.now(UTC),
     ) -> None:
         self._repo = repo
         self._org = org
         self._templates = templates
+        self._izi = audit
         self._now = now
 
     # --- okuma -------------------------------------------------------
@@ -143,6 +146,7 @@ class PlanService:
         hazir = self._validate(plan)
         self._repo.save_plan(hazir)
         self.generate(hazir.id)
+        self._iz_yaz("plan.yayinlandi", hazir, after=_ozet(hazir))
         return hazir
 
     def update(self, plan_id: UUID, **degisiklik: object) -> Plan:
@@ -150,10 +154,31 @@ class PlanService:
         guncel = self._validate(replace(mevcut, **degisiklik))  # type: ignore[arg-type]
         self._repo.save_plan(guncel)
         self.generate(plan_id)
+        # Ayrı tür: "kurulan plan" ile "değiştirilen plan" denetimde
+        # farklı sorular. Önce/sonra yalnızca **değişeni** yazıyor.
+        self._iz_yaz("plan.guncellendi", guncel, before=_ozet(mevcut), after=_ozet(guncel))
         return guncel
 
     def set_active(self, plan_id: UUID, active: bool) -> Plan:
         return self.update(plan_id, active=active)
+
+    def _iz_yaz(
+        self,
+        tur: str,
+        plan: Plan,
+        *,
+        before: dict[str, object] | None = None,
+        after: dict[str, object] | None = None,
+    ) -> None:
+        """Planın değişimi günlüğe (FR-1301).
+
+        Denetimin sorusu şu: "bu kontrol ne zaman, kim tarafından
+        kurulmuş ya da gevşetilmiş?" Cevabı plan kaydının kendisi
+        vermiyor — sürümü yok, son hâlini gösteriyor.
+        """
+        if self._izi is None:
+            return
+        self._izi.record(tur, object_type="plan", object_id=plan.id, before=before, after=after)
 
     def generate_all(self, *, days: int = HORIZON_DAYS) -> tuple[int, int]:
         """Etkin planların tamamı için üretim — zamanlayıcının işi (ST-027).
@@ -210,3 +235,17 @@ class PlanService:
             if branch_id not in bilinen:
                 raise BranchNotInScope(f"Şube id: {branch_id}")
         return hazir
+
+
+def _ozet(plan: Plan) -> dict[str, object]:
+    """Planın günlüğe giren özeti: iş verisi, kişisel veri değil."""
+    return {
+        "ad": plan.name,
+        "etkin": "evet" if plan.active else "hayır",
+        "sube_sayisi": str(len(plan.branch_ids)),
+        "sablon_surumu": str(plan.template_version_id),
+        "tekrar": plan.rule.recurrence,
+        "baslangic": str(plan.rule.start_time or plan.rule.anchor),
+        "sure_dk": str(plan.rule.duration_minutes),
+        "tolerans_dk": str(plan.rule.tolerance_minutes),
+    }

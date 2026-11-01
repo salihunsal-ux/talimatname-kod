@@ -354,3 +354,19 @@ def test_uc_nokta_teslimat_izi_eksikligi_gizlemez() -> None:
 
 def test_uc_nokta_teslimat_izi_yoneticiye_ozel() -> None:
     assert _istemci("branch_manager").get("/api/v1/notifications").status_code == 403
+
+
+def test_her_bildirim_turunun_etiketi_var() -> None:
+    """Etiketsiz tür panelde ham anahtar olarak görünür.
+
+    `export_ready` eklendiğinde etiketi unutuldu ve panelde
+    "export_ready" yazdı; bu test o sessiz boşluğu kapatıyor.
+    """
+    from typing import get_args
+
+    from talimatname.api.routers.notifications import TUR_ETIKETLERI
+    from talimatname.domain.notifications import NotificationKind
+
+    eksik = [t for t in get_args(NotificationKind) if t not in TUR_ETIKETLERI]
+
+    assert not eksik, f"etiketi olmayan tür: {eksik}"

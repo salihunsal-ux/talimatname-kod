@@ -16,6 +16,7 @@ from uuid import UUID, uuid4
 from talimatname.domain.errors import DomainError, ErrorKind
 from talimatname.domain.organization import Branch
 from talimatname.domain.users import Role, User, can_access
+from talimatname.services.audit import AuditService
 from talimatname.services.organization import OrganizationRepository
 
 
@@ -60,11 +61,13 @@ class UserService:
         self,
         repo: UserRepository,
         org: OrganizationRepository,
+        audit: AuditService | None = None,
         *,
         now: Callable[[], datetime] = lambda: datetime.now(UTC),
     ) -> None:
         self._repo = repo
         self._org = org
+        self._izi = audit
         self._now = now
 
     # --- okuma -------------------------------------------------------
@@ -108,6 +111,7 @@ class UserService:
             raise PhoneTaken(f"Telefon: {hazir.phone}")
         kayit = replace(hazir, id=hazir.id or uuid4(), invited_at=self._now())
         self._repo.save_user(kayit)
+        self._iz_yaz("personel.davet", kayit, after={"roller": _roller(kayit)})
         return kayit
 
     def update(self, user_id: UUID, **degisiklik: object) -> User:
@@ -121,6 +125,16 @@ class UserService:
             if cakisan is not None and cakisan.id != user_id:
                 raise PhoneTaken(f"Telefon: {guncel.phone}")
         self._repo.save_user(guncel)
+        self._iz_yaz(
+            "personel.guncellendi",
+            guncel,
+            before={"durum": mevcut.status, "roller": _roller(mevcut)},
+            after={
+                "durum": guncel.status,
+                "roller": _roller(guncel),
+                "degisen": _degisen_alanlar(mevcut, guncel),
+            },
+        )
         return guncel
 
     def set_status(self, user_id: UUID, status: str) -> User:
@@ -136,9 +150,42 @@ class UserService:
             return mevcut
         maskeli = mevcut.masked(self._now(), self._repo.next_mask_counter())
         self._repo.save_user(maskeli)
+        # Maskeleme ayrı tür: sıradan bir güncelleme değil, KVKK silme
+        # talebinin karşılığı (FR-1310) ve denetimde ayrı aranıyor.
+        self._iz_yaz(
+            "personel.maskelendi",
+            maskeli,
+            before={"durum": mevcut.status},
+            after={"durum": "masked"},
+        )
         return maskeli
 
     # --- yardımcılar --------------------------------------------------
+
+    def _iz_yaz(
+        self,
+        tur: str,
+        kullanici: User,
+        *,
+        before: dict[str, object] | None = None,
+        after: dict[str, object] | None = None,
+    ) -> None:
+        """Personel olayını günlüğe yazar (FR-1301).
+
+        **Ad ve telefon yazılmıyor**, yalnızca hangi alanın değiştiği
+        (BR-21): kişiyi kimliği gösteriyor, maskelenmiş bir kullanıcının
+        günlüğü de maskelenmiş kalsın. Roller yazılıyor — kişisel veri
+        değil ve "bu kişiye yöneticiliği kim verdi" denetimin sorusu.
+        """
+        if self._izi is None:
+            return
+        self._izi.record(
+            tur,
+            object_type="kullanici",
+            object_id=kullanici.id,
+            before=before,
+            after=after,
+        )
 
     def _branch(self, branch_id: UUID) -> Branch:
         sube = self._org.branch(branch_id)
@@ -154,3 +201,25 @@ class UserService:
                 raise ScopeNotFound(f"Bölge id: {atama.scope_id}")
             if atama.scope_type == "branch" and atama.scope_id not in subeler:
                 raise ScopeNotFound(f"Şube id: {atama.scope_id}")
+
+
+def _roller(kullanici: User) -> str:
+    return ",".join(sorted(a.role for a in kullanici.assignments)) or "-"
+
+
+def _degisen_alanlar(once: User, sonra: User) -> str:
+    """Hangi alanlar değişti — **değerleri değil**, adları.
+
+    Ad ve telefon kişisel veri; günlüğe "ad değişti" yazmak denetim
+    için yeterli, "Ali Veli oldu" yazmak gereksiz ve riskli.
+    """
+    alanlar = []
+    if once.full_name != sonra.full_name:
+        alanlar.append("ad")
+    if once.phone != sonra.phone:
+        alanlar.append("telefon")
+    if _roller(once) != _roller(sonra):
+        alanlar.append("roller")
+    if once.status != sonra.status:
+        alanlar.append("durum")
+    return ",".join(alanlar) or "-"

@@ -260,11 +260,11 @@ def organizasyon_servisi() -> OrganizationService:
 
 
 def kullanici_servisi() -> UserService:
-    return UserService(_kullanici_deposu(), _org_deposu())
+    return UserService(_kullanici_deposu(), _org_deposu(), izi_servisi())
 
 
 def sablon_servisi() -> TemplateService:
-    return TemplateService(_sablon_deposu())
+    return TemplateService(_sablon_deposu(), izi_servisi())
 
 
 def aksiyon_servisi() -> ActionService:
@@ -291,6 +291,7 @@ def eskalasyon_servisi() -> EscalationService:
         _kullanici_deposu(),
         _aksiyon_deposu(),
         bildirim_servisi(),
+        izi_servisi(),
     )
 
 
@@ -316,12 +317,13 @@ def zamanlayici_servisi() -> SchedulerService:
         ozet_servisi(),
         kanit_servisi(),
         cikti_servisi(),
+        izi_servisi(),
     )
 
 
 def plan_servisi() -> PlanService:
     _ilk_tur()
-    return PlanService(_plan_deposu(), _org_deposu(), _sablon_deposu())
+    return PlanService(_plan_deposu(), _org_deposu(), _sablon_deposu(), izi_servisi())
 
 
 def yurutme_servisi() -> ExecutionService:

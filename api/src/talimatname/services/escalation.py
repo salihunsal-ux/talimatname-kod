@@ -17,11 +17,22 @@ v1'de merdiven **sabittir**, editörü yok (v1.1). Üç tetik var:
 * **Alıcı yoksa bir üst adıma** (FR-0915): şubenin etkin müdürü yoksa
   bildirim bölge müdürüne gider ve "alıcı yok" günlüğe yazılır. Sessizce
   düşürmek, eskalasyonun hiç olmamasıyla aynı şey.
+
+Her adım **olay günlüğüne** de yazılıyor (FR-0913). Bir ince nokta var:
+tur dakikada bir koşuyor ve aynı kaçırılmış liste her turda yeniden
+değerlendiriliyor. Bildirim kuyruğu idempotent olduğu için ikinci kez
+bildirim çıkmıyor; günlük ise idempotent değil. Bu yüzden olay,
+**yalnızca gerçekten yeni bir bildirim kuyruğa girdiğinde** yazılıyor —
+yoksa hiçbir şey olmadığı hâlde zincir her dakika büyürdü.
+
+FR-0913 ayrıca adımın aksiyonun yorum dizisine yazılmasını istiyor;
+yorum dizisi v1 kapsamında yok (ADR-0008, v1.1).
 """
 
 from __future__ import annotations
 
 from collections.abc import Callable
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
@@ -32,6 +43,7 @@ from talimatname.domain.notifications import Notification
 from talimatname.domain.organization import Branch
 from talimatname.domain.users import User
 from talimatname.services.actions import ActionRepository
+from talimatname.services.audit import AuditService
 from talimatname.services.notifications import NotificationService
 from talimatname.services.organization import OrganizationRepository
 from talimatname.services.plans import PlanRepository
@@ -47,6 +59,20 @@ SMS_AFTER = timedelta(minutes=10)
 LOOKBACK = timedelta(hours=24)
 
 
+@dataclass(frozen=True, slots=True)
+class _Basamak:
+    """Merdivenin bir basamağı: kime gidiyor ve hangi adım atlandı.
+
+    Atlanan adım burada taşınıyor çünkü onu **olayla birlikte** yazmak
+    istiyoruz: "bildirim bölge müdürüne gitti, çünkü şubenin müdürü
+    yok" tek kayıtta okunur.
+    """
+
+    alicilar: list[User]
+    adim: str
+    atlanan: str | None = None
+
+
 class EscalationService:
     def __init__(
         self,
@@ -55,6 +81,7 @@ class EscalationService:
         users: UserRepository,
         actions: ActionRepository,
         notifications: NotificationService,
+        audit: AuditService | None = None,
         *,
         now: Callable[[], datetime] = lambda: datetime.now(UTC),
     ) -> None:
@@ -63,6 +90,7 @@ class EscalationService:
         self._users = users
         self._actions = actions
         self._bildirim = notifications
+        self._izi = audit
         self._now = now
 
     def run(self, now: datetime | None = None) -> dict[str, int]:
@@ -89,7 +117,7 @@ class EscalationService:
                 continue
             ad = planlar.get(run.plan_id, "Liste")
             sayac += self._gonder(
-                alicilar=self._sube_adimi(sube, run.id),
+                basamak=self._sube_adimi(sube),
                 kind="run_missed",
                 subject_id=run.id,
                 slot="kacirildi",
@@ -98,6 +126,8 @@ class EscalationService:
                 send_at=an,
                 sube=sube,
                 run_id=run.id,
+                tetik="kacirilan-liste",
+                nesne_turu="calistirma",
             )
         return sayac
 
@@ -115,17 +145,13 @@ class EscalationService:
                 continue
             # Kritik maddede iki basamak birden: şube **ve** bölge (FR-1008).
             mudurler = self._sube_mudurleri(sube)
-            if not mudurler:
-                log.warning(
-                    "eskalasyon.alici_yok",
-                    sube=sube.code,
-                    konu=str(aksiyon.id),
-                    eksik_adim="branch_manager",
-                    ust_adim="region_manager",
-                )
-            alicilar = mudurler + self._bolge_mudurleri(sube, aksiyon.id)
+            basamak = _Basamak(
+                alicilar=mudurler + self._bolge_mudurleri(sube),
+                adim="branch_manager+region_manager",
+                atlanan=None if mudurler else "branch_manager",
+            )
             sayac += self._gonder(
-                alicilar=alicilar,
+                basamak=basamak,
                 kind="critical_failed",
                 subject_id=aksiyon.id,
                 slot="kritik",
@@ -134,6 +160,8 @@ class EscalationService:
                 send_at=an,
                 sube=sube,
                 action_id=aksiyon.id,
+                tetik="kritik-madde",
+                nesne_turu="aksiyon",
             )
         return sayac
 
@@ -198,7 +226,7 @@ class EscalationService:
     def _gonder(
         self,
         *,
-        alicilar: list[User],
+        basamak: _Basamak,
         kind: str,
         subject_id: UUID,
         slot: str,
@@ -206,10 +234,24 @@ class EscalationService:
         body: str,
         send_at: datetime,
         sube: Branch,
+        tetik: str,
+        nesne_turu: str,
         run_id: UUID | None = None,
         action_id: UUID | None = None,
     ) -> int:
-        for kisi in alicilar:
+        # Hangi alıcı için **yeni** bildirim çıkacağını önce soruyoruz:
+        # olay yalnızca gerçekten bir adım yürüdüğünde yazılmalı.
+        yeni = [
+            k
+            for k in basamak.alicilar
+            if not self._bildirim.exists(
+                kind=kind,  # type: ignore[arg-type]
+                user_id=k.id,
+                subject_id=subject_id,
+                slot=slot,
+            )
+        ]
+        for kisi in basamak.alicilar:
             self._bildirim.queue(
                 kind=kind,  # type: ignore[arg-type]
                 user=kisi,
@@ -223,26 +265,67 @@ class EscalationService:
                 run_id=run_id,
                 action_id=action_id,
             )
-        return len(alicilar)
+        if yeni or (basamak.atlanan and not basamak.alicilar):
+            self._iz_yaz(basamak, tetik=tetik, nesne_turu=nesne_turu, konu=subject_id, sube=sube)
+        return len(basamak.alicilar)
 
-    def _sube_adimi(self, sube: Branch, konu: UUID) -> list[User]:
+    def _iz_yaz(
+        self, basamak: _Basamak, *, tetik: str, nesne_turu: str, konu: UUID, sube: Branch
+    ) -> None:
+        """Adımı olay günlüğüne yazar (FR-0913, FR-0915).
+
+        Kişi **adı yazılmıyor**, sayısı yazılıyor: günlük kişisel veri
+        taşımaz (BR-21) ve "kaç kişiye gitti" denetim için yeterli.
+        """
+        if self._izi is None:
+            return
+        self._izi.record(
+            "aksiyon.eskalasyon",
+            object_type=nesne_turu,
+            object_id=konu,
+            after={
+                "tetik": tetik,
+                "adim": basamak.adim,
+                "alici": str(len(basamak.alicilar)),
+                "sube": sube.code,
+            },
+        )
+        if basamak.atlanan:
+            # Alıcısı olmayan bir şube, eskalasyonun sessizce kaybolduğu
+            # yerdir; ayrı tür olması aranabilir kılıyor (FR-0915).
+            self._izi.record(
+                "aksiyon.alici_yok",
+                object_type=nesne_turu,
+                object_id=konu,
+                after={
+                    "eksik_adim": basamak.atlanan,
+                    "yurutulen_adim": basamak.adim,
+                    "sube": sube.code,
+                },
+            )
+
+    def _sube_adimi(self, sube: Branch) -> _Basamak:
         """Merdivenin ilk basamağı: şube müdürü. Yoksa bir üste (FR-0915).
 
         Atlamayı **günlüğe yazmak** şart: alıcısı olmayan bir şube,
         eskalasyonun sessizce kaybolduğu yerdir ve ancak kayıt varsa
-        fark edilir.
+        fark edilir. Kaydı yazan yer `_gonder`: adımın gerçekten
+        yürüyüp yürümediği orada belli oluyor.
         """
         mudurler = self._sube_mudurleri(sube)
         if mudurler:
-            return mudurler
+            return _Basamak(alicilar=mudurler, adim="branch_manager")
         log.warning(
             "eskalasyon.alici_yok",
             sube=sube.code,
-            konu=str(konu),
             eksik_adim="branch_manager",
             ust_adim="region_manager",
         )
-        return self._bolge_mudurleri(sube, konu)
+        return _Basamak(
+            alicilar=self._bolge_mudurleri(sube),
+            adim="region_manager",
+            atlanan="branch_manager",
+        )
 
     def _sube_mudurleri(self, sube: Branch) -> list[User]:
         return [
@@ -252,7 +335,7 @@ class EscalationService:
             and any(a.role == "branch_manager" and a.scope_id == sube.id for a in k.assignments)
         ]
 
-    def _bolge_mudurleri(self, sube: Branch, konu: UUID) -> list[User]:
+    def _bolge_mudurleri(self, sube: Branch) -> list[User]:
         """Şubenin bölge müdürleri. Boşsa yöneticiye çıkılır (FR-0915)."""
         bolge = [
             k
@@ -268,7 +351,7 @@ class EscalationService:
         yoneticiler = [
             k for k in self._users.users() if k.status == "active" and "admin" in k.roles
         ]
-        log.warning("eskalasyon.alici_yok", sube=sube.code, konu=str(konu), ust_adim="admin")
+        log.warning("eskalasyon.alici_yok", sube=sube.code, ust_adim="admin")
         return yoneticiler
 
 

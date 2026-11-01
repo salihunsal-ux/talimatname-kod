@@ -117,6 +117,18 @@ class NotificationService:
             raise NotificationNotFound(f"id: {notification_id_}")
         return kayit
 
+    def exists(
+        self, *, kind: NotificationKind, user_id: UUID, subject_id: UUID, slot: str = ""
+    ) -> bool:
+        """Bu dilim daha önce kuyruğa girmiş mi?
+
+        Eskalasyon olayını ikinci kez yazmamak için var (FR-0913):
+        kuyruk idempotent ama **günlük değil** — zamanlayıcı dakikada
+        bir koşuyor ve aynı adımı her turda yazsaydı zincir, hiçbir şey
+        olmadığı hâlde büyürdü.
+        """
+        return self._repo.notification(notification_id(kind, user_id, subject_id, slot)) is not None
+
     def driver_names(self) -> list[str]:
         """Bağlı kanallar. Boş liste dürüst bir cevaptır: hiçbiri."""
         return sorted(self._drivers)

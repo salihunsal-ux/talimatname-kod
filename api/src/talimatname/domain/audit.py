@@ -50,6 +50,11 @@ GENESIS = "0" * 64
 #: Olay türleri. Serbest dize değil **liste**: tür adı sözleşmedir,
 #: doğrulama sayfası ve denetim izi ekranı buna göre yazılır. Yeni tür
 #: eklemek bilinçli bir karar olsun diye burada toplanıyor.
+#:
+#: Listede duran her türün **yazıldığı bir yer olmalı**: hiç
+#: yazılmayan bir tür, günlüğe bakan birine tutulmayan bir söz verir
+#: ("eskalasyonlar burada" deyip boş çıkmak gibi). Bunu `test_audit`
+#: sınıyor.
 EVENT_TYPES: dict[str, str] = {
     "oturum.acildi": "Oturum açıldı",
     "oturum.reddedildi": "Oturum reddedildi",
@@ -58,11 +63,15 @@ EVENT_TYPES: dict[str, str] = {
     "kanit.alindi": "Kanıt alındı",
     "kanit.tekrar_denemesi": "Aynı fotoğraf ikinci kez denendi",
     "kanit.supuruldu": "Bekleyen kanıt süpürüldü",
-    "aksiyon.eskalasyon": "Aksiyon eskalasyonu",
+    "aksiyon.eskalasyon": "Eskalasyon adımı yürüdü",
+    "aksiyon.alici_yok": "Eskalasyon adımının alıcısı yok",
     "rapor.uretildi": "Rapor üretildi",
     "personel.davet": "Personel davet edildi",
     "personel.guncellendi": "Personel güncellendi",
+    "personel.maskelendi": "Personel maskelendi",
     "plan.yayinlandi": "Plan yayınlandı",
+    "plan.guncellendi": "Plan güncellendi",
+    "sablon.yayinlandi": "Şablon sürümü yayınlandı",
 }
 
 #: Belgelerin kâğıt üstündeki adı. Olay kaydındaki `tur` alanıyla

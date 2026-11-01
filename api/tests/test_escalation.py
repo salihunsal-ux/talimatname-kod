@@ -7,8 +7,10 @@ from datetime import UTC, date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from talimatname.domain.actions import from_critical_item
+from talimatname.domain.audit import AuditEvent
 from talimatname.infra.memory import (
     MemoryActionRepository,
+    MemoryAuditRepository,
     MemoryNotificationRepository,
     MemoryOrganizationRepository,
     MemoryPlanRepository,
@@ -16,6 +18,7 @@ from talimatname.infra.memory import (
     MemoryUserRepository,
     sabit_id,
 )
+from talimatname.services.audit import AuditService
 from talimatname.services.digest import DIGEST_AT, DigestService
 from talimatname.services.escalation import SMS_AFTER, EscalationService
 from talimatname.services.notifications import NotificationService
@@ -43,12 +46,14 @@ class Dunya:
         PlanService(
             self.planlar, self.org, MemoryTemplateRepository(), now=lambda: self.an
         ).generate_all()
+        self.izi = AuditService(MemoryAuditRepository(), now=lambda: self.an)
         self.eskalasyon = EscalationService(
             self.planlar,
             self.org,
             self.kullanicilar,
             self.aksiyonlar,
             self.bildirim,
+            self.izi,
             now=lambda: self.an,
         )
         self.ozet = DigestService(
@@ -95,6 +100,15 @@ class Dunya:
     def alicilar(self, kind: str) -> set[object]:
         return {b.user_id for b in self.bildirim.list_notifications() if b.kind == kind}
 
+    def olaylar(self, tur: str) -> list[AuditEvent]:
+        return [o for o in self.izi._repo.events(limit=500) if o.event_type == tur]
+
+    def muduru_pasiflestir(self) -> None:
+        """Kadıköy'ün müdürünü pasife alır: basamak boşalır (FR-0915)."""
+        mudur = self.kullanicilar.user(AYSE)
+        assert mudur is not None
+        self.kullanicilar.save_user(replace(mudur, status="inactive"))
+
 
 def _an() -> datetime:
     """Sabah özeti penceresinin dışında bir öğle vakti."""
@@ -126,6 +140,68 @@ def test_eskalasyon_tekrar_kosunca_kopya_uretmez() -> None:
     dunya.eskalasyon.run()
 
     assert dunya.bildirim.counts()["total"] == toplam
+
+
+def test_eskalasyon_adimi_gunluge_yaziliyor() -> None:
+    """FR-0913: her adım olay günlüğüne.
+
+    Aksiyonun yorum dizisine yazma yarısı v1'de yok: yorum dizisi
+    v1.1'e bırakıldı (ADR-0008).
+    """
+    dunya = Dunya(_an())
+    dunya.kacir()
+
+    dunya.eskalasyon.run()
+
+    olaylar = dunya.olaylar("aksiyon.eskalasyon")
+    assert len(olaylar) == 1
+    assert olaylar[0].after["tetik"] == "kacirilan-liste"
+    assert olaylar[0].after["adim"] == "branch_manager"
+    assert olaylar[0].after["alici"] == "1"
+    assert olaylar[0].object_type == "calistirma"
+
+
+def test_ayni_adim_ikinci_turda_gunluge_yazilmiyor() -> None:
+    """Tur dakikada bir koşuyor; kuyruk idempotent ama günlük değil.
+
+    Yazsaydık, hiçbir şey olmadığı hâlde zincir her dakika büyürdü.
+    """
+    dunya = Dunya(_an())
+    dunya.kacir()
+    dunya.eskalasyon.run()
+
+    dunya.eskalasyon.run()
+
+    assert len(dunya.olaylar("aksiyon.eskalasyon")) == 1
+
+
+def test_fr0915_alicisi_olmayan_adim_gunluge_dusuyor() -> None:
+    """Sessizce bir üste geçmek, eskalasyonun kaybolduğu yerdir."""
+    dunya = Dunya(_an())
+    dunya.muduru_pasiflestir()
+    dunya.kacir()
+
+    dunya.eskalasyon.run()
+
+    atlanan = dunya.olaylar("aksiyon.alici_yok")
+    assert len(atlanan) == 1
+    assert atlanan[0].after["eksik_adim"] == "branch_manager"
+    assert atlanan[0].after["yurutulen_adim"] == "region_manager"
+    # Bildirim bölge müdürüne gitti: adım atlandı ama iş durmadı.
+    assert MURAT in dunya.alicilar("run_missed")
+    assert dunya.olaylar("aksiyon.eskalasyon")[0].after["adim"] == "region_manager"
+
+
+def test_gunluk_kisisel_veri_tasimiyor() -> None:
+    """BR-21: kaç kişiye gittiği yazılıyor, kim olduğu değil."""
+    dunya = Dunya(_an())
+    dunya.kacir()
+
+    dunya.eskalasyon.run()
+
+    metin = str(dunya.olaylar("aksiyon.eskalasyon")[0].after)
+    assert "Ayşe" not in metin
+    assert "905321110003" not in metin
 
 
 def test_tc074_kritik_madde_sube_ve_bolge_muduruna_gider() -> None:
