@@ -31,13 +31,13 @@ from talimatname.api.bagimliliklar import (
     organizasyon_servisi,
     rapor_servisi,
 )
+from talimatname.api.belgeler import belge_kodu, marka
 from talimatname.api.guvenlik import Kullanici, erisilebilir_sube_idleri
 from talimatname.domain.evidence import FLAG_LABELS
 from talimatname.domain.reports import Counters, MonthlySummary
 from talimatname.services.audit import AuditService
 from talimatname.services.organization import OrganizationService
 from talimatname.services.pdf import (
-    Brand,
     measurements_code,
     measurements_pdf,
     monthly_code,
@@ -264,19 +264,6 @@ def kanit_galerisi(
 # --- PDF çıktıları (FR-1220, FR-1214) ---------------------------------
 
 
-def _marka(kurulum: KurulumServis) -> Brand:
-    """Kâğıdın üstündeki hesap adı ve saat dilimi.
-
-    Sihirbaz bitmemişse marka adı henüz yok: rapor üretilir ama
-    kâğıtta ürünün adı görünür. Üretmemek daha kötü olurdu — kurulumun
-    ortasında da rapor alınabilmeli.
-    """
-    ayar = kurulum.settings()
-    if ayar is None:
-        return Brand(name="Talimatname")
-    return Brand(name=ayar.brand_name, timezone=ayar.timezone)
-
-
 def _sube_kodlari(org: OrgServis) -> dict[UUID, str]:
     """Ölçüm satırında şube **kodu** görünüyor: kâğıtta yer dar.
 
@@ -286,28 +273,6 @@ def _sube_kodlari(org: OrgServis) -> dict[UUID, str]:
     return {
         sube.id: sube.code for bolge in org.tree(include_inactive=True) for sube in bolge.branches
     }
-
-
-def _belge_kodu(iz: Iz, *, tur: str, donem: str, icerik_kodu: str) -> str | None:
-    """Raporu olay günlüğüne yazar ve kâğıttaki kodu döner (FR-1218).
-
-    Kâğıttaki kod, **olayın zincir özeti**: doğrulama sayfası koda
-    göre kaydı bulacak (v1.x). Kaydın içinde raporun içerik kodu da
-    duruyor, böylece "hangi veri dökülmüş" sorusu da cevaplanıyor.
-
-    Günlük yazılamazsa None dönüyor: rapor yine üretiliyor ama
-    kâğıtta kodun zincire bağlı **olmadığı** yazıyor. Bağlıymış gibi
-    yazmak, olmayan bir güvence vermek olurdu.
-    """
-    olay = iz.record(
-        "rapor.uretildi",
-        object_type="rapor",
-        after={"tur": tur, "donem": donem, "icerik": icerik_kodu},
-    )
-    if olay is None:
-        return None
-    ozet = olay.hash[:12].upper()
-    return f"{ozet[:4]}-{ozet[4:8]}-{ozet[8:]}"
 
 
 def _pdf(icerik: bytes, *, dosya_adi: str) -> Response:
@@ -334,16 +299,16 @@ def aylik_ozet_pdf(
     month: Annotated[int, Query(ge=1, le=12)],
 ) -> Response:
     ozet = servis.monthly(year, month, branch_ids=erisilebilir_sube_idleri(kullanici, org))
-    marka = _marka(kurulum)
-    kod = _belge_kodu(
+    hesap = marka(kurulum)
+    kod = belge_kodu(
         iz,
         tur="aylik-ozet",
         donem=f"{year}-{month:02d}",
-        icerik_kodu=monthly_code(ozet, brand=marka),
+        icerik_kodu=monthly_code(ozet, brand=hesap),
     )
     icerik = monthly_pdf(
         ozet,
-        brand=marka,
+        brand=hesap,
         generated_at=datetime.now(UTC),
         generated_by=kullanici.full_name,
         code=kod,
@@ -374,16 +339,16 @@ def olcum_gunlugu_pdf(
         branch_ids=erisilebilir_sube_idleri(kullanici, org),
         only_out_of_range=only_out_of_range,
     )
-    marka = _marka(kurulum)
-    kod = _belge_kodu(
+    hesap = marka(kurulum)
+    kod = belge_kodu(
         iz,
         tur="olcum-gunlugu",
         donem=f"{first_day:%Y-%m-%d}/{last_day:%Y-%m-%d}",
-        icerik_kodu=measurements_code(seriler, brand=marka, first_day=first_day, last_day=last_day),
+        icerik_kodu=measurements_code(seriler, brand=hesap, first_day=first_day, last_day=last_day),
     )
     icerik = measurements_pdf(
         seriler,
-        brand=marka,
+        brand=hesap,
         first_day=first_day,
         last_day=last_day,
         branch_codes=_sube_kodlari(org),

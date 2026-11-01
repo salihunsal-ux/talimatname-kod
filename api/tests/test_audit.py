@@ -160,12 +160,19 @@ def test_buyuk_gunlukte_dogrulama_tutarli() -> None:
 
 
 def test_depo_portunda_guncelleme_ve_silme_yok() -> None:
-    """Ekle-yalnızlık kodun şeklinde de duruyor, yalnızca yetkide değil."""
+    """Ekle-yalnızlık kodun şeklinde de duruyor, yalnızca yetkide değil.
+
+    Liste **tam**: yeni bir yöntem eklemek bu testi düşürüyor, yani
+    bilinçli bir karar olmak zorunda. Yeni gelen iki yöntem
+    (`by_hash_prefix`, `at_sequence`) belge doğrulamanın okuma yolu
+    (FR-1218) — ikisi de yalnızca okur.
+    """
     from talimatname.services.audit import AuditRepository
 
     yuzey = {ad for ad in vars(AuditRepository) if not ad.startswith("_")}
 
-    assert yuzey == {"append", "head", "events"}
+    assert yuzey == {"append", "head", "events", "by_hash_prefix", "at_sequence"}
+    assert not [ad for ad in yuzey if any(k in ad for k in ("update", "delete", "sil", "guncelle"))]
 
 
 def test_ayni_sira_ikinci_kez_yazilamaz() -> None:

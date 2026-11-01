@@ -10,7 +10,9 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-ErrorKind = Literal["invalid", "conflict", "not_found", "forbidden"]
+#: `too_many`: oturumsuz uç noktaların hız sınırı (FR-1218). Sunum
+#: katmanı 429'a çeviriyor; alan katmanı sayıyı bilmiyor.
+ErrorKind = Literal["invalid", "conflict", "not_found", "forbidden", "too_many"]
 
 
 class DomainError(Exception):

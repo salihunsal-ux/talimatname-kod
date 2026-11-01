@@ -651,3 +651,10 @@ class MemoryAuditRepository:
             and (until is None or o.at <= until)
         ]
         return sorted(secilen, key=lambda o: o.sequence)[:limit]
+
+    def by_hash_prefix(self, prefix: str, *, limit: int = 2) -> list[AuditEvent]:
+        secilen = [o for o in self._events if o.hash.startswith(prefix)]
+        return sorted(secilen, key=lambda o: o.sequence)[:limit]
+
+    def at_sequence(self, sequence: int) -> AuditEvent | None:
+        return next((o for o in self._events if o.sequence == sequence), None)

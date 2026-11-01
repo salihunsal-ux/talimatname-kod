@@ -525,6 +525,46 @@ def test_tc100_uygulama_rolu_gunlugu_degistiremez(iki_kiraci: object) -> None:
         o.execute(text("DELETE FROM audit_event"))
 
 
+def test_belge_kodu_kaydi_buluyor_ve_kiraciya_bagli(iki_kiraci: object) -> None:
+    """Doğrulama sayfasının okuma yolu (FR-1218).
+
+    İkinci iddia daha önemli: bir hesabın belge kodu **başka hesapta
+    çözülmüyor**. Oturumsuz bir uç noktanın kiracı yalıtımını delmesi,
+    elinde kod olan herkese başka şirketin kaydını açmak olurdu.
+    """
+    depo = SqlAuditRepository(A_KIRACI)
+    olay = _olay(1, GENESIS, event_type="rapor.uretildi", object_type="rapor")
+    depo.append(olay)
+    onek = olay.hash[:12]
+
+    assert [o.id for o in depo.by_hash_prefix(onek)] == [olay.id]
+    geri = depo.at_sequence(1)
+    assert geri is not None
+    assert geri.hash == olay.hash
+    assert SqlAuditRepository(B_KIRACI).by_hash_prefix(onek) == []
+
+
+def test_belge_kodu_sorgusu_indeksi_kullanabiliyor(iki_kiraci: object) -> None:
+    """Göç 0007'deki ifade ile sorgudaki ifade **aynı** mı (ST-101).
+
+    Tarama kapatılıp plan okunuyor: küçük tabloda planlayıcı zaten
+    tam tarama seçer, sınanan şey hız değil indeksin bu sorguyla
+    kullanılabilir olması. İfadeler ayrışırsa indeks sessizce ölü
+    kalır ve oturumsuz uç nokta tam tarama yapmaya başlar.
+    """
+    SqlAuditRepository(A_KIRACI).append(_olay(1, GENESIS, event_type="rapor.uretildi"))
+
+    with tenant_session(A_KIRACI) as o:
+        o.execute(text("SET LOCAL enable_seqscan = off"))
+        satirlar = o.execute(
+            text("EXPLAIN SELECT id FROM audit_event WHERE substr(hash, 1, 12) = :onek"),
+            {"onek": "0" * 12},
+        ).all()
+
+    plan = "\n".join(str(r[0]) for r in satirlar)
+    assert "ix_audit_kod" in plan, plan
+
+
 def test_olay_gunlugu_kiracilar_arasinda_yalitik(iki_kiraci: object) -> None:
     SqlAuditRepository(A_KIRACI).append(_olay(1, GENESIS))
     SqlAuditRepository(B_KIRACI).append(_olay(1, GENESIS))

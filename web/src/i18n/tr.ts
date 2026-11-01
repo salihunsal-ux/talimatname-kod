@@ -157,6 +157,36 @@ export const tr = {
     gelistirmeKodu: (kod: string) => `Geliştirme kodu: ${kod}`,
     cikis: 'Çıkış',
     oturumDustu: 'Oturumunuz sona erdi, yeniden girin',
+    belgeDogrula: 'Belge doğrula',
+  },
+  dogrulama: {
+    baslik: 'Belge doğrulama',
+    aciklama:
+      'Kâğıdın altındaki belge kodunu yazın: kaydın sistemde olup olmadığını ve sonradan değiştirilmediğini söyler.',
+    kod: 'Belge kodu',
+    kodOrnek: 'XXXX-XXXX-XXXX',
+    sor: 'Doğrula',
+    tur: 'Belge',
+    donem: 'Dönem',
+    sube: 'Şube',
+    uretim: 'Üretim zamanı',
+    kayitOzeti: 'Kaydın özeti',
+    zincirBagi: 'Zincir bağı',
+    tutuyor: 'tutuyor',
+    tutmuyor: 'tutmuyor',
+    saglam: 'Bu belge sistemde kayıtlı ve kaydı değişmemiş.',
+    kirik:
+      'Kayıt bulundu ama doğrulaması tutmuyor: belge üretildikten sonra günlük kaydına dokunulmuş olabilir. Belgeyi üreten hesaptan zincir doğrulaması isteyin.',
+    karsilastir:
+      'Aşağıdaki alanları elinizdeki kâğıtla karşılaştırın. Biri tutmuyorsa kâğıt bu kayda ait değildir.',
+    sinir:
+      'Bu sayfa kaydın değişmediğini söyler; raporun içeriğini göstermez. Günlüğün tamamının doğrulanması belgeyi üreten hesapta yapılır.',
+    bulunamadi:
+      'Bu koda ait bir belge kaydı yok. Kodu kâğıttan yeniden okuyun; kayıt hâlâ yoksa belge bu sistemde üretilmemiş olabilir.',
+    gecersiz: 'Kod 12 onaltılık basamaktan oluşur: XXXX-XXXX-XXXX.',
+    cokDeneme: 'Kısa süre içinde çok fazla deneme yapıldı. Bir dakika sonra tekrar deneyin.',
+    benzersizDegil: 'Bu kod birden fazla kayda uyuyor. Belgeyi üreten hesaptan doğrulama isteyin.',
+    panele: 'Panele giriş',
   },
   subeler: {
     baslik: 'Şubeler',

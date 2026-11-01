@@ -26,6 +26,9 @@ x-api-ortam: &api-ortam
   OBJECT_STORE_ACCESS_KEY: ${OBJECT_STORE_ACCESS_KEY:-talimatname}
   OBJECT_STORE_SECRET_KEY: ${OBJECT_STORE_SECRET_KEY:?parola gerekli}
   CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8080}
+  # Rapor PDF'lerine basılan doğrulama bağlantısı (FR-1218).
+  # Boşsa kâğıt bağlantı değil sayfanın adını yazar.
+  PANEL_URL: ${PANEL_URL:-}
 
 services:
   postgres:

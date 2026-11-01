@@ -6,6 +6,7 @@ import { sorguIstemcisi } from './api/sorguIstemcisi';
 import { OturumBaglami } from './api/yetki';
 import { Kabuk } from './bilesenler/Kabuk';
 import { SistemDurumu } from './features/sistem/SistemDurumu';
+import { DogrulamaSayfasi } from './features/dogrulama/DogrulamaSayfasi';
 import { AksiyonlarSayfasi } from './features/aksiyonlar/AksiyonlarSayfasi';
 import { BildirimlerSayfasi } from './features/bildirimler/BildirimlerSayfasi';
 import { GirisSayfasi } from './features/oturum/GirisSayfasi';
@@ -30,12 +31,33 @@ export type Bolum =
   | 'raporlar'
   | 'sistem';
 
+/** Oturumsuz sayfanın yolu. PDF dipnotundaki adres de burayı gösteriyor. */
+const DOGRULAMA_YOLU = '/dogrula';
+
 export function App() {
+  const belgeKodu = dogrulamaKodu();
   return (
     <QueryClientProvider client={sorguIstemcisi}>
-      <Kapi />
+      {belgeKodu === null ? <Kapi /> : <DogrulamaSayfasi kod={belgeKodu} />}
     </QueryClientProvider>
   );
+}
+
+/**
+ * Yol `/dogrula` ise oturum kapısı **atlanır**: belgeyi doğrulayan
+ * denetçi kullanıcı değil, girişi yok (FR-1218). Dönen değer: yol
+ * başka bir şeyse null, kod verilmemişse boş dize.
+ *
+ * Tam bir yönlendirici (router) kurulmadı: panelin geri kalanı bölüm
+ * durumuyla geziniyor ve tek bir oturumsuz sayfa için bütün gezinmeyi
+ * değiştirmek kazancından büyük olurdu. Derin bağlantı çalışıyor çünkü
+ * Caddy bilinmeyen yolu index.html'e düşürüyor (infra/Caddyfile).
+ */
+function dogrulamaKodu(): string | null {
+  const yol = window.location.pathname.replace(/\/+$/, '') || '/';
+  if (yol === DOGRULAMA_YOLU) return '';
+  if (!yol.startsWith(DOGRULAMA_YOLU + '/')) return null;
+  return decodeURIComponent(yol.slice(DOGRULAMA_YOLU.length + 1));
 }
 
 /**

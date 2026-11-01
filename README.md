@@ -66,6 +66,20 @@ cd api
 
 Rapor PDF'lerindeki belge kodu bu zincire bağlı (FR-1218): kod, raporun üretildiği anın olay kaydının özeti. Günlüğe yazılamazsa kâğıtta kodun zincire bağlı olmadığı yazar.
 
+### Belge doğrulama sayfası (FR-1218)
+
+Kâğıdı eline alan denetçi `/dogrula/<kod>` adresinden kodu soruyor; uç nokta **oturum istemiyor** (denetçi bir kullanıcı değil, panele giremez):
+
+```
+GET /api/v1/verify/{code}
+```
+
+Yanıt, kâğıtta **zaten yazılı olan** alanları doğruluyor: belge türü, dönem, şube kodu, üretim zamanı, kaydın özeti ve zincir bağı. Puan, madde sonuçları, kimin ürettiği, IP ve cihaz **dönmüyor** — kodu eline geçiren herkese şirketin iç verisini açmak olurdu (BR-21). Doğrulama sorgusu olay günlüğüne de yazılmıyor: dışarıdan tetiklenen bir yazma, zinciri herkesin uzatabildiği bir şey yapardı.
+
+`PANEL_URL` verilirse kâğıdın altına tam bağlantı basılır (`<PANEL_URL>/dogrula/<kod>`); verilmezse kâğıt bağlantı yerine sayfanın adını yazar. Olmayan bir adres basmak, doğrulanamayan bir belge demek olurdu.
+
+**Sayfanın sınırı açık yazılı:** kaydın kendi özeti ile önceki halkaya bağı sınanıyor, zincirin tamamı değil (her istekte bütün günlüğü okumak, dışarıdan tetiklenebilen bir yük kapısı olurdu — onun aracı yukarıdaki `izi_dogrula`). Sayfa raporun içeriğini de göstermiyor; "bu kâğıt bu kayda ait mi" sorusunu karşılaştırmayla insan cevaplıyor.
+
 ### Panel
 
 ```bash

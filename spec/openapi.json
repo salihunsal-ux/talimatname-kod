@@ -3160,6 +3160,52 @@
           }
         }
       }
+    },
+    "/api/v1/verify/{code}": {
+      "get": {
+        "tags": [
+          "doğrulama"
+        ],
+        "summary": "Belge kodunu doğrula (FR-1218)",
+        "description": "Kâğıt üstündeki belge kodunun olay günlüğündeki kaydını döner. Oturum gerekmez. Kaydın kendi özeti ve önceki halkaya bağı sınanır; zincirin tamamının doğrulanması işletmecinin aracındadır.",
+        "operationId": "belge_dogrula_api_v1_verify__code__get",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 40,
+              "description": "XXXX-XXXX-XXXX",
+              "title": "Code"
+            },
+            "description": "XXXX-XXXX-XXXX"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DogrulamaYaniti"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -4380,6 +4426,81 @@
           "code"
         ],
         "title": "DogrulamaIstegi"
+      },
+      "DogrulamaYaniti": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code",
+            "description": "Kodun düzenli hâli: XXXX-XXXX-XXXX"
+          },
+          "document": {
+            "type": "string",
+            "title": "Document",
+            "description": "aylik-ozet | olcum-gunlugu | calistirma"
+          },
+          "document_label": {
+            "type": "string",
+            "title": "Document Label"
+          },
+          "issued_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Issued At",
+            "description": "Sunucu saati (UTC)"
+          },
+          "timezone": {
+            "type": "string",
+            "title": "Timezone",
+            "description": "Kâğıttaki saatin dilimi: hesabın ayarı"
+          },
+          "period": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Period",
+            "description": "Raporun dönemi ya da iş günü"
+          },
+          "branch_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Branch Code",
+            "description": "Çalıştırma raporunda şube kodu; dönem raporlarında yok"
+          },
+          "record_intact": {
+            "type": "boolean",
+            "title": "Record Intact",
+            "description": "Kaydın kendi özeti tutuyor: içeriği değişmemiş"
+          },
+          "chain_linked": {
+            "type": "boolean",
+            "title": "Chain Linked",
+            "description": "Kayıt zincirde önceki halkaya bağlı"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "document",
+          "document_label",
+          "issued_at",
+          "timezone",
+          "record_intact",
+          "chain_linked"
+        ],
+        "title": "DogrulamaYaniti",
+        "description": "Kodun kaydı. Alanlar kâğıtla **karşılaştırma** içindir."
       },
       "DurumCiktisi": {
         "properties": {

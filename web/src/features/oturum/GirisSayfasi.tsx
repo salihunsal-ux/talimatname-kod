@@ -146,6 +146,20 @@ export function GirisSayfasi({ onGiris }: { onGiris: () => void }) {
             {hata}
           </p>
         )}
+
+        {/* Belge doğrulama oturum istemiyor (FR-1218); kâğıdı eline alan
+            buraya da gelebilsin diye giriş ekranında duruyor. */}
+        <a
+          href="/dogrula"
+          style={{
+            display: 'inline-block',
+            marginTop: 'var(--bosluk-4)',
+            fontSize: 'var(--meta)',
+            color: 'var(--renk-marka)',
+          }}
+        >
+          {tr.giris.belgeDogrula}
+        </a>
       </section>
     </main>
   );

@@ -36,6 +36,7 @@ from talimatname.domain.audit import (
     AuditEvent,
     ChainBreak,
     SequenceTaken,
+    parse_code,
     sealed,
     summary_of,
     verify_chain,
@@ -140,6 +141,21 @@ class AuditRepository:
         """Sıraya göre artan olaylar."""
         raise NotImplementedError
 
+    def by_hash_prefix(  # pragma: no cover - arayüz
+        self, prefix: str, *, limit: int = 2
+    ) -> list[AuditEvent]:
+        """Özeti bu önekle başlayan olaylar (belge kodu aramasi, FR-1218).
+
+        Liste dönüyor, tek kayıt değil: 48 bitlik önek çakışırsa
+        sessizce "ilkini" göstermek, denetçiye yanlış kaydı göstermek
+        olurdu. Çağıran birden fazla eşleşmeyi ayrıca ele alıyor.
+        """
+        raise NotImplementedError
+
+    def at_sequence(self, sequence: int) -> AuditEvent | None:  # pragma: no cover - arayüz
+        """Sıra numarasıyla tek olay: bir kaydın önceki halkası için."""
+        raise NotImplementedError
+
 
 class AuditService:
     def __init__(
@@ -205,6 +221,20 @@ class AuditService:
     def for_object(self, object_id: UUID, *, limit: int = 200) -> list[AuditEvent]:
         """Bir çalıştırmanın/aksiyonun izi: denetim izi ekranının verisi."""
         return self._repo.events(object_id=object_id, limit=limit)
+
+    def by_code(self, code: str) -> list[AuditEvent]:
+        """Belge kodunun karşılığı olan olay(lar) (FR-1218).
+
+        Kod çözülemezse `ValidationError`: "bulunamadı" demek, bozuk
+        yazılmış bir kodu geçerli ama kayıtsız sanmak olurdu.
+        """
+        return self._repo.by_hash_prefix(parse_code(code))
+
+    def previous(self, event: AuditEvent) -> AuditEvent | None:
+        """Zincirde bu kaydın öncesi; ilk halkada None."""
+        if event.sequence <= 1:
+            return None
+        return self._repo.at_sequence(event.sequence - 1)
 
     def verify(
         self,

@@ -22,6 +22,7 @@ from talimatname.api.bagimliliklar import (
     sablon_servisi,
     yurutme_servisi,
 )
+from talimatname.api.belgeler import belge_kodu, marka
 from talimatname.api.guvenlik import Kullanici, sube_erisimi_zorunlu
 from talimatname.domain.sync import NOT_DONE_REASON_LABELS
 from talimatname.domain.templates import ITEM_TYPE_LABELS
@@ -29,7 +30,7 @@ from talimatname.services.audit import AuditService
 from talimatname.services.execution import ExecutionService, RunView
 from talimatname.services.exports import ExportService, pdf_filename
 from talimatname.services.organization import OrganizationService
-from talimatname.services.pdf import Brand, run_code, run_pdf
+from talimatname.services.pdf import run_code, run_pdf
 from talimatname.services.setup import SetupService
 from talimatname.services.templates import TemplateService
 
@@ -41,33 +42,6 @@ OrgServis = Annotated[OrganizationService, Depends(organizasyon_servisi)]
 DisaAktarim = Annotated[ExportService, Depends(disa_aktarim_servisi)]
 KurulumServis = Annotated[SetupService, Depends(kurulum_servisi)]
 Iz = Annotated[AuditService, Depends(izi_servisi)]
-
-
-def _marka(kurulum: SetupService) -> Brand:
-    """Kâğıdın üstündeki hesap adı; sihirbaz bitmemişse ürünün adı."""
-    ayar = kurulum.settings()
-    if ayar is None:
-        return Brand(name="Talimatname")
-    return Brand(name=ayar.brand_name, timezone=ayar.timezone)
-
-
-def _belge_kodu(iz: AuditService, *, tur: str, nesne_id: UUID, icerik_kodu: str) -> str | None:
-    """Raporu olay günlüğüne yazar, kâğıttaki kodu döner (FR-1218).
-
-    Rapor uç noktalarındakiyle aynı kural: kod olayın zincir
-    özeti; günlük yazılamazsa None döner ve kâğıt kodun zincire
-    bağlı **olmadığını** yazar.
-    """
-    olay = iz.record(
-        "rapor.uretildi",
-        object_type="calistirma",
-        object_id=nesne_id,
-        after={"tur": tur, "icerik": icerik_kodu},
-    )
-    if olay is None:
-        return None
-    ozet = olay.hash[:12].upper()
-    return f"{ozet[:4]}-{ozet[4:8]}-{ozet[8:]}"
 
 
 NotDoneSebebi = Literal["no_material", "equipment_broken", "no_time", "not_authorized", "other"]
@@ -318,16 +292,19 @@ def calistirma_pdf(
     sube_erisimi_zorunlu(kullanici, gorunum.run.branch_id, org)
 
     rapor = disa.run_report(run_id)
-    marka = _marka(kurulum)
-    kod = _belge_kodu(
+    hesap = marka(kurulum)
+    kod = belge_kodu(
         iz,
         tur="calistirma",
+        icerik_kodu=run_code(rapor, brand=hesap),
+        donem=f"{rapor.business_day:%Y-%m-%d}",
+        sube=rapor.branch_code,
+        nesne_turu="calistirma",
         nesne_id=run_id,
-        icerik_kodu=run_code(rapor, brand=marka),
     )
     icerik = run_pdf(
         rapor,
-        brand=marka,
+        brand=hesap,
         generated_at=datetime.now(UTC),
         generated_by=kullanici.full_name,
         code=kod,

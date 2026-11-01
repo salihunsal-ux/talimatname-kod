@@ -13,10 +13,12 @@ from pydantic import BaseModel, Field
 from talimatname import __version__
 from talimatname.api.bagimliliklar import ayarlari_kullan
 from talimatname.api.errors import register_error_handlers
+from talimatname.api.istek import cihaz, istemci_ip
 from talimatname.api.routers import (
     actions,
     auth,
     dashboard,
+    dogrulama,
     evidence,
     execution,
     notifications,
@@ -93,6 +95,8 @@ def build_router(settings: Settings) -> APIRouter:
     router.include_router(sync.router)
     router.include_router(setup.router)
     router.include_router(reports.router)
+    # Oturumsuz: kâğıdı eline alan denetçi panele giremez (FR-1218).
+    router.include_router(dogrulama.router)
     return router
 
 
@@ -129,27 +133,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         henüz belli değil — belirteç çözüldüğünde ekleniyor
         (`guvenlik.gecerli_kullanici`).
         """
-        with using_context(RequestContext(ip=_istemci_ip(request), device=_cihaz(request))):
+        with using_context(RequestContext(ip=istemci_ip(request), device=cihaz(request))):
             return await sonraki(request)
 
     register_error_handlers(app)
     app.include_router(build_router(settings))
     return app
-
-
-def _istemci_ip(request: Request) -> str | None:
-    """Ters vekil arkasında gerçek istemci `X-Forwarded-For`un başında.
-
-    Başlık **istemciden** gelebildiği için tek başına delil değil;
-    günlüğe "istemcinin söylediği" olarak giriyor ve bu yüzden
-    doğrulamada tek dayanak sayılmıyor.
-    """
-    iletilen = request.headers.get("x-forwarded-for")
-    if iletilen:
-        return iletilen.split(",")[0].strip()[:45] or None
-    return request.client.host if request.client else None
-
-
-def _cihaz(request: Request) -> str | None:
-    ajan = request.headers.get("user-agent")
-    return ajan[:120] if ajan else None

@@ -24,6 +24,7 @@ DURUM: dict[ErrorKind, int] = {
     "conflict": status.HTTP_409_CONFLICT,
     "not_found": status.HTTP_404_NOT_FOUND,
     "forbidden": status.HTTP_403_FORBIDDEN,
+    "too_many": status.HTTP_429_TOO_MANY_REQUESTS,
 }
 
 

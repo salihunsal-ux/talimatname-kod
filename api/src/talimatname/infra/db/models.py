@@ -31,6 +31,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
     Uuid,
+    text,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
@@ -402,6 +403,9 @@ class AuditEvent(Base):
         UniqueConstraint("tenant_id", "sequence", name="uq_audit_sira"),
         Index("ix_audit_nesne", "tenant_id", "object_id"),
         Index("ix_audit_zaman", "tenant_id", "at"),
+        # Belge kodu aramasi (FR-1218): arama ifadesiyle **ayni** ifade.
+        # Oturumsuz uc nokta tam tarama yapmasin diye var (goc 0007).
+        Index("ix_audit_kod", "tenant_id", text("substr(hash, 1, 12)")),
     )
 
     id: Mapped[UUID] = mapped_column(Uuid, primary_key=True)

@@ -41,9 +41,20 @@ export function belirtecYaz(yeni: string | null): void {
   }
 }
 
+/**
+ * Oturum **istemeyen** yollar: belge doğrulama (FR-1218).
+ *
+ * Açık bir sayfa kimlik bilgisi taşımamalı. Tarayıcıda eski bir
+ * belirteç kalmış olabilir (müdürün tabletinde denetçi doğrulama
+ * yapıyor olabilir) ve o belirteci dışarıya açık bir uç noktaya
+ * göndermenin hiçbir faydası yok.
+ */
+const OTURUMSUZ_YOLLAR = ['/api/v1/verify/'];
+
 /** Her isteğe belirteci ekler. Tek yer: çağrı noktaları başlık bilmez. */
 api.use({
   onRequest({ request }) {
+    if (OTURUMSUZ_YOLLAR.some((yol) => request.url.includes(yol))) return request;
     const belirtec = belirtecAl();
     if (belirtec !== null) request.headers.set('Authorization', `Bearer ${belirtec}`);
     return request;

@@ -45,6 +45,13 @@ class Settings(BaseSettings):
     #: damga basılmaz (bkz. services/imaging).
     stamp_font_path: str | None = None
 
+    #: Panelin dışarıdan görünen adresi (örn. https://panel.ornek.com).
+    #: Rapor PDF'lerine doğrulama bağlantısı basmak için (FR-1218):
+    #: kâğıdı eline alan denetçi adresi tarayıcıya yazıyor. Tanımsızsa
+    #: kâğıt bağlantı değil sayfanın adını yazar — yanlış bir adres
+    #: basmak, doğrulanamayan bir belge demek olurdu.
+    panel_url: str | None = None
+
     access_token_minutes: int = Field(default=30, ge=5, le=240)
 
     # Belirteç imzası (RS256). Üretimde zorunlu; geliştirmede boşsa
@@ -92,6 +99,7 @@ class Settings(BaseSettings):
 
     @field_validator(
         "database_url",
+        "panel_url",
         "object_store_endpoint",
         "object_store_bucket",
         "object_store_access_key",
@@ -126,6 +134,17 @@ class Settings(BaseSettings):
                 self.object_store_secret_key,
             )
         )
+
+    @property
+    def verify_url(self) -> str | None:
+        """Doğrulama sayfasının tam adresi; panel adresi yoksa None.
+
+        Yol tek yerde yazılı: panel tarafı da `/dogrula` kullanıyor ve
+        ikisi ayrışırsa basılmış kâğıtlardaki bağlantı boşa çıkar.
+        """
+        if not self.panel_url:
+            return None
+        return self.panel_url.rstrip("/") + "/dogrula"
 
     def require_database_url(self) -> str:
         if not self.database_url:

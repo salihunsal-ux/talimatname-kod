@@ -1331,6 +1331,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/verify/{code}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Belge kodunu doğrula (FR-1218)
+         * @description Kâğıt üstündeki belge kodunun olay günlüğündeki kaydını döner. Oturum gerekmez. Kaydın kendi özeti ve önceki halkaya bağı sınanır; zincirin tamamının doğrulanması işletmecinin aracındadır.
+         */
+        get: operations["belge_dogrula_api_v1_verify__code__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1851,6 +1871,55 @@ export interface components {
             phone: string;
             /** Code */
             code: string;
+        };
+        /**
+         * DogrulamaYaniti
+         * @description Kodun kaydı. Alanlar kâğıtla **karşılaştırma** içindir.
+         */
+        DogrulamaYaniti: {
+            /**
+             * Code
+             * @description Kodun düzenli hâli: XXXX-XXXX-XXXX
+             */
+            code: string;
+            /**
+             * Document
+             * @description aylik-ozet | olcum-gunlugu | calistirma
+             */
+            document: string;
+            /** Document Label */
+            document_label: string;
+            /**
+             * Issued At
+             * Format: date-time
+             * @description Sunucu saati (UTC)
+             */
+            issued_at: string;
+            /**
+             * Timezone
+             * @description Kâğıttaki saatin dilimi: hesabın ayarı
+             */
+            timezone: string;
+            /**
+             * Period
+             * @description Raporun dönemi ya da iş günü
+             */
+            period?: string | null;
+            /**
+             * Branch Code
+             * @description Çalıştırma raporunda şube kodu; dönem raporlarında yok
+             */
+            branch_code?: string | null;
+            /**
+             * Record Intact
+             * @description Kaydın kendi özeti tutuyor: içeriği değişmemiş
+             */
+            record_intact: boolean;
+            /**
+             * Chain Linked
+             * @description Kayıt zincirde önceki halkaya bağlı
+             */
+            chain_linked: boolean;
         };
         /**
          * DurumCiktisi
@@ -5641,6 +5710,38 @@ export interface operations {
                 };
                 content: {
                     "application/pdf": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    belge_dogrula_api_v1_verify__code__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description XXXX-XXXX-XXXX */
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DogrulamaYaniti"];
                 };
             };
             /** @description Validation Error */

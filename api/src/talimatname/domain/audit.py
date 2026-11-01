@@ -65,6 +65,22 @@ EVENT_TYPES: dict[str, str] = {
     "plan.yayinlandi": "Plan yayınlandı",
 }
 
+#: Belgelerin kâğıt üstündeki adı. Olay kaydındaki `tur` alanıyla
+#: eşleşir: doğrulama sayfası koda göre kaydı bulunca belgenin ne
+#: olduğunu buradan söylüyor. Serbest metin değil çünkü sayfa da,
+#: PDF de aynı adı kullanmak zorunda.
+DOCUMENT_LABELS: dict[str, str] = {
+    "aylik-ozet": "Aylık özet raporu",
+    "olcum-gunlugu": "Ölçüm günlüğü",
+    "calistirma": "Çalıştırma raporu",
+}
+
+#: Belge kodunun taşıdığı özet uzunluğu (onaltılık basamak). 12 basamak
+#: 48 bit: elle yazılabilecek kadar kısa, tahmin edilemeyecek kadar
+#: uzun. Uzatmak kâğıda yazılan kodu okunamaz, kısaltmak çakışmayı
+#: mümkün kılardı.
+CODE_PREFIX_LENGTH = 12
+
 
 class SequenceTaken(Exception):
     """Sıra numarası başka bir yazma tarafından alınmış.
@@ -151,6 +167,47 @@ def sealed(event: AuditEvent) -> AuditEvent:
     from dataclasses import replace
 
     return replace(event.validated(), hash=chain_hash(event))
+
+
+def format_code(event_hash: str) -> str:
+    """Olayın zincir özetinden kâğıda yazılan kod: `XXXX-XXXX-XXXX`.
+
+    Kodun **tek** tanımı burası. Önce iki uç noktada ayrı ayrı
+    biçimlendiriliyordu; doğrulama sayfası bunun tam tersini yapmak
+    zorunda olduğu için biçim bir yerde durmalı — yoksa bir gün
+    biri değişir ve basılmış kâğıtlar aranamaz hâle gelir.
+
+    Büyük harf: kâğıttan elle kopyalanacak, `b` ile `6` karışmasın.
+    """
+    ozet = event_hash[:CODE_PREFIX_LENGTH].upper()
+    return f"{ozet[:4]}-{ozet[4:8]}-{ozet[8:]}"
+
+
+def parse_code(text: str) -> str:
+    """Elle yazılmış kodu arama önekine çevirir (küçük harf onaltılık).
+
+    Tireler, boşluklar ve harf büyüklüğü serbest: denetçi kodu
+    kâğıttan okuyup yazıyor, biçim konusunda titiz olmak ona
+    "kod yok" demekten başka bir şey kazandırmaz.
+    """
+    temiz = "".join(k for k in text.strip() if not k.isspace() and k != "-").lower()
+    if len(temiz) != CODE_PREFIX_LENGTH or any(k not in "0123456789abcdef" for k in temiz):
+        raise ValidationError(
+            "code", f"Belge kodu {CODE_PREFIX_LENGTH} onaltılık basamak olmalı (XXXX-XXXX-XXXX)"
+        )
+    return temiz
+
+
+def record_intact(event: AuditEvent) -> bool:
+    """Kaydın kendi özeti tutuyor mu: içeriği değişmiş mi (FR-1304).
+
+    Zincirin tamamını değil **tek kaydı** sınıyor. Doğrulama sayfası
+    her istekte bütün günlüğü okuyamaz (hem pahalı hem dışarıdan
+    tetiklenebilir bir iş olurdu); kaydın kendi özeti ile önceki
+    halkaya bağı birlikte, "bu satır sonradan düzeltilmemiş" demeye
+    yeter. Zincirin tamamı `izi_dogrula` ile sınanıyor.
+    """
+    return chain_hash(event) == event.hash
 
 
 @dataclass(frozen=True, slots=True)

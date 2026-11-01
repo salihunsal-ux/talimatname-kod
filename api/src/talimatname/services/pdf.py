@@ -123,6 +123,9 @@ class Brand:
 
     name: str
     timezone: str = "Europe/Istanbul"
+    #: Doğrulama sayfasının adresi (FR-1218). Ayarda panel adresi
+    #: yoksa None: kâğıda uydurma bir adres basmıyoruz.
+    verify_url: str | None = None
 
     @property
     def zone(self) -> ZoneInfo:
@@ -319,8 +322,7 @@ def _baslik_blogu(
 DIPNOT_ZINCIRLI = (
     "Belge kodu, bu raporun üretildiği anın olay günlüğündeki kaydının özetidir "
     "(FR-1301 zinciri). Kayıt ekle-yalnız günlükte durur; sonradan değiştirilirse "
-    "zincir doğrulaması bunu gösterir. Koda göre kaydı gösteren çevrimiçi doğrulama "
-    "sayfası sonraki sürümde (FR-1218)."
+    "zincir doğrulaması bunu gösterir."
 )
 
 DIPNOT_ICERIK = (
@@ -329,12 +331,22 @@ DIPNOT_ICERIK = (
     "yazılamadı, bu yüzden kod zincire bağlı değil (FR-1218)."
 )
 
+#: Adres biliniyorsa **tam bağlantı** basılıyor: denetçi kodu elle
+#: aramak zorunda kalmasın. Bilinmiyorsa sayfanın adı yazılıyor —
+#: olmayan bir adres basmak, doğrulanamayan bir belge demek olurdu.
+DIPNOT_ADRES = "Kodu {adres} adresinde doğrulayabilirsiniz (FR-1218)."
+DIPNOT_SAYFA = "Kod, panelin 'Belge doğrula' sayfasında sorulabilir (FR-1218)."
 
-def _dipnot(stil: dict[str, ParagraphStyle], *, chained: bool) -> list[Flowable]:
-    return [
-        Spacer(1, 10),
-        Paragraph(DIPNOT_ZINCIRLI if chained else DIPNOT_ICERIK, stil["dipnot"]),
-    ]
+
+def _dipnot(stil: dict[str, ParagraphStyle], *, brand: Brand, code: str | None) -> list[Flowable]:
+    if code is None:
+        metin = DIPNOT_ICERIK
+    elif brand.verify_url:
+        adres = f"{brand.verify_url}/{code}"
+        metin = DIPNOT_ZINCIRLI + " " + DIPNOT_ADRES.format(adres=adres)
+    else:
+        metin = DIPNOT_ZINCIRLI + " " + DIPNOT_SAYFA
+    return [Spacer(1, 10), Paragraph(metin, stil["dipnot"])]
 
 
 def monthly_code(summary: MonthlySummary, *, brand: Brand) -> str:
@@ -475,7 +487,7 @@ def monthly_pdf(
             )
         )
 
-    ic.extend(_dipnot(stil, chained=code is not None))
+    ic.extend(_dipnot(stil, brand=brand, code=code))
     return _uret(ic, brand=brand, kod=kod, generated_at=generated_at)
 
 
@@ -517,7 +529,7 @@ def measurements_pdf(
                 stil["govde"],
             )
         )
-        ic.extend(_dipnot(stil, chained=code is not None))
+        ic.extend(_dipnot(stil, brand=brand, code=code))
         return _uret(ic, brand=brand, kod=kod, generated_at=generated_at)
 
     for seri in series:
@@ -557,7 +569,7 @@ def measurements_pdf(
         )
         ic.append(Spacer(1, 6))
 
-    ic.extend(_dipnot(stil, chained=code is not None))
+    ic.extend(_dipnot(stil, brand=brand, code=code))
     return _uret(ic, brand=brand, kod=kod, generated_at=generated_at)
 
 
@@ -749,7 +761,7 @@ def run_pdf(
             )
         )
 
-    ic.extend(_dipnot(stil, chained=code is not None))
+    ic.extend(_dipnot(stil, brand=brand, code=code))
     return _uret(ic, brand=brand, kod=kod, generated_at=generated_at)
 
 

@@ -15,12 +15,12 @@ from datetime import date, datetime, time
 from typing import Any
 from uuid import UUID, uuid5
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.exc import IntegrityError
 
 from talimatname.domain.actions import Action
 from talimatname.domain.answers import Answer, RunLock
-from talimatname.domain.audit import AuditEvent, SequenceTaken
+from talimatname.domain.audit import CODE_PREFIX_LENGTH, AuditEvent, SequenceTaken
 from talimatname.domain.evidence import Evidence
 from talimatname.domain.notifications import Notification
 from talimatname.domain.organization import Branch, Region, Station
@@ -906,6 +906,28 @@ class SqlAuditRepository(_TenantRepository):
             sorgu = sorgu.where(m.AuditEvent.at <= until)
         with tenant_session(self._tenant) as o:
             return [_olay(k) for k in o.scalars(sorgu).all()]
+
+    def by_hash_prefix(self, prefix: str, *, limit: int = 2) -> list[AuditEvent]:
+        """Belge kodu aramasi (FR-1218). Önekte eşitlik, `LIKE` değil.
+
+        `substr(hash, 1, 12) = :onek` ile sorduk ve göç 0007'de aynı
+        ifadeye indeks var: parametreli `LIKE 'x%'` planlayıcıda indeksi
+        her zaman kullanmıyor ve bu uç nokta **dışarıdan** çağrılıyor —
+        tam tarama, doğrulama sayfasını yük bindirme aracına çevirirdi.
+        """
+        sorgu = (
+            select(m.AuditEvent)
+            .where(func.substr(m.AuditEvent.hash, 1, CODE_PREFIX_LENGTH) == prefix)
+            .order_by(m.AuditEvent.sequence)
+            .limit(limit)
+        )
+        with tenant_session(self._tenant) as o:
+            return [_olay(k) for k in o.scalars(sorgu).all()]
+
+    def at_sequence(self, sequence: int) -> AuditEvent | None:
+        with tenant_session(self._tenant) as o:
+            satir = o.scalars(select(m.AuditEvent).where(m.AuditEvent.sequence == sequence)).first()
+            return _olay(satir) if satir else None
 
 
 __all__ = [

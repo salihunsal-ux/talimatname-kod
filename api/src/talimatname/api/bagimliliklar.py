@@ -48,6 +48,7 @@ from talimatname.services.storage import LocalObjectStore, ObjectStore, S3Object
 from talimatname.services.sync import SyncService
 from talimatname.services.templates import TemplateRepository, TemplateService
 from talimatname.services.users import UserRepository, UserService
+from talimatname.services.verification import DEFAULT_TIMEZONE, VerificationService
 from talimatname.settings import Settings, get_settings
 
 # --- ayarlar ----------------------------------------------------------
@@ -361,6 +362,21 @@ def kurulum_servisi() -> SetupService:
         _plan_deposu(),
         _kullanici_deposu(),
     )
+
+
+def dogrulama_servisi() -> VerificationService:
+    """Belge doğrulama (FR-1218). Kendi okuma yolu yok: olay günlüğü.
+
+    Saat dilimi hesabın ayarından geliyor çünkü kâğıtta **yerel** saat
+    yazılı; sayfa UTC gösterse denetçi iki farklı saat görür ve
+    kâğıdın sahte olduğunu düşünürdü.
+    """
+
+    def _saat_dilimi() -> str:
+        ayar = kurulum_servisi().settings()
+        return ayar.timezone if ayar else DEFAULT_TIMEZONE
+
+    return VerificationService(izi_servisi(), timezone=_saat_dilimi)
 
 
 def rapor_servisi() -> ReportService:
