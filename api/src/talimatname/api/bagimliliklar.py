@@ -15,6 +15,7 @@ from functools import lru_cache
 
 from talimatname.infra.memory import (
     MemoryActionRepository,
+    MemoryAnchorRepository,
     MemoryAnswerRepository,
     MemoryAuditRepository,
     MemoryEvidenceRepository,
@@ -27,6 +28,7 @@ from talimatname.infra.memory import (
     MemoryUserRepository,
 )
 from talimatname.services.actions import ActionRepository, ActionService
+from talimatname.services.anchors import AnchorRepository, AnchorService, TimestampAuthority
 from talimatname.services.audit import AuditRepository, AuditService
 from talimatname.services.auth import AuthService
 from talimatname.services.dashboard import DashboardService
@@ -318,6 +320,7 @@ def zamanlayici_servisi() -> SchedulerService:
         kanit_servisi(),
         cikti_servisi(),
         izi_servisi(),
+        cipa_servisi(),
     )
 
 
@@ -399,6 +402,56 @@ def kurulum_servisi() -> SetupService:
     )
 
 
+def _saat_dilimi() -> str:
+    """Hesabın saat dilimi; sihirbaz bitmemişse varsayılan.
+
+    İki yer soruyor: belge doğrulama (kâğıttaki yerel saat) ve çıpalama
+    (günün 04:00'ü yerel saattir). Tek yerden okunsun.
+    """
+    ayar = kurulum_servisi().settings()
+    return ayar.timezone if ayar else DEFAULT_TIMEZONE
+
+
+@lru_cache
+def _cipa_deposu() -> AnchorRepository:
+    if sql_modu():
+        from talimatname.infra.db.adapters import SqlAnchorRepository
+
+        return SqlAnchorRepository(_kiraci())  # type: ignore[arg-type]
+    return MemoryAnchorRepository()
+
+
+@lru_cache
+def _damga_otoritesi() -> TimestampAuthority | None:
+    """RFC 3161 sunucusu ayarlıysa istemci, değilse **None**.
+
+    None çıpalamayı kapatıyor ve bu sessiz bir varsayılan değil:
+    `/health` ve doğrulama komutu durumu söylüyor. Kapalıyken
+    zincirin sınırı olduğu gibi duruyor (FR-1302).
+    """
+    ayar = ayarlar()
+    if not ayar.timestamping_configured:
+        return None
+    from talimatname.infra.tsa import Rfc3161Authority
+
+    assert ayar.tsa_url
+    return Rfc3161Authority(
+        ayar.tsa_url,
+        policy_oid=ayar.tsa_policy_oid,
+        timeout_seconds=ayar.tsa_timeout_seconds,
+    )
+
+
+def cipa_servisi() -> AnchorService:
+    """Zincir kökünün günlük çıpalanması (FR-1302)."""
+    return AnchorService(
+        _cipa_deposu(),
+        _izi_deposu(),
+        _damga_otoritesi(),
+        timezone=_saat_dilimi,
+    )
+
+
 def marka() -> Brand:
     """Kâğıdın üstündeki hesap: kurulum ayarı + doğrulama adresi.
 
@@ -415,10 +468,6 @@ def dogrulama_servisi() -> VerificationService:
     yazılı; sayfa UTC gösterse denetçi iki farklı saat görür ve
     kâğıdın sahte olduğunu düşünürdü.
     """
-
-    def _saat_dilimi() -> str:
-        ayar = kurulum_servisi().settings()
-        return ayar.timezone if ayar else DEFAULT_TIMEZONE
 
     return VerificationService(izi_servisi(), timezone=_saat_dilimi)
 
@@ -457,6 +506,8 @@ _ONBELLEKLER = (
     _izi_deposu,
     izi_servisi,
     _cikti_deposu,
+    _cipa_deposu,
+    _damga_otoritesi,
     _ayar_deposu,
     _nesne_deposu,
     _kimlik_servisi,

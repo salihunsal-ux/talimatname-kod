@@ -31,6 +31,11 @@ x-api-ortam: &api-ortam
   PANEL_URL: ${PANEL_URL:-}
   # Kaç çalıştırmadan sonra dönem raporu arka plana düşer (FR-1217).
   EXPORT_BACKGROUND_THRESHOLD: ${EXPORT_BACKGROUND_THRESHOLD:-500}
+  # RFC 3161 zaman damgası (FR-1302). Boşsa çıpalama kapalı:
+  # zincir yalnızca tek tek değişiklikleri görünür kılar.
+  TSA_URL: ${TSA_URL:-}
+  TSA_POLICY_OID: ${TSA_POLICY_OID:-}
+  TSA_TIMEOUT_SECONDS: ${TSA_TIMEOUT_SECONDS:-10}
 
 services:
   postgres:

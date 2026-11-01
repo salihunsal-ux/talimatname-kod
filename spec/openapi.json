@@ -5095,6 +5095,11 @@
             "type": "boolean",
             "title": "Object Store Configured",
             "description": "Nesne depolama **tam** yapılandırılmış mı (uç nokta, kova, anahtarlar)"
+          },
+          "timestamping_configured": {
+            "type": "boolean",
+            "title": "Timestamping Configured",
+            "description": "Günlük kökü dış zaman damgasına çıpalanıyor mu (FR-1302). Kapalıyken zincir yalnızca tek tek değişiklikleri görünür kılar."
           }
         },
         "type": "object",
@@ -5102,7 +5107,8 @@
           "version",
           "environment",
           "database_configured",
-          "object_store_configured"
+          "object_store_configured",
+          "timestamping_configured"
         ],
         "title": "HealthResponse",
         "description": "Canlılık yanıtı. Şema açıkça tanımlı: istemci tipleri bundan üretilir."
@@ -8036,6 +8042,12 @@
             "type": "integer",
             "title": "Recovered",
             "description": "Baytı depoda bulunup tamamlanan kanıt sayısı: istemci `complete` demeden düşmüş",
+            "default": 0
+          },
+          "anchored": {
+            "type": "integer",
+            "title": "Anchored",
+            "description": "Bu turda günlük kökü çıpalandı mı (FR-1302)",
             "default": 0
           },
           "exports_done": {

@@ -21,6 +21,7 @@ from sqlalchemy.exc import IntegrityError
 from talimatname.domain.actions import Action
 from talimatname.domain.answers import Answer, RunLock
 from talimatname.domain.audit import CODE_PREFIX_LENGTH, AuditEvent, SequenceTaken
+from talimatname.domain.chain_anchor import ChainAnchor
 from talimatname.domain.evidence import Evidence
 from talimatname.domain.exports import ExportJob
 from talimatname.domain.notifications import Notification
@@ -884,6 +885,61 @@ def _cikti(satir: m.ExportJob) -> ExportJob:
     )
 
 
+def _cipa(satir: m.AuditAnchor) -> ChainAnchor:
+    return ChainAnchor(
+        id=satir.id,
+        created_at=satir.created_at,
+        sequence=satir.sequence,
+        chain_hash=satir.chain_hash,
+        state=satir.state,  # type: ignore[arg-type]
+        token=bytes(satir.token) if satir.token is not None else None,
+        stamped_at=satir.stamped_at,
+        tsa_name=satir.tsa_name,
+        serial=satir.serial,
+        error=satir.error,
+    )
+
+
+class SqlAnchorRepository(_TenantRepository):
+    """`AnchorRepository` portunun SQL karşılığı (FR-1302).
+
+    Güncelleme yok: tablo ekle-yalnız (göç 0009) ve portta da böyle
+    bir yöntem bulunmuyor.
+    """
+
+    def save_anchor(self, anchor: ChainAnchor) -> None:
+        with tenant_session(self._tenant) as o:
+            o.add(
+                m.AuditAnchor(
+                    id=anchor.id,
+                    tenant_id=self._tenant,
+                    created_at=anchor.created_at,
+                    sequence=anchor.sequence,
+                    chain_hash=anchor.chain_hash,
+                    state=anchor.state,
+                    token=anchor.token,
+                    stamped_at=anchor.stamped_at,
+                    tsa_name=anchor.tsa_name,
+                    serial=anchor.serial,
+                    error=anchor.error,
+                )
+            )
+
+    def anchors(self, *, limit: int = 100) -> list[ChainAnchor]:
+        sorgu = select(m.AuditAnchor).order_by(m.AuditAnchor.created_at.desc()).limit(limit)
+        with tenant_session(self._tenant) as o:
+            return [_cipa(r) for r in o.scalars(sorgu).all()]
+
+    def anchors_since(self, moment: datetime) -> list[ChainAnchor]:
+        sorgu = (
+            select(m.AuditAnchor)
+            .where(m.AuditAnchor.created_at >= moment)
+            .order_by(m.AuditAnchor.created_at)
+        )
+        with tenant_session(self._tenant) as o:
+            return [_cipa(r) for r in o.scalars(sorgu).all()]
+
+
 class SqlExportJobRepository(_TenantRepository):
     """`ExportJobRepository` portunun SQL karşılığı (FR-1217)."""
 
@@ -1032,6 +1088,7 @@ class SqlAuditRepository(_TenantRepository):
 
 __all__ = [
     "SqlActionRepository",
+    "SqlAnchorRepository",
     "SqlAnswerRepository",
     "SqlAuditRepository",
     "SqlEvidenceRepository",

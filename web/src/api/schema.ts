@@ -2204,6 +2204,11 @@ export interface components {
              * @description Nesne depolama **tam** yapılandırılmış mı (uç nokta, kova, anahtarlar)
              */
             object_store_configured: boolean;
+            /**
+             * Timestamping Configured
+             * @description Günlük kökü dış zaman damgasına çıpalanıyor mu (FR-1302). Kapalıyken zincir yalnızca tek tek değişiklikleri görünür kılar.
+             */
+            timestamping_configured: boolean;
         };
         /** Hucre */
         Hucre: {
@@ -3473,6 +3478,12 @@ export interface components {
              * @default 0
              */
             recovered?: number;
+            /**
+             * Anchored
+             * @description Bu turda günlük kökü çıpalandı mı (FR-1302)
+             * @default 0
+             */
+            anchored?: number;
             /**
              * Exports Done
              * @description Üretilen arka plan çıktısı (FR-1217)

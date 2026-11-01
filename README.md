@@ -71,7 +71,26 @@ cd api
 
 Çıkış kodu 0 zincirin bütün olduğunu, 1 kırılma bulunduğunu söyler (FR-1304). Komut yalnızca okur: onarılmış bir denetim izi, denetim izi değildir.
 
-**Zincirin sınırı:** hash zinciri kayıtları *tek tek* değiştirmeyi görünür kılar. Veritabanına yazma yetkisi olan birinin zinciri baştan hesaplamasını engellemez — onu ancak dışarıya çıpalanmış günlük kökü durdurur (RFC 3161, FR-1302, v1.1). Ürün bu yüzden "değiştirilemez" demiyor, **"değişiklik görünür"** diyor.
+**Zincirin sınırı:** hash zinciri kayıtları *tek tek* değiştirmeyi görünür kılar. Veritabanına yazma yetkisi olan birinin zinciri baştan hesaplamasını tek başına engellemez — onu dışarıya çıpalanmış günlük kökü durdurur (aşağıda).
+
+### Günlük çıpası · RFC 3161 (FR-1302)
+
+Günün kökü (son kaydın zincir özeti) günde bir kez bağımsız bir zaman damgası otoritesine tarihletiliyor ve damga saklanıyor. Damgadan sonra o ana kadarki tarihi yeniden yazan biri, damgayla tutmayan bir zincir bırakır: zincirin tek açığı böyle kapanıyor.
+
+```bash
+cd api
+./.venv/Scripts/python.exe -m talimatname.izi_cipala     # çıpayı şimdi al
+./.venv/Scripts/python.exe -m talimatname.izi_dogrula    # zincir + çıpalar
+./.venv/Scripts/python.exe -m talimatname.izi_dogrula --cipasiz
+```
+
+Çıpa normalde zamanlayıcı turunda alınır: yerel saat 04:00'ü geçmişse ve o gün çıpa yoksa. Saatinde alınamadıysa sonra alınır — sunucunun bir saat kapalı kalması günü çıpasız bırakmasın. Günde en çok üç deneme; damga alınamazsa **başarısız kayıt** yazılır, çünkü çıpasız bir gün çıpalı sanılmamalı.
+
+`TSA_URL` verilmezse çıpalama kapalıdır ve bu saklanmaz: `/health` ve doğrulama komutu durumu söyler, panelin Sistem durumu ekranı da yazar.
+
+Doğrulama iki ayrı soru soruyor: *(a)* çıpalanan kayıt hâlâ aynı mı (özet yeniden hesaplanıp karşılaştırılıyor), *(b)* damga gerçekten o özeti mi taşıyor (belirtecin içindeki `messageImprint` okunuyor). Damganın imzası da otoritenin kendi sertifikasıyla sınanabiliyor (`signature_ok`).
+
+**Neyi kanıtlamaz:** ürün, damga sertifikasının **zincirini** doğrulamıyor — "bu damgayı imzalayan anahtar, damgadaki sertifikaya ait" diyor, "bu sertifikaya güvenilir" demiyor. Güven kökü işletmecinin kararı; damga saklandığı için `openssl ts -verify -in damga.tsr -data kok.bin -CAfile zincir.pem` ile dışarıdan doğrulanabilir. Bir de kapsam sınırı var: çıpa, alındığı andaki köke kadarki geçmişi bağlar; sonraki kayıtlar bir sonraki çıpaya kadar yalnızca zincirle korunur.
 
 Rapor PDF'lerindeki belge kodu bu zincire bağlı (FR-1218): kod, raporun üretildiği anın olay kaydının özeti. Günlüğe yazılamazsa kâğıtta kodun zincire bağlı olmadığı yazar.
 

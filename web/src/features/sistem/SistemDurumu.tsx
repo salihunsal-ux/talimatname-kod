@@ -84,6 +84,12 @@ export function SistemDurumu() {
                   : tr.sistem.yapilandirilmamis
               }
             />
+            {/* Kapalıyken sessizce "güvenli" demiyoruz: zincirin neyi
+                gösterip neyi göstermediği burada yazılı (FR-1302). */}
+            <Satir
+              ad={tr.sistem.cipalama}
+              deger={data.timestamping_configured ? tr.sistem.acik : tr.sistem.kapali}
+            />
           </dl>
         </div>
       )}

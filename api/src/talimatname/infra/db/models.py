@@ -27,6 +27,7 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
+    LargeBinary,
     String,
     Text,
     UniqueConstraint,
@@ -58,6 +59,7 @@ TENANT_TABLES: tuple[str, ...] = (
     "evidence",
     "audit_event",
     "export_job",
+    "audit_anchor",
 )
 
 
@@ -454,3 +456,26 @@ class ExportJob(Base):
     size_bytes: Mapped[int | None] = mapped_column(Integer)
     document_code: Mapped[str | None] = mapped_column(String(20))
     error_code: Mapped[str | None] = mapped_column(String(60))
+
+
+class AuditAnchor(Base):
+    """Günün zincir kökü ve dış damgası (FR-1302).
+
+    Ekle-yalnız, günlüğün kendisi gibi (göç 0009): bir çıpayı
+    sonradan düzeltebilmek, çıpanın anlamını ortadan kaldırırdı.
+    """
+
+    __tablename__ = "audit_anchor"
+    __table_args__ = (Index("ix_cipa_zaman", "tenant_id", "created_at"),)
+
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True)
+    tenant_id: Mapped[UUID] = _tenant_column()
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    sequence: Mapped[int] = mapped_column(BigInteger)
+    chain_hash: Mapped[str] = mapped_column(String(64))
+    state: Mapped[str] = mapped_column(String(10), default="ok")
+    token: Mapped[bytes | None] = mapped_column(LargeBinary)
+    stamped_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    tsa_name: Mapped[str | None] = mapped_column(String(200))
+    serial: Mapped[str | None] = mapped_column(String(64))
+    error: Mapped[str | None] = mapped_column(String(200))

@@ -29,6 +29,7 @@ describe('SistemDurumu', () => {
       environment: 'dev',
       database_configured: false,
       object_store_configured: false,
+      timestamping_configured: false,
     });
 
     kur();
@@ -36,6 +37,37 @@ describe('SistemDurumu', () => {
     expect(await screen.findByText('API çalışıyor')).toBeInTheDocument();
     expect(screen.getByText('0.1.0')).toBeInTheDocument();
     expect(screen.getAllByText('yapılandırılmamış')).toHaveLength(2);
+  });
+
+  it('çıpalama kapalıyken bunun ne anlama geldiğini yazar', async () => {
+    getir.mockResolvedValue({
+      status: 'ok',
+      version: '0.1.0',
+      environment: 'prod',
+      database_configured: true,
+      object_store_configured: true,
+      timestamping_configured: false,
+    });
+
+    kur();
+
+    // Kapalıyken sessizce "güvenli" demiyoruz (FR-1302).
+    expect(await screen.findByText(/tek tek değişiklikleri gösterir/)).toBeInTheDocument();
+  });
+
+  it('çıpalama açıkken açık yazar', async () => {
+    getir.mockResolvedValue({
+      status: 'ok',
+      version: '0.1.0',
+      environment: 'prod',
+      database_configured: true,
+      object_store_configured: true,
+      timestamping_configured: true,
+    });
+
+    kur();
+
+    expect(await screen.findByText('açık')).toBeInTheDocument();
   });
 
   it('API ulaşılamazsa uyarı ve yeniden deneme düğmesi gösterilir', async () => {

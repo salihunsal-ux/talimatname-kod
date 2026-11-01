@@ -140,6 +140,9 @@ export const tr = {
     nesneDepo: 'Nesne depolama',
     yapilandirilmis: 'yapılandırılmış',
     yapilandirilmamis: 'yapılandırılmamış',
+    cipalama: 'Günlük çıpası (RFC 3161)',
+    acik: 'açık',
+    kapali: 'kapalı — zincir yalnızca tek tek değişiklikleri gösterir',
     yenile: 'Yeniden dene',
   },
   genel: {

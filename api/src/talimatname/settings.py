@@ -61,6 +61,19 @@ class Settings(BaseSettings):
     #: olanda eşik düşürülür.
     export_background_threshold: int = Field(default=BACKGROUND_THRESHOLD, ge=1)
 
+    #: RFC 3161 zaman damgası sunucusu (FR-1302). Tanımsızsa çıpalama
+    #: **kapalıdır** ve zincirin sınırı olduğu gibi kalır: kayıtları
+    #: tek tek değiştirmek görünür, bütün zinciri baştan hesaplamak
+    #: değil. Kapalıyken sessizce "güvenli" demiyoruz — /health ve
+    #: doğrulama komutu durumu söylüyor.
+    tsa_url: str | None = None
+    #: Sunucunun istediği damga politikası (OID). Çoğu sunucu
+    #: istemiyor; isteyen varsa boş bırakılamaz.
+    tsa_policy_oid: str | None = None
+    #: Ağ bekleme süresi. Zamanlayıcı turunu kilitlememeli: damga
+    #: alınamazsa gün atlanır ve bu kayda yazılır.
+    tsa_timeout_seconds: int = Field(default=10, ge=1, le=120)
+
     access_token_minutes: int = Field(default=30, ge=5, le=240)
 
     # Belirteç imzası (RS256). Üretimde zorunlu; geliştirmede boşsa
@@ -109,6 +122,8 @@ class Settings(BaseSettings):
     @field_validator(
         "database_url",
         "panel_url",
+        "tsa_url",
+        "tsa_policy_oid",
         "object_store_endpoint",
         "object_store_bucket",
         "object_store_access_key",
@@ -143,6 +158,11 @@ class Settings(BaseSettings):
                 self.object_store_secret_key,
             )
         )
+
+    @property
+    def timestamping_configured(self) -> bool:
+        """Çıpalama açık mı? Tek karar noktası (FR-1302)."""
+        return self.tsa_url is not None
 
     @property
     def verify_url(self) -> str | None:

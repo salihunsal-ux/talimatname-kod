@@ -289,6 +289,7 @@ class TurYaniti(BaseModel):
             "Baytı depoda bulunup tamamlanan kanıt sayısı: istemci `complete` demeden düşmüş"
         ),
     )
+    anchored: int = Field(default=0, description="Bu turda günlük kökü çıpalandı mı (FR-1302)")
     exports_done: int = Field(default=0, description="Üretilen arka plan çıktısı (FR-1217)")
     exports_failed: int = Field(
         default=0, description="Üretilemeyen çıktı: sebebi iş kaydında duruyor"
@@ -325,6 +326,7 @@ def zamanlayici_turu(servis: ZamanlayiciServis, _: Yonetici) -> TurYaniti:
         stamped=sonuc.stamped,
         swept=sonuc.swept,
         recovered=sonuc.recovered,
+        anchored=sonuc.anchored,
         exports_done=sonuc.exports_done,
         exports_failed=sonuc.exports_failed,
         export_files_swept=sonuc.export_files_swept,

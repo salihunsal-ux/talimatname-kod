@@ -29,6 +29,12 @@ dependencies = [
   # geliştirmeyi, imajda da boyutu ağırlaştırırdı. Yazı tipi dışarıdan
   # gelir ve Türkçe harfleri sınanır (bkz. services/imaging).
   "reportlab>=4.2",
+  # RFC 3161 zaman damgası (FR-1302): istek DER kodlaması ve damganın
+  # (CMS) çözümlenmesi. Elle ASN.1 yazmıyoruz — damga dışarıdan gelen
+  # veri ve kendi ayrıştırıcımızı yazmak, güvenlik işini en kırılgan
+  # yerde ev yapımı koda bırakmak olurdu. Saf Python, derlenen
+  # bağımlılığı yok.
+  "asn1crypto>=1.5",
 ]
 
 [project.optional-dependencies]
@@ -90,6 +96,13 @@ strict = true
 warn_unreachable = true
 mypy_path = "src"
 packages = ["talimatname"]
+
+[[tool.mypy.overrides]]
+# asn1crypto tip bilgisi getirmiyor ve stub paketi yok. Yalnızca
+# `infra/tsa.py` kullanıyor; oradaki sınırda dönen değerleri kendimiz
+# tipliyoruz.
+module = ["asn1crypto.*"]
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

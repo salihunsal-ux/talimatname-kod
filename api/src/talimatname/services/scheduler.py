@@ -19,6 +19,10 @@ Zamanlayıcı **iki** iş yapar ve ikisi de idempotenttir:
 6. **Büyük çıktılar** — eşiği geçen dönem raporları burada üretilir ve
    süresi dolan dosyalar silinir (FR-1217). İstek içinde üretmek bir web
    işçisini dakikalarca bloklardı.
+7. **Günlük çıpası** — zincirin kökü günde bir kez dış zaman damgası
+   sunucusuna tarihletilir (FR-1302). Saat 04:00 geçmişse ve o gün
+   çıpa yoksa alınır: sunucunun bir saat kapalı kalması günü
+   çıpasız bırakmasın.
 
 İkinci iş neden gerekli? Pano "kaçırıldı"yı zaten zamandan türetiyor
 (`Run.state_at`), yani ekran için yazmaya gerek yok. Ama kaçırma bir
@@ -36,6 +40,7 @@ from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 
 from talimatname.services.actions import ActionService
+from talimatname.services.anchors import AnchorService
 from talimatname.services.audit import AuditService, RequestContext, using_context
 from talimatname.services.digest import DigestService
 from talimatname.services.escalation import EscalationService
@@ -65,6 +70,7 @@ class TickResult:
     stamped: int = 0
     swept: int = 0
     recovered: int = 0
+    anchored: int = 0
     exports_done: int = 0
     exports_failed: int = 0
     export_files_swept: int = 0
@@ -84,6 +90,7 @@ class TickResult:
             and self.stamped == 0
             and self.swept == 0
             and self.recovered == 0
+            and self.anchored == 0
             and self.exports_done == 0
             and self.exports_failed == 0
             and self.export_files_swept == 0
@@ -104,6 +111,7 @@ class SchedulerService:
         evidence: EvidenceService | None = None,
         exports: ExportJobService | None = None,
         audit: AuditService | None = None,
+        anchors: AnchorService | None = None,
         *,
         now: Callable[[], datetime] = lambda: datetime.now(UTC),
     ) -> None:
@@ -117,6 +125,7 @@ class SchedulerService:
         self._kanit = evidence
         self._cikti = exports
         self._izi = audit
+        self._cipa = anchors
         self._now = now
 
     def tick(self, *, days: int = HORIZON_DAYS) -> TickResult:
@@ -152,6 +161,9 @@ class SchedulerService:
         # pencere açılışı gibi zamana bağlı işleri geciktirmemeli.
         uretilen, dusen = self._cikti.run_pending() if self._cikti else (0, 0)
         silinen_dosya = self._cikti.sweep_files() if self._cikti else 0
+        # Çıpa en sonda: günde bir kez olan, ağa çıkan ve gecikebilen
+        # bir iş; turun zamana bağlı kısmını bekletmesin.
+        cipa = self._cipa.anchor_due() if self._cipa else None
         return TickResult(
             at=an,
             created=eklenen,
@@ -168,6 +180,7 @@ class SchedulerService:
             stamped=damga.get("stamped", 0),
             swept=supurme.get("silinen", 0),
             recovered=supurme.get("kurtarilan", 0),
+            anchored=1 if cipa is not None else 0,
             exports_done=uretilen,
             exports_failed=dusen,
             export_files_swept=silinen_dosya,

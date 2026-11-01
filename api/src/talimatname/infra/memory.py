@@ -18,6 +18,7 @@ from uuid import UUID, uuid5
 from talimatname.domain.actions import Action
 from talimatname.domain.answers import Answer, RunLock
 from talimatname.domain.audit import AuditEvent, SequenceTaken
+from talimatname.domain.chain_anchor import ChainAnchor
 from talimatname.domain.evidence import Evidence
 from talimatname.domain.exports import ExportJob
 from talimatname.domain.notifications import Notification
@@ -623,6 +624,22 @@ class MemoryAnswerRepository:
             self._locks.pop(run_id, None)
         else:
             self._locks[run_id] = lock
+
+
+class MemoryAnchorRepository:
+    """`AnchorRepository` portunun bellek içi karşılığı (FR-1302)."""
+
+    def __init__(self) -> None:
+        self._anchors: list[ChainAnchor] = []
+
+    def save_anchor(self, anchor: ChainAnchor) -> None:
+        self._anchors.append(anchor)
+
+    def anchors(self, *, limit: int = 100) -> list[ChainAnchor]:
+        return sorted(self._anchors, key=lambda c: c.created_at, reverse=True)[:limit]
+
+    def anchors_since(self, moment: datetime) -> list[ChainAnchor]:
+        return [c for c in self._anchors if c.created_at >= moment]
 
 
 class MemoryExportJobRepository:

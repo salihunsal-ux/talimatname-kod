@@ -22,9 +22,12 @@ yavaşlatır, kiracı yalıtımı da (RLS) zinciri okunamaz kılardı.
 **Zincirin sınırı açıkça yazılı.** Hash zinciri, kayıtları
 *tek tek* değiştirmeyi görünür kılar: değişen kaydın özeti tutmaz.
 Veritabanına yazma yetkisi olan birinin bütün zinciri baştan
-hesaplaması **engellenmez** — onu ancak dışarıya çıpalanmış bir
-günlük kökü durdurur (RFC 3161 zaman damgası, FR-1302, v1.1).
-Ürün bu yüzden "değiştirilemez" demiyor, "değişiklik görünür" diyor.
+hesaplamasını **tek başına** engellemez; onu dışarıya çıpalanmış bir
+günlük kökü durdurur (RFC 3161, FR-1302 — `domain/chain_anchor`).
+Çıpalama yapılandırılmamışsa bu sınır olduğu gibi durur ve ürün bunu
+saklamaz. Hiçbir durumda "değiştirilemez" demiyoruz: çıpasızken
+"değişiklik görünür", çıpalıyken "çıpadan önceki geçmiş yeniden
+yazılamaz" diyoruz.
 
 **Özet küçük ve işle ilgili.** `before`/`after` yalnızca değişen
 alanların kısa karşılığı; kişisel veri taşımaz (KVKK, BR-21). Adı

@@ -17,6 +17,7 @@ from sqlalchemy.exc import IntegrityError, ProgrammingError
 
 from talimatname.domain.answers import Answer
 from talimatname.domain.audit import GENESIS, AuditEvent, SequenceTaken, sealed
+from talimatname.domain.chain_anchor import ChainAnchor
 from talimatname.domain.evidence import Evidence
 from talimatname.domain.exports import ExportJob
 from talimatname.domain.notifications import Notification
@@ -37,6 +38,7 @@ if get_settings().database_url is None:  # pragma: no cover - ortam bağımlı
     )
 
 from talimatname.infra.db.adapters import (  # noqa: E402
+    SqlAnchorRepository,
     SqlAnswerRepository,
     SqlAuditRepository,
     SqlEvidenceRepository,
@@ -525,6 +527,46 @@ def test_tc100_uygulama_rolu_gunlugu_degistiremez(iki_kiraci: object) -> None:
         o.execute(text("UPDATE audit_event SET hash = 'x'"))
     with tenant_session(A_KIRACI) as o, pytest.raises(ProgrammingError, match="permission denied"):
         o.execute(text("DELETE FROM audit_event"))
+
+
+def test_cipa_gidip_geliyor_ve_degistirilemiyor(iki_kiraci: object) -> None:
+    """Zincir kökünün dış damgası (FR-1302).
+
+    Damga birkaç kilobayt ikili veri: gidip geldiğini bayt bayt
+    sınıyoruz. Tablo günlükle aynı kurala tabi — bir çıpayı sonradan
+    düzeltebilmek, çıpanın anlamını ortadan kaldırırdı.
+    """
+    depo = SqlAnchorRepository(A_KIRACI)
+    an = datetime.now(UTC)
+    damga = bytes(range(256)) * 8
+    cipa = ChainAnchor(
+        id=uuid4(),
+        created_at=an,
+        sequence=42,
+        chain_hash="b" * 64,
+        state="ok",
+        token=damga,
+        stamped_at=an,
+        tsa_name="Deneme TSA",
+        serial="7",
+    )
+    depo.save_anchor(cipa)
+
+    geri = depo.anchors(limit=5)
+    assert [c.id for c in geri] == [cipa.id]
+    assert geri[0].token == damga
+    assert (geri[0].sequence, geri[0].tsa_name, geri[0].serial) == (42, "Deneme TSA", "7")
+    assert depo.anchors_since(an - timedelta(minutes=1))
+    assert depo.anchors_since(an + timedelta(minutes=1)) == []
+
+    # Başka hesabın çıpası görünmüyor.
+    assert SqlAnchorRepository(B_KIRACI).anchors(limit=5) == []
+
+    # Ekle-yalnız: uygulama rolü çıpayı değiştiremez (göç 0009).
+    with tenant_session(A_KIRACI) as o, pytest.raises(ProgrammingError, match="permission denied"):
+        o.execute(text("UPDATE audit_anchor SET chain_hash = 'x'"))
+    with tenant_session(A_KIRACI) as o, pytest.raises(ProgrammingError, match="permission denied"):
+        o.execute(text("DELETE FROM audit_anchor"))
 
 
 def test_cikti_isi_gidip_geliyor_ve_kiraciya_bagli(iki_kiraci: object) -> None:
