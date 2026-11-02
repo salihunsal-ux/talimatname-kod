@@ -372,6 +372,38 @@ def test_fr0614_ayni_ozet_veritabaninda_da_engellenir(iki_kiraci: object) -> Non
         depo.save_evidence(_kanit(run, ozet))
 
 
+def test_plan_pencere_siniri_veritabaninda_da_var(iki_kiraci: object) -> None:
+    """FR-0504/FR-0506 sınırı şemaya da yazılı (göç 0010).
+
+    Sebebi, düzeltmenin kendisinin yarattığı kaza: kural koda bir
+    **değişmez** olarak eklendi, ama değişmez okunan satırları da
+    bağlıyor. Kuraldan önce yazılmış iki plan yüzünden demo
+    sunucusunda plan listesi ve pano 500 verdi.
+
+    Kısıt, "sessizce kötü satır" ihtimalini "yazma reddedildi"ye
+    çeviriyor: ikinci bir doğruluk kaynağı olması pahasına.
+    """
+    run = _calistirma(A_KIRACI)
+
+    with (
+        create_db_engine(as_owner=True).begin() as baglanti,
+        pytest.raises((IntegrityError, ProgrammingError)),
+    ):
+        baglanti.execute(
+            text("UPDATE plan SET tolerance_minutes = 1000 WHERE id = :p"),
+            {"p": str(run.plan_id)},
+        )
+
+    with (
+        create_db_engine(as_owner=True).begin() as baglanti,
+        pytest.raises((IntegrityError, ProgrammingError)),
+    ):
+        baglanti.execute(
+            text("UPDATE plan SET duration_minutes = 1440, tolerance_minutes = 240 WHERE id = :p"),
+            {"p": str(run.plan_id)},
+        )
+
+
 def test_ayni_ozet_baska_kiracida_serbest(iki_kiraci: object) -> None:
     """Tekillik **hesap içinde** (FR-0614): başka zincirin fotoğrafı bizi bağlamaz."""
     ozet = "b" * 64
