@@ -110,6 +110,7 @@ function SurumDugmesi({
   const cip = DURUM_CIPI[surum.status];
   return (
     <Dugme
+      gorunum="ikincil"
       tam
       type="button"
       onClick={onSec}

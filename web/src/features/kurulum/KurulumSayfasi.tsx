@@ -127,6 +127,8 @@ function AdimCubugu({
         return (
           <li key={adim.step}>
             <Dugme
+              gorunum="ikincil"
+              boyut="kucuk"
               type="button"
               onClick={() => onSec(adim.step)}
               aria-current={aktif ? 'step' : undefined}

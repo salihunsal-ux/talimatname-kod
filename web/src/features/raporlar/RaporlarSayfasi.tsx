@@ -57,6 +57,8 @@ export function RaporlarSayfasi() {
         ).map(([anahtar, ad]) => (
           <Dugme
             key={anahtar}
+            gorunum="ikincil"
+            boyut="kucuk"
             role="tab"
             aria-selected={sekme === anahtar}
             onClick={() => setSekme(anahtar)}

@@ -98,6 +98,7 @@ export function BildirimlerSayfasi() {
       <div style={{ display: 'flex', gap: 'var(--bosluk-2)', marginBottom: 'var(--bosluk-3)' }}>
         {SUZGECLER.map(({ anahtar, ad }) => (
           <Dugme
+            gorunum="ikincil"
             boyut="kucuk"
             key={anahtar}
             type="button"

@@ -103,6 +103,18 @@
   color: var(--renk-murekkep);
 }
 
+/* Seçili hal, erişilebilirlik özniteliğinden türüyor: ekran okuyucu
+   ile göz aynı kaynağı okusun. Ayrı bir `secili` prop'u ikisinin
+   ayrışmasına açık kapı bırakırdı. */
+.dugme[aria-pressed='true'],
+.dugme[aria-selected='true'],
+.dugme[aria-current]:not([aria-current='false']) {
+  border-color: var(--renk-marka);
+  background: var(--renk-marka-acik);
+  color: var(--renk-marka);
+  font-weight: 600;
+}
+
 .dugme:active:not(:disabled) {
   transform: translateY(1px);
 }

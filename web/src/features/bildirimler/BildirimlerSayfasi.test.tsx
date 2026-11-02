@@ -51,6 +51,18 @@ beforeEach(() => {
 });
 
 describe('Bildirimler sayfası', () => {
+  it('seçili süzgeç aria-pressed ile işaretli', async () => {
+    // Seçili görünüm bu öznitelikten türüyor (bilesenler.css).
+    kur();
+
+    const hepsi = await screen.findByRole('button', { name: 'Hepsi' });
+    expect(hepsi).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Kuyrukta' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
+  });
+
   it('kanal bağlı değilken bunu açıkça söyler', async () => {
     kur();
 

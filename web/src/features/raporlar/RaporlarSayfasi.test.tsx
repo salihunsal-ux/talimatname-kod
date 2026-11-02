@@ -127,6 +127,23 @@ describe('RaporlarSayfasi', () => {
     ciktiListesi.mockResolvedValue([]);
   });
 
+  it('seçili sekme aria-selected ile işaretli', async () => {
+    /* Seçili görünüm artık bu öznitelikten türüyor (bilesenler.css).
+       Tasarım geçişinde üç sekme de birincil yeşil kalmıştı: testler
+       davranışı sınadığı için yakalamamıştı, ekrana bakınca çıktı. */
+    const kullanici = userEvent.setup();
+    kur();
+
+    const ozet = await screen.findByRole('tab', { name: 'Aylık özet' });
+    expect(ozet).toHaveAttribute('aria-selected', 'true');
+
+    const olcum = screen.getByRole('tab', { name: 'Ölçüm günlüğü' });
+    await kullanici.click(olcum);
+
+    expect(olcum).toHaveAttribute('aria-selected', 'true');
+    expect(ozet).toHaveAttribute('aria-selected', 'false');
+  });
+
   it('aylık özet sayıları ve yüzdeyi gösterir', async () => {
     kur();
 
