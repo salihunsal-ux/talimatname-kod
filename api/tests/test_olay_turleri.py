@@ -15,7 +15,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 import talimatname
-from conftest import oturum_ac
+from conftest import TELEFON, oturum_ac
 from talimatname.api import bagimliliklar
 from talimatname.api.app import create_app
 from talimatname.domain.audit import EVENT_TYPES
@@ -92,6 +92,57 @@ def test_kacirma_olayinin_aktoru_yok(istemci: TestClient) -> None:
 
 
 # --- personel ------------------------------------------------------------
+
+
+def test_kod_istegi_gunluge_yaziliyor(istemci: TestClient) -> None:
+    """Oturumsuz uç nokta iz bırakmalı (FR-1301).
+
+    Kod isteği kimlik doğrulamanın ilk adımı; kayıtlı numaraya 200,
+    kayıtsıza 404 döndüğü için **numara sorgusu** olarak da
+    kullanılabiliyor. Sınırsız ve izsizken bir zincirin personel
+    listesi fark edilmeden çıkarılabiliyordu.
+    """
+    once = len(_olaylar("oturum.kod_istendi"))
+
+    bilinen = istemci.post("/api/v1/auth/request-code", json={"phone": TELEFON["admin"]})
+    bilinmeyen = istemci.post("/api/v1/auth/request-code", json={"phone": "+905329999999"})
+
+    assert bilinen.status_code == 200
+    assert bilinmeyen.status_code == 404
+
+    olaylar = _olaylar("oturum.kod_istendi")[once:]
+    assert len(olaylar) == 2, "iki istek de yazılmalı"
+
+    gonderildi, yoklama = olaylar
+    assert gonderildi.object_id is not None  # type: ignore[attr-defined]
+    assert yoklama.object_id is None, "bilinmeyen numara bir kullanıcıya bağlanamaz"  # type: ignore[attr-defined]
+    assert yoklama.after == {"sonuc": "bilinmeyen"}  # type: ignore[attr-defined]
+
+
+def test_kod_istegi_telefonu_gunluge_yazmiyor(istemci: TestClient) -> None:
+    """BR-21: yoklanan numaralar ürünün içinde birikmemeli."""
+    numara = "+905329998811"
+
+    istemci.post("/api/v1/auth/request-code", json={"phone": numara})
+
+    metin = str([(o.after, o.object_type) for o in _olaylar("oturum.kod_istendi")])  # type: ignore[attr-defined]
+    assert numara not in metin
+    assert "905329998811" not in metin
+
+
+def test_kod_istegi_hiz_siniri(istemci: TestClient) -> None:
+    """Sınırsız uç nokta, numara sorgusunu bedava hâle getiriyordu."""
+    from talimatname.api.routers import auth as auth_router
+
+    kodlar = [
+        istemci.post(
+            "/api/v1/auth/request-code", json={"phone": f"+90532000{sira:04d}"}
+        ).status_code
+        for sira in range(auth_router.KOD_ISTEK_SINIRI + 2)
+    ]
+
+    assert kodlar[0] == 404, "bilinmeyen numara: sınıra kadar normal yanıt"
+    assert kodlar[-1] == 429, f"sınır sonrası reddedilmeli, görülen: {kodlar[-3:]}"
 
 
 def test_personel_olaylari_ad_ve_telefon_tasimiyor(istemci: TestClient) -> None:

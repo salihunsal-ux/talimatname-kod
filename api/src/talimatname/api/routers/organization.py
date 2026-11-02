@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, status
 from pydantic import BaseModel, Field
 
 from talimatname.api.bagimliliklar import organizasyon_servisi
-from talimatname.api.guvenlik import Kullanici, Yonetici, sube_erisimi_zorunlu
+from talimatname.api.guvenlik import Mudur, Yonetici, sube_erisimi_zorunlu
 from talimatname.domain.organization import WEEKDAYS, Branch
 from talimatname.domain.users import can_access
 from talimatname.domain.window import BusinessHours
@@ -115,7 +115,7 @@ def _ozet(sube: Branch) -> SubeOzet:
 
 @router.get("/branches", summary="Bölge → şube ağacı")
 def sube_agaci(
-    servis: Servis, kullanici: Kullanici, include_inactive: bool = False
+    servis: Servis, kullanici: Mudur, include_inactive: bool = False
 ) -> list[BolgeDugumu]:
     """Yalnızca kullanıcının kapsamındaki şubeler (FR-0205).
 
@@ -132,7 +132,7 @@ def sube_agaci(
 
 
 @router.get("/branches/{branch_id}", summary="Şube detayı")
-def sube_detayi(branch_id: UUID, servis: Servis, kullanici: Kullanici) -> SubeDetay:
+def sube_detayi(branch_id: UUID, servis: Servis, kullanici: Mudur) -> SubeDetay:
     sube = sube_erisimi_zorunlu(kullanici, branch_id, servis)
     return SubeDetay(
         **_ozet(sube).model_dump(),

@@ -13,14 +13,22 @@ import pytest
 from fastapi.testclient import TestClient
 
 from talimatname.api import bagimliliklar
+from talimatname.api.routers import auth as auth_router
+from talimatname.api.routers import dogrulama as dogrulama_router
 from talimatname.settings import get_settings
 
 
 def _temizle() -> None:
-    """Ayar bağını ve süreç başına tek örnekleri bırakır."""
+    """Ayar bağını ve süreç başına tek örnekleri bırakır.
+
+    Hız sayaçları modül düzeyinde, yani süreç ömrü boyunca yaşıyor:
+    sınırı dolduran bir test, sıradakine 429 miras bırakırdı.
+    """
     get_settings.cache_clear()
     bagimliliklar._ayarlar = None
     bagimliliklar.sifirla()
+    auth_router.hiz_siniri.sifirla()
+    dogrulama_router.hiz_siniri.sifirla()
 
 
 @pytest.fixture(autouse=True)

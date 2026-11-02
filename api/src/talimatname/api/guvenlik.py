@@ -83,9 +83,23 @@ def rol_gerekir(*roller: Role) -> Callable[[User], User]:
     return denetle
 
 
-#: Sık kullanılan iki küme.
+#: Sık kullanılan kümeler.
 Yonetici = Annotated[User, Depends(rol_gerekir("admin"))]
 YoneticiVeyaBolge = Annotated[User, Depends(rol_gerekir("admin", "region_manager"))]
+
+#: Panelin okuma ekranları: şube ağacı, şablon, plan, pano, raporlar,
+#: aksiyon listesi. Rol matrisi (06-kvkk-ve-guvenlik) personele bu
+#: kaynakları vermiyor; ızgara ve raporlarda yalnızca "kendi kaydı"
+#: diyor.
+#:
+#: **Burada "kendi kaydı" görünümü yok, erişim kapalı.** O görünüm
+#: personelin kendi listesini gösteren mobil ekran; henüz yazılmadı
+#: (ADR-0013 Faz B). Yazılana kadar personele şubenin tamamını
+#: göstermek, matrisin "–" dediği yeri açık bırakmak olurdu.
+#:
+#: Personelin işi bunlarla değil çalıştırma uçlarıyla yürüyor:
+#: `/runs`, cevaplar, kanıt ve gönderim personele açık.
+Mudur = Annotated[User, Depends(rol_gerekir("admin", "region_manager", "branch_manager"))]
 
 
 def gorebildigi_subeler(kullanici: User, subeler: Iterable[Branch]) -> list[Branch]:

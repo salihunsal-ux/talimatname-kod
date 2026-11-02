@@ -66,6 +66,16 @@ class Anchor:
     offset_minutes: int = 0
 
 
+#: Tolerans tavanı (FR-0506). Tolerans "geç ama sayılır" penceresi;
+#: saatler boyu uzatılırsa "Geç tamamlandı" ile "Kaçırıldı" arasındaki
+#: fark kalmaz ve ürünün zamanındalık iddiası boşa düşer.
+MAX_TOLERANCE_MINUTES = 240
+
+#: Pencere + tolerans tavanı (FR-0504). Aşarsa bir çalıştırmanın
+#: penceresi ertesi günün penceresiyle çakışır.
+MAX_WINDOW_MINUTES = 24 * 60
+
+
 @dataclass(frozen=True, slots=True)
 class WindowRule:
     """Planın zaman tarafı: tekrar, pencere başlangıcı, süre, tolerans."""
@@ -84,6 +94,10 @@ class WindowRule:
             raise ValueError("duration_minutes pozitif olmalı")
         if self.tolerance_minutes < 0:
             raise ValueError("tolerance_minutes negatif olamaz")
+        if self.tolerance_minutes > MAX_TOLERANCE_MINUTES:
+            raise ValueError(f"tolerance_minutes en çok {MAX_TOLERANCE_MINUTES} olabilir")
+        if self.duration_minutes + self.tolerance_minutes > MAX_WINDOW_MINUTES:
+            raise ValueError(f"pencere ve tolerans toplamı {MAX_WINDOW_MINUTES} dakikayı aşamaz")
 
 
 @dataclass(frozen=True, slots=True)

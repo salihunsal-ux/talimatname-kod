@@ -15,9 +15,14 @@ from talimatname.api.bagimliliklar import (
     sablon_servisi,
     zamanlayici_servisi,
 )
-from talimatname.api.guvenlik import Kullanici, Yonetici
+from talimatname.api.guvenlik import Kullanici, Mudur, Yonetici
 from talimatname.domain.plans import Assignment, Plan, Run
-from talimatname.domain.window import Anchor, WindowRule
+from talimatname.domain.window import (
+    MAX_TOLERANCE_MINUTES,
+    MAX_WINDOW_MINUTES,
+    Anchor,
+    WindowRule,
+)
 from talimatname.services.organization import (
     OrganizationService,
     erisilebilir_sube_idleri,
@@ -51,8 +56,23 @@ class Zamanlama(BaseModel):
     start_time: time | None = None
     anchor_reference: Literal["open", "close"] | None = None
     anchor_offset_minutes: int = 0
-    duration_minutes: int = Field(gt=0, le=24 * 60)
-    tolerance_minutes: int = Field(default=0, ge=0, le=24 * 60)
+    duration_minutes: int = Field(gt=0, le=MAX_WINDOW_MINUTES)
+    tolerance_minutes: int = Field(default=0, ge=0, le=MAX_TOLERANCE_MINUTES)
+
+    @model_validator(mode="after")
+    def _pencere_tavani(self) -> Zamanlama:
+        """Pencere + tolerans ≤ 24 saat (FR-0504).
+
+        Tek tek sınırlar yetmiyor: 1440 dakikalık pencereye 240 dakika
+        tolerans eklenince çalıştırma ertesi gününkiyle çakışıyordu.
+        """
+        toplam = self.duration_minutes + self.tolerance_minutes
+        if toplam > MAX_WINDOW_MINUTES:
+            raise ValueError(
+                f"pencere ve tolerans toplamı {MAX_WINDOW_MINUTES} dakikayı aşamaz "
+                f"(verilen: {toplam})"
+            )
+        return self
 
     @model_validator(mode="after")
     def _tutarli(self) -> Zamanlama:
@@ -203,7 +223,7 @@ def plan_listesi(
     servis: Servis,
     sablonlar: SablonServis,
     org: OrgServis,
-    kullanici: Kullanici,
+    kullanici: Mudur,
     include_inactive: bool = False,
 ) -> list[PlanOzet]:
     """Kullanıcının kapsamına **dokunan** planlar.

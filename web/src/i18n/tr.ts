@@ -174,6 +174,9 @@ export const tr = {
     ekrandakiKod: (kod: string) => `Giriş kodu: ${kod}`,
     cikis: 'Çıkış',
     oturumDustu: 'Oturumunuz sona erdi, yeniden girin',
+    panelMudurler: 'Bu panel yöneticiler için',
+    panelMudurlerAciklama:
+      'Listeler telefon uygulamasından doldurulur. Panelde görülecek bir ekranınız yok.',
     belgeDogrula: 'Belge doğrula',
   },
   dogrulama: {

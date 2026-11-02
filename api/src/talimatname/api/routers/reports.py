@@ -35,7 +35,7 @@ from talimatname.api.bagimliliklar import (
     organizasyon_servisi,
     rapor_servisi,
 )
-from talimatname.api.guvenlik import Kullanici
+from talimatname.api.guvenlik import Mudur
 from talimatname.api.routers.ciktilar import CiktiIsi, cikti_ciktisi
 from talimatname.domain.evidence import FLAG_LABELS
 from talimatname.domain.exports import ExportKind
@@ -204,7 +204,7 @@ def _seri(seri: MeasurementSeries) -> OlcumSerisi:
 def aylik_ozet(
     servis: Servis,
     org: OrgServis,
-    kullanici: Kullanici,
+    kullanici: Mudur,
     year: Annotated[int, Query(ge=2020, le=2100)],
     month: Annotated[int, Query(ge=1, le=12)],
 ) -> AylikOzet:
@@ -220,7 +220,7 @@ def aylik_ozet(
 def olcum_gunlugu(
     servis: Servis,
     org: OrgServis,
-    kullanici: Kullanici,
+    kullanici: Mudur,
     first_day: date,
     last_day: date,
     only_out_of_range: bool = False,
@@ -243,7 +243,7 @@ def olcum_gunlugu(
 def kanit_galerisi(
     servis: Servis,
     org: OrgServis,
-    kullanici: Kullanici,
+    kullanici: Mudur,
     first_day: date,
     last_day: date,
     only_flagged: bool = False,
@@ -321,7 +321,7 @@ def aylik_ozet_pdf(
     kurulum: KurulumServis,
     iz: Iz,
     cikti: Cikti,
-    kullanici: Kullanici,
+    kullanici: Mudur,
     year: Annotated[int, Query(ge=2020, le=2100)],
     month: Annotated[int, Query(ge=1, le=12)],
 ) -> Response:
@@ -369,7 +369,7 @@ def olcum_gunlugu_pdf(
     kurulum: KurulumServis,
     iz: Iz,
     cikti: Cikti,
-    kullanici: Kullanici,
+    kullanici: Mudur,
     first_day: date,
     last_day: date,
     only_out_of_range: bool = False,

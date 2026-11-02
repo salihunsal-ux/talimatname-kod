@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 
 from talimatname.api.bagimliliklar import organizasyon_servisi, pano_servisi
-from talimatname.api.guvenlik import Kullanici
+from talimatname.api.guvenlik import Mudur
 from talimatname.services.dashboard import Board, DashboardService
 from talimatname.services.organization import (
     OrganizationService,
@@ -115,7 +115,7 @@ def _yanit(board: Board) -> PanoYaniti:
 def pano(
     servis: Servis,
     org: OrgServis,
-    kullanici: Kullanici,
+    kullanici: Mudur,
     business_day: date | None = None,
 ) -> PanoYaniti:
     """Izgara kullanıcının kapsamıyla sınırlı (FR-0205).

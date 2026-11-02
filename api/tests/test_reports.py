@@ -335,16 +335,33 @@ def test_uc_nokta_galeri(tmp_path: Path) -> None:
     assert isinstance(yanit.json(), list)
 
 
-def test_uc_nokta_personel_kapsamiyla_suzuluyor(tmp_path: Path) -> None:
-    """Personel yalnızca kendi şubesini görür (FR-0205)."""
+def test_uc_nokta_sube_kapsamiyla_suzuluyor(tmp_path: Path) -> None:
+    """Şube müdürü yalnızca kendi şubesini görür (FR-0205, kapsam)."""
     bugun = datetime.now(UTC).date()
-    personel = _istemci(tmp_path, "staff")
+    mudur = _istemci(tmp_path, "branch_manager")
 
-    govde = personel.get(
+    govde = mudur.get(
         "/api/v1/reports/monthly", params={"year": bugun.year, "month": bugun.month}
     ).json()
 
     assert all(s["branch_code"] == "KDK" for s in govde["branches"])
+
+
+def test_uc_nokta_personel_raporu_goremiyor(tmp_path: Path) -> None:
+    """FR-0205, rol tarafı: matris personele "kendi kaydı" diyor.
+
+    Şubenin tamamının aylık özeti "kendi kaydı" değil. O görünüm
+    personelin mobil ekranı; yazılana kadar kapı kapalı — kapsamla
+    daraltıp açık bırakmak, matrisin vermediği yetkiyi vermek olurdu.
+    """
+    bugun = datetime.now(UTC).date()
+    personel = _istemci(tmp_path, "staff")
+
+    yanit = personel.get(
+        "/api/v1/reports/monthly", params={"year": bugun.year, "month": bugun.month}
+    )
+
+    assert yanit.status_code == 403
 
 
 def test_plan_servisi_ile_ayni_gercek(tmp_path: Path) -> None:
@@ -406,12 +423,12 @@ def test_pdf_ekranla_ayni_kapsami_kullanir(tmp_path: Path) -> None:
     giden belge, ekranda görünenden fazlasını gösterirdi.
     """
     bugun = datetime.now(UTC).date()
-    personel = _istemci(tmp_path, "staff")
+    mudur = _istemci(tmp_path, "branch_manager")
 
-    ekran = personel.get(
+    ekran = mudur.get(
         "/api/v1/reports/monthly", params={"year": bugun.year, "month": bugun.month}
     ).json()
-    kagit = personel.get(
+    kagit = mudur.get(
         "/api/v1/reports/monthly.pdf", params={"year": bugun.year, "month": bugun.month}
     )
 

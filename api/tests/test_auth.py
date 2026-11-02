@@ -179,6 +179,52 @@ def _istemci(rol: str | None = None) -> TestClient:
     return istemci if rol is None else oturum_ac(istemci, rol)
 
 
+#: Rol matrisinin (06-kvkk-ve-guvenlik) personele **vermediği** panel
+#: okuma uçları. Kapsam denetimi bunları zaten şubeyle sınırlıyordu;
+#: eksik olan rol boyutuydu — personel kendi şubesinin plan, şablon ve
+#: raporlarını okuyabiliyordu (FR-0205 "yetki = rol × kapsam").
+PANEL_OKUMA = [
+    "/api/v1/branches",
+    "/api/v1/templates",
+    "/api/v1/plans",
+    "/api/v1/dashboard",
+    "/api/v1/actions",
+    "/api/v1/actions/counts",
+    "/api/v1/reports/exports",
+    "/api/v1/reports/monthly?year=2026&month=11",
+    "/api/v1/reports/measurements?first_day=2026-11-01&last_day=2026-11-30",
+    "/api/v1/reports/gallery?first_day=2026-11-01&last_day=2026-11-30",
+]
+
+#: Personelin işi bunlarla yürüyor; kapalı olsalar ürün çalışmaz.
+PERSONEL_ISI = ["/api/v1/auth/me", "/api/v1/runs"]
+
+
+@pytest.mark.parametrize("yol", PANEL_OKUMA)
+def test_personel_panel_okumasindan_dislaniyor(yol: str) -> None:
+    """TC-006: yetki = rol × kapsam; yalnızca kapsam yetmiyor."""
+    yanit = _istemci("staff").get(yol)
+
+    assert yanit.status_code == 403, f"{yol} -> {yanit.status_code}"
+    assert _hata_kodu(yanit) == "yetki-yok"
+
+
+@pytest.mark.parametrize("yol", PERSONEL_ISI)
+def test_personel_kendi_isini_gorebiliyor(yol: str) -> None:
+    yanit = _istemci("staff").get(yol)
+
+    assert yanit.status_code == 200, f"{yol} -> {yanit.text}"
+
+
+@pytest.mark.parametrize("rol", ["admin", "region_manager", "branch_manager"])
+def test_mudurler_panel_okumasini_gorebiliyor(rol: str) -> None:
+    """Kapı personeli dışarıda bırakırken müdürleri de kapatmasın."""
+    istemci = _istemci(rol)
+
+    for yol in PANEL_OKUMA:
+        assert istemci.get(yol).status_code == 200, f"{rol} {yol}"
+
+
 def _hata_kodu(yanit: httpx.Response) -> str:
     """problem+json'da sözleşme `type`tir; başı sabit ön ektir."""
     kod: str = yanit.json()["type"]

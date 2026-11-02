@@ -141,3 +141,42 @@ def test_ters_aralik_bos_doner() -> None:
         duration_minutes=60,
     )
     assert windows(kural, takvim, date(2026, 11, 5), date(2026, 11, 2)) == []
+
+
+# --- iş kuralı sınırları (FR-0504, FR-0506) ---------------------------
+
+
+def test_tolerans_tavani() -> None:
+    """Saatlerce tolerans, "geç" ile "kaçırıldı" farkını siler."""
+    with pytest.raises(ValueError, match="tolerance_minutes en çok 240"):
+        WindowRule(
+            recurrence="FREQ=DAILY",
+            starts_on=date(2026, 11, 3),
+            start_time=time(9, 0),
+            duration_minutes=60,
+            tolerance_minutes=241,
+        )
+
+
+def test_pencere_ve_tolerans_toplami_24_saati_asamaz() -> None:
+    """Aşarsa çalıştırma ertesi gününkiyle çakışır."""
+    with pytest.raises(ValueError, match="toplamı 1440"):
+        WindowRule(
+            recurrence="FREQ=DAILY",
+            starts_on=date(2026, 11, 3),
+            start_time=time(9, 0),
+            duration_minutes=1440,
+            tolerance_minutes=240,
+        )
+
+
+def test_sinirlarin_tam_ucu_gecerli() -> None:
+    kural = WindowRule(
+        recurrence="FREQ=DAILY",
+        starts_on=date(2026, 11, 3),
+        start_time=time(9, 0),
+        duration_minutes=1200,
+        tolerance_minutes=240,
+    )
+
+    assert kural.tolerance_minutes == 240

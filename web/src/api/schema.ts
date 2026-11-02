@@ -39,6 +39,16 @@ export interface paths {
         /**
          * Doğrulama kodu iste
          * @description 3 hatalı denemede 15 dk blok, 60 sn içinde yeniden gönderim yok (TC-009).
+         *
+         *     Oturumsuz uç nokta olduğu için iki şey var: IP başına hız sınırı ve
+         *     olay günlüğü kaydı. İkincisi daha önemli — sınır atlatılabilir,
+         *     kayıt atlatılamaz: bilinmeyen numaralara yapılan yüzlerce istek
+         *     günlükte art arda görünür.
+         *
+         *     **Telefon numarası kayda yazılmıyor** (BR-21). Numara biliniyorsa
+         *     kayıt kullanıcıya bağlanıyor; bilinmiyorsa kayıt "bilinmeyen" diyor
+         *     ve numarayı saklamıyor. Böylece "hangi hesaplar yoklandı" sorusu
+         *     cevaplanabiliyor, yoklanan numaralar ise ürünün içinde birikmiyor.
          */
         post: operations["kod_iste_api_v1_auth_request_code_post"];
         delete?: never;

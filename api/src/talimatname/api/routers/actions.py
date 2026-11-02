@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field
 from talimatname.api.bagimliliklar import aksiyon_servisi, organizasyon_servisi
 from talimatname.api.guvenlik import (
     Kullanici,
+    Mudur,
     sube_erisimi_zorunlu,
 )
 from talimatname.domain.actions import PRIORITY_LABELS, SOURCE_LABELS, Action, Priority
@@ -102,7 +103,7 @@ def _sube_adlari(org: OrganizationService) -> dict[UUID, str]:
 def aksiyon_listesi(
     servis: Servis,
     org: OrgServis,
-    kullanici: Kullanici,
+    kullanici: Mudur,
     branch_id: UUID | None = None,
     action_status: Literal["open", "closed", "all"] = "open",
     only_overdue: bool = False,
@@ -123,7 +124,7 @@ def aksiyon_listesi(
 
 
 @router.get("/actions/counts", summary="Aksiyon sayaçları")
-def aksiyon_sayaclari(servis: Servis, org: OrgServis, kullanici: Kullanici) -> AksiyonSayaclari:
+def aksiyon_sayaclari(servis: Servis, org: OrgServis, kullanici: Mudur) -> AksiyonSayaclari:
     """Sayaçlar da kapsamla sınırlı: bölge müdürü kendi bölgesinin yükünü görür."""
     sayac = servis.counts(erisilebilir_sube_idleri(kullanici, org))
     return AksiyonSayaclari(
@@ -133,7 +134,7 @@ def aksiyon_sayaclari(servis: Servis, org: OrgServis, kullanici: Kullanici) -> A
 
 @router.post("/actions", status_code=status.HTTP_201_CREATED, summary="Elle aksiyon aç")
 def aksiyon_ac(
-    girdi: ElleAksiyonGirdisi, servis: Servis, org: OrgServis, kullanici: Kullanici
+    girdi: ElleAksiyonGirdisi, servis: Servis, org: OrgServis, kullanici: Mudur
 ) -> AksiyonOzet:
     """FR-0908. Vade önceliğe göre sabittir (BR-10): kritik 4 sa, yüksek 24, normal 72.
 

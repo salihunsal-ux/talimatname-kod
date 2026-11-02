@@ -329,6 +329,62 @@ def test_tc031_onizleme_kaydetmeden_calisir(istemci: TestClient) -> None:
     assert len(istemci.get("/api/v1/plans").json()) == onceki_plan_sayisi  # kaydetmedi
 
 
+def _plan_govdesi(istemci: TestClient, **zamanlama: object) -> dict[str, object]:
+    surum = next(
+        v
+        for t in istemci.get("/api/v1/templates").json()
+        for v in t["versions"]
+        if v["status"] == "published"
+    )
+    sube = next(s for d in istemci.get("/api/v1/branches").json() for s in d["branches"])
+    temel = {
+        "repeat": "daily",
+        "starts_on": "2026-11-03",
+        "start_mode": "fixed",
+        "start_time": "09:00",
+        "duration_minutes": 60,
+        "tolerance_minutes": 0,
+    }
+    return {
+        "name": "Sınır sınaması",
+        "template_version_id": surum["id"],
+        "branch_ids": [sube["id"]],
+        "schedule": {**temel, **zamanlama},
+    }
+
+
+def test_uc_nokta_tolerans_tavani(istemci: TestClient) -> None:
+    """FR-0506: tolerans en çok 240 dk.
+
+    Sınırsızken "Geç tamamlandı" ile "Kaçırıldı" arasındaki fark
+    kalmıyordu: 16 saat sonra gönderilen liste de geç sayılıyordu.
+    """
+    yanit = istemci.post("/api/v1/plans", json=_plan_govdesi(istemci, tolerance_minutes=1000))
+
+    assert yanit.status_code == 422, yanit.text
+    assert any(h["alan"].endswith("tolerance_minutes") for h in yanit.json()["errors"])
+
+
+def test_uc_nokta_pencere_ve_tolerans_toplami(istemci: TestClient) -> None:
+    """FR-0504: pencere + tolerans ≤ 24 saat; yoksa ertesi günle çakışır."""
+    yanit = istemci.post(
+        "/api/v1/plans",
+        json=_plan_govdesi(istemci, duration_minutes=1440, tolerance_minutes=240),
+    )
+
+    assert yanit.status_code == 422, yanit.text
+    assert "1440" in yanit.text
+
+
+def test_uc_nokta_sinirin_tam_ucu_kabul(istemci: TestClient) -> None:
+    yanit = istemci.post(
+        "/api/v1/plans",
+        json=_plan_govdesi(istemci, duration_minutes=1200, tolerance_minutes=240),
+    )
+
+    assert yanit.status_code == 201, yanit.text
+
+
 def test_uc_nokta_haftalik_planda_gun_secilmeli(istemci: TestClient) -> None:
     surum = next(
         v

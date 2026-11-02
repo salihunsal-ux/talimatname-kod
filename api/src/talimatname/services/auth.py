@@ -112,7 +112,9 @@ class AuthService:
             created_at=an,
             blocked_until=mevcut.blocked_until if mevcut else None,
         )
-        log.info("auth.kod_uretildi", telefon=numara, gonderildi=False)
+        # Telefon **yazılmıyor**: kişisel veri ve uygulama günlüğü,
+        # denetim günlüğünden daha az korunan bir yer (BR-21).
+        log.info("auth.kod_uretildi", kullanici_id=str(kullanici.id), gonderildi=False)
         # Kod yanıta yalnızca geliştirmede ya da demo modunda ekleniyor.
         # Demo modu ayrı bir ayar, çünkü ortam adını giriş davranışı için
         # zorlamak altı ay sonra "burası neden dev?" sorusunu doğuruyor;
@@ -156,6 +158,15 @@ class AuthService:
             ttl=timedelta(minutes=self._ayar.access_token_minutes),
             now=self._now(),
         )
+
+    def user_id_for(self, phone: str) -> UUID | None:
+        """Olay kaydı için kullanıcı kimliği; numara bilinmiyorsa None.
+
+        Kayda telefon yazılmıyor (BR-21); kimlik yazılıyor ki "hangi
+        hesap yoklandı" sorusu cevaplanabilsin.
+        """
+        kullanici = self._users.user_by_phone(normalize_phone(phone))
+        return kullanici.id if kullanici is not None else None
 
     def user_from_token(self, token: str) -> User:
         govde = coz(self._ayar, token, scope=SCOPE)

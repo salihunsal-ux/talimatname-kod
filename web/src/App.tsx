@@ -3,7 +3,9 @@ import { useState } from 'react';
 
 import { belirtecAl, benGetir, cikisYap } from './api/oturum';
 import { sorguIstemcisi } from './api/sorguIstemcisi';
-import { OturumBaglami } from './api/yetki';
+import { mudurMu, OturumBaglami } from './api/yetki';
+import { Dugme } from './bilesenler/Dugme';
+import { Kart } from './bilesenler/Kart';
 import { Kabuk } from './bilesenler/Kabuk';
 import { SistemDurumu } from './features/sistem/SistemDurumu';
 import { DogrulamaSayfasi } from './features/dogrulama/DogrulamaSayfasi';
@@ -93,6 +95,25 @@ function Kapi() {
   if (belirtec === null || ben.isError) {
     if (ben.isError) cikisYap();
     return <GirisSayfasi onGiris={giris} />;
+  }
+
+  // Personelin panelde açabileceği ekran yok (rol matrisi); sunucu da
+  // aynı kapıyı tutuyor. Menüyü gösterip her tıklamada 403 vermek
+  // yerine durumu bir cümleyle söylüyoruz.
+  if (ben.data && !mudurMu(ben.data)) {
+    return (
+      <main className="orta-sayfa">
+        <Kart yuzen style={{ width: '100%', maxWidth: 380, textAlign: 'center' }}>
+          <h1 className="baslik-ekran">{tr.giris.panelMudurler}</h1>
+          <p className="meta" style={{ margin: 'var(--bosluk-3) 0 var(--bosluk-6)' }}>
+            {tr.giris.panelMudurlerAciklama}
+          </p>
+          <Dugme gorunum="ikincil" tam type="button" onClick={cik}>
+            {tr.giris.cikis}
+          </Dugme>
+        </Kart>
+      </main>
+    );
   }
 
   return (

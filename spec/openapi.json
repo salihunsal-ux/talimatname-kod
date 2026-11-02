@@ -34,7 +34,7 @@
           "oturum"
         ],
         "summary": "Doğrulama kodu iste",
-        "description": "3 hatalı denemede 15 dk blok, 60 sn içinde yeniden gönderim yok (TC-009).",
+        "description": "3 hatalı denemede 15 dk blok, 60 sn içinde yeniden gönderim yok (TC-009).\n\nOturumsuz uç nokta olduğu için iki şey var: IP başına hız sınırı ve\nolay günlüğü kaydı. İkincisi daha önemli — sınır atlatılabilir,\nkayıt atlatılamaz: bilinmeyen numaralara yapılan yüzlerce istek\ngünlükte art arda görünür.\n\n**Telefon numarası kayda yazılmıyor** (BR-21). Numara biliniyorsa\nkayıt kullanıcıya bağlanıyor; bilinmiyorsa kayıt \"bilinmeyen\" diyor\nve numarayı saklamıyor. Böylece \"hangi hesaplar yoklandı\" sorusu\ncevaplanabiliyor, yoklanan numaralar ise ürünün içinde birikmiyor.",
         "operationId": "kod_iste_api_v1_auth_request_code_post",
         "requestBody": {
           "content": {
@@ -8354,7 +8354,7 @@
           },
           "tolerance_minutes": {
             "type": "integer",
-            "maximum": 1440.0,
+            "maximum": 240.0,
             "minimum": 0.0,
             "title": "Tolerance Minutes",
             "default": 0

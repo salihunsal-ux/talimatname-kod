@@ -61,6 +61,7 @@ GENESIS = "0" * 64
 EVENT_TYPES: dict[str, str] = {
     "oturum.acildi": "Oturum açıldı",
     "oturum.reddedildi": "Oturum reddedildi",
+    "oturum.kod_istendi": "Doğrulama kodu istendi",
     "calistirma.gonderildi": "Çalıştırma gönderildi",
     "calistirma.kacirildi": "Çalıştırma kaçırıldı",
     "kanit.alindi": "Kanıt alındı",

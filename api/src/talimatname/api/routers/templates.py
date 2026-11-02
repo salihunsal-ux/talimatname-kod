@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, status
 from pydantic import BaseModel, Field
 
 from talimatname.api.bagimliliklar import sablon_servisi
-from talimatname.api.guvenlik import Kullanici, Yonetici
+from talimatname.api.guvenlik import Kullanici, Mudur, Yonetici
 from talimatname.domain.templates import (
     ITEM_TYPE_LABELS,
     ChoiceOption,
@@ -187,7 +187,7 @@ def _bolumler(girdi: list[BolumGirdisi]) -> tuple[Section, ...]:
 
 
 @router.get("/templates", summary="Şablon listesi (sürümleriyle)")
-def sablon_listesi(servis: Servis, _: Kullanici) -> list[SablonOzet]:
+def sablon_listesi(servis: Servis, _: Mudur) -> list[SablonOzet]:
     return [
         SablonOzet(
             id=sablon.id,
@@ -199,6 +199,9 @@ def sablon_listesi(servis: Servis, _: Kullanici) -> list[SablonOzet]:
     ]
 
 
+# Sürüm detayı personele de açık: çalıştırmayı dolduran kişi madde
+# listesini okumak zorunda (senk akışı). Matristeki "Şablon –" satırı
+# kütüphaneyi yönetmekle ilgili; kütüphane listesi (/templates) kapalı.
 @router.get("/template-versions/{version_id}", summary="Sürüm detayı")
 def surum_detayi(version_id: UUID, servis: Servis, _: Kullanici) -> SurumDetay:
     surum = servis.version(version_id)

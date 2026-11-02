@@ -26,6 +26,17 @@ export function rolVar(ben: Ben | null, ...aranan: Rol[]): boolean {
   return aranan.some((rol) => sahip.includes(rol));
 }
 
+/**
+ * Panelin okuma ekranlarını açabilen roller.
+ *
+ * Sunucu da aynı kümeyi istiyor (`guvenlik.Mudur`); burada tutmanın
+ * sebebi personele kapalı kapıyı göstermemek. Personelin ekranı mobil
+ * uygulamada (ADR-0013 Faz B).
+ */
+export function mudurMu(ben: Ben | null): boolean {
+  return rolVar(ben, 'admin', 'region_manager', 'branch_manager');
+}
+
 /** Yazma yetkisi olan tek rol: yönetici (ST-005). */
 export function yoneticiMi(ben: Ben | null): boolean {
   return rolVar(ben, 'admin');

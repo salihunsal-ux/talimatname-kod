@@ -9,20 +9,37 @@ yer almaz; o aşamada SMS sürücüsü (ST-067) devreye girer.
 from __future__ import annotations
 
 from dataclasses import replace
+from datetime import timedelta
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel, Field
 
 from talimatname.api.bagimliliklar import izi_servisi, kimlik_servisi
 from talimatname.api.guvenlik import Kullanici
+from talimatname.api.hiz_siniri import HizSiniri
+from talimatname.api.istek import istemci_ip
 from talimatname.domain.errors import DomainError
 from talimatname.domain.users import ROLE_LABELS
 from talimatname.services.audit import AuditService, current_context
-from talimatname.services.auth import AuthService
+from talimatname.services.auth import AuthService, UnknownPhone
 
 router = APIRouter(tags=["oturum"])
+
+#: Dakikada izin verilen kod isteği (IP başına). Bir insan kod isteyip
+#: 60 sn bekliyor; aynı IP'nin arkasında vardiya değişiminde birkaç
+#: kişi olabilir, bu yüzden sınır cömert. Kapattığı şey hız: uç nokta
+#: kayıtlı numaraya 200, kayıtsıza 404 dönüyor, yani **numara sorgusu**
+#: olarak kullanılabiliyor. Sınırsızken bir zincirin personel listesi
+#: saniyeler içinde çıkarılabiliyordu.
+#:
+#: Sınırın ne olmadığı `hiz_siniri` modülünde yazılı: süreç içi ve
+#: IP'ye bağlı. Asıl savunma, bu isteğin artık **iz bırakması**.
+KOD_ISTEK_SINIRI = 20
+SINIR_PENCERESI = timedelta(minutes=1)
+
+hiz_siniri = HizSiniri(limit=KOD_ISTEK_SINIRI, period=SINIR_PENCERESI)
 
 Servis = Annotated[AuthService, Depends(kimlik_servisi)]
 Iz = Annotated[AuditService, Depends(izi_servisi)]
@@ -88,9 +105,35 @@ def _ben(kullanici: object) -> BenYaniti:
 
 
 @router.post("/auth/request-code", summary="Doğrulama kodu iste")
-def kod_iste(girdi: KodIstegi, servis: Servis) -> KodYaniti:
-    """3 hatalı denemede 15 dk blok, 60 sn içinde yeniden gönderim yok (TC-009)."""
-    telefon, kod = servis.request_code(girdi.phone)
+def kod_iste(girdi: KodIstegi, request: Request, servis: Servis, iz: Iz) -> KodYaniti:
+    """3 hatalı denemede 15 dk blok, 60 sn içinde yeniden gönderim yok (TC-009).
+
+    Oturumsuz uç nokta olduğu için iki şey var: IP başına hız sınırı ve
+    olay günlüğü kaydı. İkincisi daha önemli — sınır atlatılabilir,
+    kayıt atlatılamaz: bilinmeyen numaralara yapılan yüzlerce istek
+    günlükte art arda görünür.
+
+    **Telefon numarası kayda yazılmıyor** (BR-21). Numara biliniyorsa
+    kayıt kullanıcıya bağlanıyor; bilinmiyorsa kayıt "bilinmeyen" diyor
+    ve numarayı saklamıyor. Böylece "hangi hesaplar yoklandı" sorusu
+    cevaplanabiliyor, yoklanan numaralar ise ürünün içinde birikmiyor.
+    """
+    hiz_siniri.zorunlu_kil(istemci_ip(request))
+    try:
+        telefon, kod = servis.request_code(girdi.phone)
+    except UnknownPhone:
+        iz.record("oturum.kod_istendi", object_type="kullanici", after={"sonuc": "bilinmeyen"})
+        raise
+    except DomainError as hata:
+        iz.record("oturum.kod_istendi", object_type="kullanici", after={"sonuc": hata.code})
+        raise
+
+    iz.record(
+        "oturum.kod_istendi",
+        object_type="kullanici",
+        object_id=servis.user_id_for(telefon),
+        after={"sonuc": "gonderildi"},
+    )
     return KodYaniti(phone=telefon, dev_code=kod)
 
 
