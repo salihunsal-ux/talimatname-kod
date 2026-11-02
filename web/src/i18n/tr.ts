@@ -169,7 +169,9 @@ export const tr = {
     gir: 'Giriş yap',
     numarayiDegistir: 'Numarayı değiştir',
     gonderilmedi: 'SMS sağlayıcısı henüz bağlı değil: kod telefona gönderilmedi.',
-    gelistirmeKodu: (kod: string) => `Geliştirme kodu: ${kod}`,
+    // Kod ekranda, çünkü SMS sağlayıcısı bağlı değil (ST-067). Etiket
+    // 'geliştirme' demiyor: aynı metin demo kurulumunda da görünüyor.
+    ekrandakiKod: (kod: string) => `Giriş kodu: ${kod}`,
     cikis: 'Çıkış',
     oturumDustu: 'Oturumunuz sona erdi, yeniden girin',
     belgeDogrula: 'Belge doğrula',

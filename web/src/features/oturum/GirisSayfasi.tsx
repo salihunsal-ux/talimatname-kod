@@ -105,7 +105,7 @@ export function GirisSayfasi({ onGiris }: { onGiris: () => void }) {
                 {bilgi.dev_code !== null && bilgi.dev_code !== undefined && (
                   <>
                     {' '}
-                    <strong>{tr.giris.gelistirmeKodu(bilgi.dev_code)}</strong>
+                    <strong>{tr.giris.ekrandakiKod(bilgi.dev_code)}</strong>
                   </>
                 )}
               </p>

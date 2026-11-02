@@ -38,7 +38,7 @@ describe('GirisSayfasi', () => {
     const uyari = await screen.findByRole('status');
     expect(uyari).toHaveTextContent('kod telefona gönderilmedi');
     expect(uyari.textContent).not.toMatch(/gönderildi(?!\W*değil)/i);
-    expect(uyari).toHaveTextContent('Geliştirme kodu: 123456');
+    expect(uyari).toHaveTextContent('Giriş kodu: 123456');
   });
 
   it('sağlayıcı bağlandığında uyarı kaybolur', async () => {
