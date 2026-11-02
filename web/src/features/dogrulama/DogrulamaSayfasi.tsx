@@ -3,6 +3,8 @@ import { useState } from 'react';
 
 import { problemCoz } from '../../api/client';
 import { belgeDogrula, type DogrulamaSonucu } from '../../api/dogrulama';
+import { Dugme } from '../../bilesenler/Dugme';
+import { Kart } from '../../bilesenler/Kart';
 import { tr } from '../../i18n/tr';
 
 /**
@@ -29,12 +31,12 @@ export function DogrulamaSayfasi({ kod: ilkKod }: { kod: string }) {
   });
 
   return (
-    <main style={sayfa}>
-      <section aria-labelledby="dogrulama-baslik" style={kart}>
-        <h1 id="dogrulama-baslik" style={{ fontSize: 'var(--baslik-ekran)', margin: 0 }}>
+    <main className="orta-sayfa">
+      <Kart yuzen aria-labelledby="dogrulama-baslik" style={{ width: '100%', maxWidth: 440 }}>
+        <h1 id="dogrulama-baslik" className="baslik-ekran">
           {tr.dogrulama.baslik}
         </h1>
-        <p style={{ color: 'var(--renk-sessiz)', fontSize: 'var(--meta)', marginTop: 4 }}>
+        <p className="meta" style={{ margin: 'var(--bosluk-1) 0 var(--bosluk-4)' }}>
           {tr.dogrulama.aciklama}
         </p>
 
@@ -44,7 +46,7 @@ export function DogrulamaSayfasi({ kod: ilkKod }: { kod: string }) {
             setSorulan(kod.trim());
           }}
         >
-          <label htmlFor="belge-kodu" style={etiket}>
+          <label htmlFor="belge-kodu" className="alan-etiket">
             {tr.dogrulama.kod}
           </label>
           <input
@@ -56,26 +58,36 @@ export function DogrulamaSayfasi({ kod: ilkKod }: { kod: string }) {
             placeholder={tr.dogrulama.kodOrnek}
             autoCapitalize="characters"
             spellCheck={false}
-            style={{ ...alan, letterSpacing: '0.12em', textTransform: 'uppercase' }}
+            className="alan"
+            style={{ letterSpacing: '0.12em', textTransform: 'uppercase' }}
           />
-          <button type="submit" disabled={sonuc.isFetching} style={dugme}>
+          <Dugme
+            type="submit"
+            tam
+            disabled={sonuc.isFetching}
+            style={{ marginTop: 'var(--bosluk-3)' }}
+          >
             {sonuc.isFetching ? tr.genel.yukleniyor : tr.dogrulama.sor}
-          </button>
+          </Dugme>
         </form>
 
         {sonuc.isError && (
-          <p role="alert" style={{ ...kutu, borderColor: 'var(--renk-kritik)' }}>
+          <p
+            role="alert"
+            className="bildiri bildiri--hata"
+            style={{ marginTop: 'var(--bosluk-3)' }}
+          >
             {hataMetni(sonuc.error)}
           </p>
         )}
 
         {sonuc.data !== undefined && !sonuc.isError && <Kayit kayit={sonuc.data} />}
 
-        <p style={{ ...dipnot, marginTop: 'var(--bosluk-4)' }}>{tr.dogrulama.sinir}</p>
-        <a href="/" style={{ fontSize: 'var(--meta)', color: 'var(--renk-marka)' }}>
+        <p className="dipnot">{tr.dogrulama.sinir}</p>
+        <a href="/" className="meta" style={{ color: 'var(--renk-marka)' }}>
           {tr.dogrulama.panele}
         </a>
-      </section>
+      </Kart>
     </main>
   );
 }
@@ -86,17 +98,13 @@ function Kayit({ kayit }: { kayit: DogrulamaSonucu }) {
     <div style={{ marginTop: 'var(--bosluk-4)' }}>
       <p
         role="status"
-        style={{
-          ...kutu,
-          background: saglam ? 'var(--renk-marka-acik)' : 'var(--renk-uyari-acik)',
-          borderColor: saglam ? 'var(--renk-marka)' : 'var(--renk-uyari)',
-          color: 'var(--renk-murekkep)',
-        }}
+        className={saglam ? 'bildiri bildiri--saglam' : 'bildiri bildiri--uyari'}
+        style={{ margin: 0 }}
       >
         {saglam ? tr.dogrulama.saglam : tr.dogrulama.kirik}
       </p>
 
-      <dl style={liste}>
+      <dl className="veri-liste">
         <Satir ad={tr.dogrulama.kod} deger={kayit.code} />
         <Satir ad={tr.dogrulama.tur} deger={kayit.document_label} />
         {kayit.period !== null && kayit.period !== undefined && (
@@ -116,7 +124,7 @@ function Kayit({ kayit }: { kayit: DogrulamaSonucu }) {
         />
       </dl>
 
-      <p style={dipnot}>{tr.dogrulama.karsilastir}</p>
+      <p className="dipnot">{tr.dogrulama.karsilastir}</p>
     </div>
   );
 }
@@ -124,8 +132,8 @@ function Kayit({ kayit }: { kayit: DogrulamaSonucu }) {
 function Satir({ ad, deger }: { ad: string; deger: string }) {
   return (
     <>
-      <dt style={{ color: 'var(--renk-murekkep2)', fontSize: 'var(--meta)' }}>{ad}</dt>
-      <dd style={{ margin: 0, fontVariantNumeric: 'tabular-nums' }}>{deger}</dd>
+      <dt>{ad}</dt>
+      <dd>{deger}</dd>
     </>
   );
 }
@@ -166,72 +174,3 @@ function hataMetni(sebep: unknown): string {
       return problem.detail ?? problem.title;
   }
 }
-
-const sayfa = {
-  minHeight: '100vh',
-  display: 'grid',
-  placeItems: 'center',
-  padding: 'var(--bosluk-4)',
-} as const;
-
-const kart = {
-  background: 'var(--renk-yuzey)',
-  border: '1px solid var(--renk-cizgi)',
-  borderRadius: 'var(--kose-kart)',
-  padding: 'var(--bosluk-4)',
-  width: '100%',
-  maxWidth: 440,
-} as const;
-
-const etiket = {
-  display: 'block',
-  marginTop: 'var(--bosluk-4)',
-  fontSize: 'var(--meta)',
-  color: 'var(--renk-murekkep2)',
-} as const;
-
-const alan = {
-  width: '100%',
-  minHeight: 44,
-  marginTop: 4,
-  padding: '0 var(--bosluk-3)',
-  border: '1px solid var(--renk-cizgi)',
-  borderRadius: 'var(--kose-dugme)',
-  background: 'var(--renk-zemin)',
-  color: 'var(--renk-murekkep)',
-  boxSizing: 'border-box',
-} as const;
-
-const dugme = {
-  width: '100%',
-  minHeight: 44,
-  marginTop: 'var(--bosluk-3)',
-  border: '1px solid var(--renk-marka)',
-  borderRadius: 'var(--kose-dugme)',
-  background: 'var(--renk-marka)',
-  color: '#fff',
-  cursor: 'pointer',
-} as const;
-
-const kutu = {
-  marginTop: 'var(--bosluk-3)',
-  padding: 'var(--bosluk-2) var(--bosluk-3)',
-  border: '1px solid var(--renk-cizgi)',
-  borderRadius: 'var(--kose-kart)',
-  fontSize: 'var(--meta)',
-} as const;
-
-const liste = {
-  display: 'grid',
-  gridTemplateColumns: 'auto 1fr',
-  columnGap: 'var(--bosluk-4)',
-  rowGap: 6,
-  alignItems: 'baseline',
-  margin: 'var(--bosluk-3) 0 0',
-} as const;
-
-const dipnot = {
-  marginTop: 'var(--bosluk-3)',
-  color: 'var(--renk-sessiz)',
-  fontSize: 'var(--meta)',
-} as const;

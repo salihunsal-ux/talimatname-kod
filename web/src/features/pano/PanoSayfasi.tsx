@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { panoGetir, type Hucre } from '../../api/pano';
 import { CalistirmaDetayi } from '../calistirma/CalistirmaDetayi';
 import { tr } from '../../i18n/tr';
+import { Dugme } from '../../bilesenler/Dugme';
 
 /** Hücre görünümü: renk tek başına anlam taşımaz, ikon + başlık var (NFR-11). */
 const HUCRE: Record<string, { ikon: string; zemin: string; yazi: string; ad: string }> = {
@@ -112,7 +113,7 @@ export function PanoSayfasi() {
             value={gun}
             onChange={(o) => setGun(o.target.value)}
             aria-label={tr.pano.isGunu}
-            style={alan}
+            className="alan"
           />
         </label>
         {pano.isFetching && (
@@ -162,7 +163,7 @@ export function PanoSayfasi() {
       )}
 
       {satirlar.length > 0 && veri && (
-        <table style={{ borderCollapse: 'collapse', marginTop: 'var(--bosluk-3)' }}>
+        <table className="tablo">
           <thead>
             <tr style={{ fontSize: 'var(--etiket)', color: 'var(--renk-sessiz)' }}>
               <th style={{ textAlign: 'left', padding: '4px 10px 4px 0' }}>{tr.pano.sube}</th>
@@ -198,21 +199,8 @@ export function PanoSayfasi() {
                         disabled={!hucre.run_id}
                         onClick={() => hucre.run_id && setAcikCalistirma(hucre.run_id)}
                         title={`${g.ad}${hucre.window_start ? ` · ${saat(hucre.window_start)}–${saat(hucre.window_end)}` : ''}`}
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: 6,
-                          minWidth: 112,
-                          minHeight: 32,
-                          padding: '0 var(--bosluk-3)',
-                          borderRadius: 'var(--kose-dugme)',
-                          background: g.zemin,
-                          color: g.yazi,
-                          fontSize: 'var(--etiket)',
-                          fontWeight: 600,
-                          border: '1px solid transparent',
-                          cursor: hucre.run_id ? 'pointer' : 'default',
-                        }}
+                        className="izgara-hucre"
+                        style={{ background: g.zemin, color: g.yazi }}
                       >
                         <span aria-hidden="true">{g.ikon}</span>
                         {g.ad}
@@ -233,25 +221,17 @@ export function PanoSayfasi() {
       )}
 
       {veri && veri.rows.length > 0 && (
-        <button
+        <Dugme
+          gorunum="ikincil"
+          boyut="kucuk"
           type="button"
           onClick={() => setTumu(!tumu)}
-          style={{
-            marginTop: 'var(--bosluk-3)',
-            padding: '0 var(--bosluk-3)',
-            minHeight: 36,
-            borderRadius: 'var(--kose-dugme)',
-            border: '1px solid var(--renk-cizgi)',
-            background: 'var(--renk-yuzey2)',
-            color: 'var(--renk-murekkep)',
-            cursor: 'pointer',
-            fontSize: 'var(--etiket)',
-          }}
+          style={{ marginTop: 'var(--bosluk-3)' }}
         >
           {tumu
             ? tr.pano.yalnizcaSorunlu
             : `${tr.pano.tumunuGoster} (${veri.rows.length - veri.exception_row_count} ${tr.pano.sorunsuz})`}
-        </button>
+        </Dugme>
       )}
     </div>
   );
@@ -327,12 +307,3 @@ function Gosterge({ ad, deger, vurgu }: { ad: string; deger: string; vurgu?: 'uy
     </div>
   );
 }
-
-const alan = {
-  height: 36,
-  padding: '0 var(--bosluk-2)',
-  borderRadius: 'var(--kose-dugme)',
-  border: '1px solid var(--renk-cizgi)',
-  background: 'var(--renk-yuzey)',
-  color: 'var(--renk-murekkep)',
-} as const;

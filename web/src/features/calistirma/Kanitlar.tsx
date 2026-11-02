@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { kanitBaglantisi, type Kanit } from '../../api/kanitlar';
 import { Cip } from '../../bilesenler/Cip';
 import { tr } from '../../i18n/tr';
+import { Dugme } from '../../bilesenler/Dugme';
 
 /**
  * Bir maddenin kanıtları: küçük görsel + bayraklar (FR-0615).
@@ -58,17 +59,11 @@ function KanitKarti({ kanit }: { kanit: Kanit }) {
   return (
     <figure style={{ margin: 0, maxWidth: 160 }}>
       {baglanti.data && !acilmadi ? (
-        <button
+        <Dugme
+          gorunum="ikincil"
           type="button"
           onClick={tamBoyAc}
           title={kanit.has_stamp ? tr.kanit.damgaliAc : tr.kanit.hamAc}
-          style={{
-            padding: 0,
-            border: 'none',
-            background: 'none',
-            cursor: 'pointer',
-            display: 'block',
-          }}
         >
           <img
             src={baglanti.data}
@@ -83,7 +78,7 @@ function KanitKarti({ kanit }: { kanit: Kanit }) {
               background: 'var(--renk-yuzey2)',
             }}
           />
-        </button>
+        </Dugme>
       ) : (
         <div
           style={{

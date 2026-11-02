@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { sistemDurumuGetir } from '../../api/sistem';
 import { tr } from '../../i18n/tr';
 import { Cip } from '../../bilesenler/Cip';
+import { Dugme } from '../../bilesenler/Dugme';
 
 /**
  * İlk uçtan uca dilim: üretilmiş istemciyle /health çağrısı, üç durum
@@ -40,20 +41,9 @@ export function SistemDurumu() {
         <div role="alert" style={{ marginTop: 'var(--bosluk-3)' }}>
           <Cip renk="kritik" ikon="✕" metin={tr.sistem.ulasilamiyor} />
           <p style={{ color: 'var(--renk-murekkep2)' }}>{tr.hata.aglaBaglanilamadi}</p>
-          <button
-            type="button"
-            onClick={() => void refetch()}
-            style={{
-              padding: '0 var(--bosluk-4)',
-              borderRadius: 'var(--kose-dugme)',
-              border: '1px solid var(--renk-cizgi)',
-              background: 'var(--renk-yuzey2)',
-              color: 'var(--renk-murekkep)',
-              cursor: 'pointer',
-            }}
-          >
+          <Dugme gorunum="ikincil" type="button" onClick={() => void refetch()}>
             {tr.sistem.yenile}
-          </button>
+          </Dugme>
         </div>
       )}
 

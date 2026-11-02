@@ -1,6 +1,7 @@
 import type { ButtonHTMLAttributes } from 'react';
 
 type Gorunum = 'birincil' | 'ikincil' | 'sessiz';
+type Boyut = 'kucuk';
 
 /**
  * Düğme. Görünüm token'lardan, haller (hover · active · disabled) CSS
@@ -8,11 +9,22 @@ type Gorunum = 'birincil' | 'ikincil' | 'sessiz';
  */
 export function Dugme({
   gorunum = 'birincil',
+  boyut,
   tam = false,
   className,
   ...kalan
-}: ButtonHTMLAttributes<HTMLButtonElement> & { gorunum?: Gorunum; tam?: boolean }) {
-  const siniflar = ['dugme', `dugme--${gorunum}`, tam ? 'dugme--tam' : '', className ?? '']
+}: ButtonHTMLAttributes<HTMLButtonElement> & {
+  gorunum?: Gorunum;
+  boyut?: Boyut;
+  tam?: boolean;
+}) {
+  const siniflar = [
+    'dugme',
+    `dugme--${gorunum}`,
+    boyut ? `dugme--${boyut}` : '',
+    tam ? 'dugme--tam' : '',
+    className ?? '',
+  ]
     .filter(Boolean)
     .join(' ');
 

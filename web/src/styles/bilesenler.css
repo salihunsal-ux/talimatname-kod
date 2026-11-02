@@ -63,6 +63,14 @@
   width: 100%;
 }
 
+/* Yoğun tablolarda satır içi eylem. Dokunmalı genişlikte 44'e
+   çıkıyor: küçük hedef masaüstünde sorun değil, parmakta sorun. */
+.dugme--kucuk {
+  min-height: 32px;
+  padding: 0 var(--bosluk-3);
+  font-size: var(--etiket);
+}
+
 .dugme--birincil {
   border-color: var(--renk-marka);
   background: var(--renk-marka);
@@ -121,6 +129,8 @@
 }
 
 .alan-etiket {
+  display: grid;
+  gap: var(--bosluk-1);
   font-size: var(--etiket);
   font-weight: 500;
   color: var(--renk-murekkep2);
@@ -132,10 +142,20 @@
   padding: 0 var(--bosluk-3);
   border: 1px solid var(--renk-cizgi);
   border-radius: var(--kose-dugme);
-  background: var(--renk-zemin);
+  background: var(--renk-yuzey2);
   color: var(--renk-murekkep);
-  font: inherit;
+  font-family: inherit;
+  /* Açık boyut, `font: inherit` değil: alan çoğu yerde etiketin
+     içinde duruyor ve etiketin 13 px'ini miras alırdı. */
+  font-size: var(--govde);
   transition: border-color 120ms ease;
+}
+
+textarea.alan {
+  min-height: 88px;
+  padding: var(--bosluk-2) var(--bosluk-3);
+  line-height: var(--govde-satir);
+  resize: vertical;
 }
 
 .alan:hover:not(:disabled) {
@@ -172,6 +192,12 @@
   border-color: var(--renk-kritik);
   background: var(--renk-kritik-acik);
   color: var(--renk-kritik);
+}
+
+.bildiri--saglam {
+  border-color: var(--renk-marka);
+  background: var(--renk-marka-acik);
+  color: var(--renk-murekkep);
 }
 
 .bildiri--uyari {
@@ -341,6 +367,10 @@
   .kabuk-icerik {
     padding: var(--bosluk-4);
   }
+
+  .dugme--kucuk {
+    min-height: 44px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -352,4 +382,175 @@
   .dugme:active:not(:disabled) {
     transform: none;
   }
+}
+
+/* --- tablo ---------------------------------------------------------
+   Her sayfa kendi `hucre` / `baslikHucre` sabitini yazıyordu; aynı
+   ölçüler, altı ayrı yerde. */
+
+.tablo {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.tablo th {
+  padding: var(--bosluk-2);
+  border-bottom: 1px solid var(--renk-cizgi);
+  font-size: var(--etiket);
+  font-weight: 500;
+  color: var(--renk-murekkep2);
+  text-align: left;
+}
+
+.tablo td {
+  padding: var(--bosluk-2);
+  border-bottom: 1px solid var(--renk-cizgi);
+  vertical-align: top;
+}
+
+.tablo td.sayisal,
+.tablo th.sayisal {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- araç çubuğu (başlık satırı + eylemler) ------------------------ */
+
+.arac-cubugu {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--bosluk-3);
+  margin-bottom: var(--bosluk-4);
+}
+
+.arac-cubugu--sag {
+  margin-left: auto;
+}
+
+/* --- sayısal kutu --------------------------------------------------- */
+
+.kutu {
+  padding: var(--bosluk-3);
+  border: 1px solid var(--renk-cizgi);
+  border-radius: var(--kose-kart);
+  background: var(--renk-yuzey);
+}
+
+.kutu-ad {
+  font-size: var(--etiket);
+  color: var(--renk-sessiz);
+}
+
+.kutu-deger {
+  margin-top: var(--bosluk-1);
+  font-size: var(--baslik-ekran);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- boş durum ------------------------------------------------------ */
+
+.bos-durum {
+  padding: var(--bosluk-6);
+  border: 1px dashed var(--renk-cizgi);
+  border-radius: var(--kose-kart);
+  color: var(--renk-murekkep2);
+  text-align: center;
+}
+
+/* --- ad/değer listesi (dl) ------------------------------------------
+   Sistem durumu, belge doğrulama ve detay ekranları aynı ızgarayı
+   ayrı ayrı yazıyordu. */
+
+.veri-liste {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: var(--bosluk-4);
+  row-gap: var(--bosluk-2);
+  align-items: baseline;
+  margin: var(--bosluk-3) 0 0;
+}
+
+.veri-liste dt {
+  font-size: var(--meta);
+  color: var(--renk-murekkep2);
+}
+
+.veri-liste dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- dipnot ---------------------------------------------------------- */
+
+.dipnot {
+  margin-top: var(--bosluk-3);
+  font-size: var(--meta);
+  color: var(--renk-sessiz);
+}
+
+/* --- oturumsuz, ortalanmış sayfa (giriş · belge doğrulama) ---------- */
+
+.orta-sayfa {
+  display: grid;
+  place-items: center;
+  min-height: 100dvh;
+  padding: var(--bosluk-4);
+}
+
+/* --- liste satırı ---------------------------------------------------
+   Tasarım sistemi · Bileşenler: "satır tamamı dokunulabilir".
+   Seçili satır `aria-current` ile işaretli; renk tek başına anlam
+   taşımıyor (NFR-11). */
+
+.liste-satiri {
+  display: flex;
+  align-items: center;
+  gap: var(--bosluk-3);
+  width: 100%;
+  min-height: 44px;
+  padding: var(--bosluk-2) var(--bosluk-3);
+  border: 1px solid var(--renk-cizgi);
+  border-radius: var(--kose-dugme);
+  background: var(--renk-yuzey);
+  color: var(--renk-murekkep);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 120ms ease;
+}
+
+.liste-satiri:hover {
+  background: var(--renk-yuzey2);
+}
+
+.liste-satiri[aria-current='true'] {
+  border-color: var(--renk-marka);
+  background: var(--renk-marka-acik);
+}
+
+/* --- ızgara hücresi (pano) ------------------------------------------
+   Renkleri satır içinde kalıyor: duruma göre hesaplanıyor ve durum
+   paleti tek kaynaktan (Cip) geliyor. */
+
+.izgara-hucre {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--bosluk-1);
+  min-width: 112px;
+  min-height: 32px;
+  padding: 0 var(--bosluk-3);
+  border: 1px solid transparent;
+  border-radius: var(--kose-dugme);
+  font-size: var(--etiket);
+  font-weight: 600;
+}
+
+.izgara-hucre:enabled {
+  cursor: pointer;
+}
+
+.izgara-hucre:enabled:hover {
+  border-color: var(--renk-murekkep2);
 }

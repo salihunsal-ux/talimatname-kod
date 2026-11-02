@@ -18,6 +18,7 @@ import {
 import { Cip } from '../../bilesenler/Cip';
 import { useYonetici } from '../../api/yetki';
 import { tr } from '../../i18n/tr';
+import { Dugme } from '../../bilesenler/Dugme';
 
 const TURLER: { deger: MaddeTuru; etiket: string }[] = [
   { deger: 'confirm', etiket: 'Onay' },
@@ -108,31 +109,18 @@ function SurumDugmesi({
 }) {
   const cip = DURUM_CIPI[surum.status];
   return (
-    <button
+    <Dugme
+      tam
       type="button"
       onClick={onSec}
       aria-current={secili}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 'var(--bosluk-2)',
-        width: '100%',
-        padding: 'var(--bosluk-2) var(--bosluk-3)',
-        marginBottom: 'var(--bosluk-1)',
-        textAlign: 'left',
-        borderRadius: 'var(--kose-dugme)',
-        border: '1px solid',
-        borderColor: secili ? 'var(--renk-marka)' : 'var(--renk-cizgi)',
-        background: secili ? 'var(--renk-marka-acik)' : 'var(--renk-yuzey)',
-        color: 'var(--renk-murekkep)',
-        cursor: 'pointer',
-      }}
+      style={{ marginBottom: 'var(--bosluk-1)' }}
     >
       <span style={{ flex: 1 }}>
         {tr.sablon.surum} {surum.version_no}
       </span>
       <Cip renk={cip.renk} ikon={cip.ikon} metin={cip.metin} />
-    </button>
+    </Dugme>
   );
 }
 
@@ -260,9 +248,9 @@ function SurumEditoru({
         >
           {tr.sablon.yayinDegismez}{' '}
           {yonetici && (
-            <button type="button" onClick={() => turet.mutate()} style={kucukDugme}>
+            <Dugme gorunum="ikincil" boyut="kucuk" type="button" onClick={() => turet.mutate()}>
               {tr.sablon.yeniTaslak}
-            </button>
+            </Dugme>
           )}
         </p>
       )}
@@ -344,15 +332,15 @@ function SurumEditoru({
             flexWrap: 'wrap',
           }}
         >
-          <button
+          <Dugme
             type="button"
             disabled={taslak === null || kaydet.isPending}
             onClick={() => taslak && kaydet.mutate(taslak)}
-            style={{ ...anaDugme, opacity: taslak === null ? 0.5 : 1 }}
+            style={{ opacity: taslak === null ? 0.5 : 1 }}
           >
             {tr.sablon.kaydet}
-          </button>
-          <button
+          </Dugme>
+          <Dugme
             type="button"
             disabled={surum.publish_issues.length > 0 || taslak !== null || yayinla.isPending}
             onClick={() => yayinla.mutate()}
@@ -366,7 +354,7 @@ function SurumEditoru({
             }}
           >
             {tr.sablon.yayinla}
-          </button>
+          </Dugme>
           {taslak !== null && (
             <span
               style={{ alignSelf: 'center', color: 'var(--renk-uyari)', fontSize: 'var(--etiket)' }}
@@ -443,14 +431,15 @@ function MaddeSatiri({
             />
             {tr.sablon.kritik}
           </label>
-          <button
+          <Dugme
             type="button"
             onClick={onSil}
-            style={kucukDugme}
+            gorunum="ikincil"
+            boyut="kucuk"
             aria-label={`${madde.title} ${tr.sablon.sil}`}
           >
             {tr.sablon.sil}
-          </button>
+          </Dugme>
         </>
       )}
     </li>
@@ -494,13 +483,14 @@ function MaddeEkle({ onEkle }: { onEkle: (madde: MaddeGirdisi) => void }) {
         onChange={(o) => setBaslik(o.target.value)}
         placeholder={tr.sablon.maddeBasligi}
         aria-label={tr.sablon.maddeBasligi}
-        style={{ ...alanBicimi, flex: '1 1 200px' }}
+        className="alan"
+        style={{ flex: '1 1 200px' }}
       />
       <select
         value={tur}
         onChange={(o) => setTur(o.target.value as MaddeTuru)}
         aria-label={tr.sablon.maddeTuru}
-        style={alanBicimi}
+        className="alan"
       >
         {TURLER.map((t) => (
           <option key={t.deger} value={t.deger}>
@@ -508,9 +498,9 @@ function MaddeEkle({ onEkle }: { onEkle: (madde: MaddeGirdisi) => void }) {
           </option>
         ))}
       </select>
-      <button type="submit" style={kucukDugme}>
+      <Dugme type="submit" gorunum="ikincil" boyut="kucuk">
         {tr.sablon.maddeEkle}
-      </button>
+      </Dugme>
     </form>
   );
 }
@@ -532,11 +522,12 @@ function BolumEkle({ onEkle }: { onEkle: (baslik: string) => void }) {
         onChange={(o) => setBaslik(o.target.value)}
         placeholder={tr.sablon.bolumBasligi}
         aria-label={tr.sablon.bolumBasligi}
-        style={{ ...alanBicimi, flex: '1 1 200px' }}
+        className="alan"
+        style={{ flex: '1 1 200px' }}
       />
-      <button type="submit" style={kucukDugme}>
+      <Dugme type="submit" gorunum="ikincil" boyut="kucuk">
         {tr.sablon.bolumEkle}
-      </button>
+      </Dugme>
     </form>
   );
 }
@@ -573,34 +564,13 @@ function SablonEkleFormu({ onOlusturuldu }: { onOlusturuldu: (detay: SurumDetay)
         required
         placeholder={tr.sablon.sablonAdi}
         aria-label={tr.sablon.sablonAdi}
-        style={{ ...alanBicimi, flex: 1 }}
+        className="alan"
+        style={{ flex: 1 }}
       />
-      <button type="submit" style={anaDugme}>
-        {tr.sablon.sablonEkle}
-      </button>
+      <Dugme type="submit">{tr.sablon.sablonEkle}</Dugme>
     </form>
   );
 }
-
-const alanBicimi = {
-  height: 36,
-  padding: '0 var(--bosluk-2)',
-  borderRadius: 'var(--kose-dugme)',
-  border: '1px solid var(--renk-cizgi)',
-  background: 'var(--renk-yuzey)',
-  color: 'var(--renk-murekkep)',
-} as const;
-
-const kucukDugme = {
-  padding: '0 var(--bosluk-3)',
-  minHeight: 32,
-  borderRadius: 'var(--kose-dugme)',
-  border: '1px solid var(--renk-cizgi)',
-  background: 'var(--renk-yuzey2)',
-  color: 'var(--renk-murekkep)',
-  cursor: 'pointer',
-  fontSize: 'var(--etiket)',
-} as const;
 
 const anaDugme = {
   padding: '0 var(--bosluk-4)',

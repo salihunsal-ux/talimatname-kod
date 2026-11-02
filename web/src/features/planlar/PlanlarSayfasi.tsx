@@ -15,6 +15,7 @@ import { subeAgaci } from '../../api/subeler';
 import { Cip } from '../../bilesenler/Cip';
 import { useYonetici } from '../../api/yetki';
 import { tr } from '../../i18n/tr';
+import { Dugme } from '../../bilesenler/Dugme';
 
 const GUNLER = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
 
@@ -70,7 +71,7 @@ export function PlanlarSayfasi() {
       )}
 
       {planlar.data && (
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--govde)' }}>
+        <table className="tablo">
           <thead>
             <tr
               style={{ textAlign: 'left', color: 'var(--renk-sessiz)', fontSize: 'var(--etiket)' }}
@@ -99,9 +100,14 @@ export function PlanlarSayfasi() {
                 </td>
                 <td style={{ textAlign: 'right' }}>
                   {plan.active && yonetici && (
-                    <button type="button" onClick={() => durdur.mutate(plan.id)} style={kucukDugme}>
+                    <Dugme
+                      gorunum="ikincil"
+                      boyut="kucuk"
+                      type="button"
+                      onClick={() => durdur.mutate(plan.id)}
+                    >
                       {tr.plan.durdur}
-                    </button>
+                    </Dugme>
                   )}
                 </td>
               </tr>
@@ -246,18 +252,19 @@ function PlanFormu() {
           alignItems: 'flex-end',
         }}
       >
-        <label style={etiket}>
+        <label className="alan-etiket">
           {tr.plan.ad}
           <input
             value={ad}
             onChange={(o) => setAd(o.target.value)}
-            style={{ ...alan, width: 180 }}
+            className="alan"
+            style={{ width: 180 }}
           />
         </label>
 
-        <label style={etiket}>
+        <label className="alan-etiket">
           {tr.plan.sablon}
-          <select value={surumId} onChange={(o) => setSurumId(o.target.value)} style={alan}>
+          <select value={surumId} onChange={(o) => setSurumId(o.target.value)} className="alan">
             <option value="">{tr.personel.seciniz}</option>
             {yayindakiSurumler.map((v) => (
               <option key={v.id} value={v.id}>
@@ -267,12 +274,12 @@ function PlanFormu() {
           </select>
         </label>
 
-        <label style={etiket}>
+        <label className="alan-etiket">
           {tr.plan.tekrar}
           <select
             value={tekrar}
             onChange={(o) => setTekrar(o.target.value as typeof tekrar)}
-            style={alan}
+            className="alan"
           >
             <option value="daily">{tr.plan.herGun}</option>
             <option value="weekly">{tr.plan.haftalik}</option>
@@ -300,12 +307,12 @@ function PlanFormu() {
           </fieldset>
         )}
 
-        <label style={etiket}>
+        <label className="alan-etiket">
           {tr.plan.baslangic}
           <select
             value={baslangicTuru}
             onChange={(o) => setBaslangicTuru(o.target.value as typeof baslangicTuru)}
-            style={alan}
+            className="alan"
           >
             <option value="fixed">{tr.plan.sabitSaat}</option>
             <option value="anchor">{tr.plan.calismaSaatinden}</option>
@@ -313,59 +320,63 @@ function PlanFormu() {
         </label>
 
         {baslangicTuru === 'fixed' ? (
-          <label style={etiket}>
+          <label className="alan-etiket">
             {tr.plan.saat}
             <input
               type="time"
               value={saatDegeri}
               onChange={(o) => setSaatDegeri(o.target.value)}
-              style={{ ...alan, width: 110 }}
+              className="alan"
+              style={{ width: 110 }}
             />
           </label>
         ) : (
           <>
-            <label style={etiket}>
+            <label className="alan-etiket">
               {tr.plan.cipa}
               <select
                 value={cipa}
                 onChange={(o) => setCipa(o.target.value as typeof cipa)}
-                style={alan}
+                className="alan"
               >
                 <option value="open">{tr.plan.acilis}</option>
                 <option value="close">{tr.plan.kapanis}</option>
               </select>
             </label>
-            <label style={etiket}>
+            <label className="alan-etiket">
               {tr.plan.ofset}
               <input
                 type="number"
                 value={ofset}
                 step={15}
                 onChange={(o) => setOfset(Number(o.target.value))}
-                style={{ ...alan, width: 90 }}
+                className="alan"
+                style={{ width: 90 }}
               />
             </label>
           </>
         )}
 
-        <label style={etiket}>
+        <label className="alan-etiket">
           {tr.plan.sure}
           <input
             type="number"
             value={sure}
             min={1}
             onChange={(o) => setSure(Number(o.target.value))}
-            style={{ ...alan, width: 90 }}
+            className="alan"
+            style={{ width: 90 }}
           />
         </label>
-        <label style={etiket}>
+        <label className="alan-etiket">
           {tr.plan.tolerans}
           <input
             type="number"
             value={tolerans}
             min={0}
             onChange={(o) => setTolerans(Number(o.target.value))}
-            style={{ ...alan, width: 90 }}
+            className="alan"
+            style={{ width: 90 }}
           />
         </label>
       </div>
@@ -411,22 +422,24 @@ function PlanFormu() {
           flexWrap: 'wrap',
         }}
       >
-        <button
+        <Dugme
+          gorunum="ikincil"
+          boyut="kucuk"
           type="button"
           disabled={!hazir || onizleme.isPending}
           onClick={() => onizleme.mutate()}
-          style={{ ...kucukDugme, minHeight: 40, opacity: hazir ? 1 : 0.5 }}
+          style={{ minHeight: 40, opacity: hazir ? 1 : 0.5 }}
         >
           {tr.plan.onizle}
-        </button>
-        <button
+        </Dugme>
+        <Dugme
           type="button"
           disabled={!hazir || olustur.isPending}
           onClick={() => olustur.mutate()}
-          style={{ ...anaDugme, opacity: hazir ? 1 : 0.5 }}
+          style={{ opacity: hazir ? 1 : 0.5 }}
         >
           {tr.plan.kaydet}
-        </button>
+        </Dugme>
       </div>
 
       {problem && (
@@ -465,8 +478,6 @@ function PlanFormu() {
   );
 }
 
-const etiket = { display: 'grid', gap: 'var(--bosluk-1)', fontSize: 'var(--etiket)' } as const;
-
 /** Seçilebilir çip: kutunun kendisi küçük, tıklanabilir alan büyük (NFR-11). */
 function secimCipi(secili: boolean) {
   return {
@@ -484,33 +495,3 @@ function secimCipi(secili: boolean) {
     cursor: 'pointer',
   } as const;
 }
-
-const alan = {
-  height: 36,
-  padding: '0 var(--bosluk-2)',
-  borderRadius: 'var(--kose-dugme)',
-  border: '1px solid var(--renk-cizgi)',
-  background: 'var(--renk-yuzey)',
-  color: 'var(--renk-murekkep)',
-} as const;
-
-const kucukDugme = {
-  padding: '0 var(--bosluk-3)',
-  minHeight: 32,
-  borderRadius: 'var(--kose-dugme)',
-  border: '1px solid var(--renk-cizgi)',
-  background: 'var(--renk-yuzey2)',
-  color: 'var(--renk-murekkep)',
-  cursor: 'pointer',
-  fontSize: 'var(--etiket)',
-} as const;
-
-const anaDugme = {
-  padding: '0 var(--bosluk-4)',
-  minHeight: 40,
-  borderRadius: 'var(--kose-dugme)',
-  border: '1px solid var(--renk-marka)',
-  background: 'var(--renk-marka)',
-  color: '#fff',
-  cursor: 'pointer',
-} as const;

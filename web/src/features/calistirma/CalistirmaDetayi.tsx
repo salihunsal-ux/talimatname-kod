@@ -7,6 +7,7 @@ import { Cip } from '../../bilesenler/Cip';
 import { calistirmaKanitlari, type Kanit } from '../../api/kanitlar';
 import { tr } from '../../i18n/tr';
 import { Kanitlar } from './Kanitlar';
+import { Dugme } from '../../bilesenler/Dugme';
 
 const CEVAP: Record<
   string,
@@ -56,9 +57,15 @@ function PdfDugmesi({ runId }: { runId: string }) {
           {tr.rapor.pdfHata}
         </span>
       )}
-      <button type="button" onClick={tikla} disabled={durum === 'calisiyor'} style={kucukDugme}>
+      <Dugme
+        type="button"
+        onClick={tikla}
+        disabled={durum === 'calisiyor'}
+        gorunum="ikincil"
+        boyut="kucuk"
+      >
         {durum === 'calisiyor' ? tr.rapor.pdfHazirlaniyor : tr.rapor.pdfIndir}
-      </button>
+      </Dugme>
     </span>
   );
 }
@@ -116,9 +123,9 @@ export function CalistirmaDetayi({ runId, onKapat }: { runId: string; onKapat: (
           <strong style={{ fontVariantNumeric: 'tabular-nums' }}>%{veri.score_percent}</strong>
         )}
         <PdfDugmesi runId={runId} />
-        <button type="button" onClick={onKapat} style={kucukDugme}>
+        <Dugme type="button" onClick={onKapat} gorunum="ikincil" boyut="kucuk">
           {tr.calistirma.kapat}
-        </button>
+        </Dugme>
       </header>
 
       {veri.blockers.length > 0 && (
@@ -229,14 +236,3 @@ function MaddeSatiri({ madde, kanitlar }: { madde: MaddeDurumu; kanitlar: Kanit[
     </li>
   );
 }
-
-const kucukDugme = {
-  padding: '0 var(--bosluk-3)',
-  minHeight: 32,
-  borderRadius: 'var(--kose-dugme)',
-  border: '1px solid var(--renk-cizgi)',
-  background: 'var(--renk-yuzey2)',
-  color: 'var(--renk-murekkep)',
-  cursor: 'pointer',
-  fontSize: 'var(--etiket)',
-} as const;

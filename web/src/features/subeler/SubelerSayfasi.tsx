@@ -6,6 +6,7 @@ import { subeAgaci, subeDetayi, subeEkle, subePasiflestir } from '../../api/sube
 import { useYonetici } from '../../api/yetki';
 import { tr } from '../../i18n/tr';
 import { Cip } from '../../bilesenler/Cip';
+import { Dugme } from '../../bilesenler/Dugme';
 
 /**
  * SCR-W-02 · Şubeler: solda bölge → şube ağacı, sağda şube detayı.
@@ -79,22 +80,8 @@ export function SubelerSayfasi() {
                     type="button"
                     onClick={() => setSecili(sube.id)}
                     aria-current={secili === sube.id}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 'var(--bosluk-3)',
-                      width: '100%',
-                      padding: 'var(--bosluk-2) var(--bosluk-3)',
-                      marginBottom: 'var(--bosluk-1)',
-                      textAlign: 'left',
-                      borderRadius: 'var(--kose-dugme)',
-                      border: '1px solid',
-                      borderColor: secili === sube.id ? 'var(--renk-marka)' : 'var(--renk-cizgi)',
-                      background:
-                        secili === sube.id ? 'var(--renk-marka-acik)' : 'var(--renk-yuzey)',
-                      color: 'var(--renk-murekkep)',
-                      cursor: 'pointer',
-                    }}
+                    className="liste-satiri"
+                    style={{ marginBottom: 'var(--bosluk-1)' }}
                   >
                     <code
                       style={{
@@ -179,7 +166,7 @@ function SubeDetayi({ id, onPasiflestirildi }: { id: string; onPasiflestirildi: 
       <h3 style={{ fontSize: 'var(--etiket)', marginTop: 'var(--bosluk-4)' }}>
         {tr.subeler.calismaSaatleri}
       </h3>
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--etiket)' }}>
+      <table className="tablo">
         <tbody>
           {sube.business_hours.map((gun) => (
             <tr key={gun.weekday} style={{ borderTop: '1px solid var(--renk-cizgi)' }}>
@@ -212,22 +199,15 @@ function SubeDetayi({ id, onPasiflestirildi }: { id: string; onPasiflestirildi: 
       </ul>
 
       {sube.status === 'active' && (
-        <button
+        <Dugme
+          gorunum="ikincil"
           type="button"
           onClick={() => pasiflestir.mutate()}
           disabled={pasiflestir.isPending}
-          style={{
-            marginTop: 'var(--bosluk-4)',
-            padding: '0 var(--bosluk-4)',
-            borderRadius: 'var(--kose-dugme)',
-            border: '1px solid var(--renk-cizgi)',
-            background: 'var(--renk-yuzey2)',
-            color: 'var(--renk-kritik)',
-            cursor: 'pointer',
-          }}
+          style={{ marginTop: 'var(--bosluk-4)' }}
         >
           {tr.subeler.pasiflestir}
-        </button>
+        </Dugme>
       )}
       <p style={{ fontSize: 'var(--meta)', color: 'var(--renk-sessiz)' }}>
         {tr.subeler.pasiflestirmeNotu}
@@ -289,20 +269,9 @@ function SubeEkleFormu() {
           style={girdiBicimi(180)}
         />
       </label>
-      <button
-        type="submit"
-        disabled={ekle.isPending}
-        style={{
-          padding: '0 var(--bosluk-4)',
-          borderRadius: 'var(--kose-dugme)',
-          border: '1px solid var(--renk-marka)',
-          background: 'var(--renk-marka)',
-          color: '#fff',
-          cursor: 'pointer',
-        }}
-      >
+      <Dugme type="submit" disabled={ekle.isPending}>
         {tr.subeler.ekle}
-      </button>
+      </Dugme>
       {ekle.isError && (
         <p role="alert" style={{ width: '100%', margin: 0, color: 'var(--renk-kritik)' }}>
           {problem ? problem.title : tr.hata.genel}

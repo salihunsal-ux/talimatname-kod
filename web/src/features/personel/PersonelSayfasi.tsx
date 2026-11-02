@@ -14,6 +14,7 @@ import { subeAgaci } from '../../api/subeler';
 import { Cip } from '../../bilesenler/Cip';
 import { useYonetici } from '../../api/yetki';
 import { tr } from '../../i18n/tr';
+import { Dugme } from '../../bilesenler/Dugme';
 
 const ROLLER: { deger: Rol; etiket: string; kapsam: 'yok' | 'bolge' | 'sube' }[] = [
   { deger: 'admin', etiket: 'Yönetici', kapsam: 'yok' },
@@ -72,7 +73,7 @@ export function PersonelSayfasi() {
           marginBottom: 'var(--bosluk-4)',
         }}
       >
-        <label style={etiketBicimi}>
+        <label className="alan-etiket">
           {tr.personel.sube}
           <select
             value={subeSuzgeci}
@@ -88,7 +89,7 @@ export function PersonelSayfasi() {
           </select>
         </label>
 
-        <label style={etiketBicimi}>
+        <label className="alan-etiket">
           {tr.personel.rol}
           <select
             value={rolSuzgeci}
@@ -126,7 +127,7 @@ export function PersonelSayfasi() {
       )}
 
       {personel.data && personel.data.length > 0 && (
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--govde)' }}>
+        <table className="tablo">
           <thead>
             <tr
               style={{ textAlign: 'left', color: 'var(--renk-sessiz)', fontSize: 'var(--etiket)' }}
@@ -205,23 +206,30 @@ function PersonelSatiri({
       </td>
       <td style={{ textAlign: 'right' }}>
         {kisi.status === 'active' && (
-          <button type="button" onClick={() => pasiflestir.mutate()} style={kucukDugme}>
+          <Dugme gorunum="ikincil" boyut="kucuk" type="button" onClick={() => pasiflestir.mutate()}>
             {tr.personel.pasiflestir}
-          </button>
+          </Dugme>
         )}
         {kisi.status !== 'masked' &&
           (maskeOnayi ? (
-            <button
+            <Dugme
+              gorunum="ikincil"
+              boyut="kucuk"
               type="button"
               onClick={() => maskele.mutate()}
-              style={{ ...kucukDugme, color: 'var(--renk-kritik)' }}
+              style={{ color: 'var(--renk-kritik)' }}
             >
               {tr.personel.maskeleOnay}
-            </button>
+            </Dugme>
           ) : (
-            <button type="button" onClick={() => setMaskeOnayi(true)} style={kucukDugme}>
+            <Dugme
+              gorunum="ikincil"
+              boyut="kucuk"
+              type="button"
+              onClick={() => setMaskeOnayi(true)}
+            >
               {tr.personel.maskele}
-            </button>
+            </Dugme>
           ))}
       </td>
     </tr>
@@ -271,7 +279,7 @@ function DavetFormu({ subeler }: { subeler: { id: string; name: string; code: st
         borderTop: '1px solid var(--renk-cizgi)',
       }}
     >
-      <label style={etiketBicimi}>
+      <label className="alan-etiket">
         {tr.personel.ad}
         <input
           value={ad}
@@ -280,7 +288,7 @@ function DavetFormu({ subeler }: { subeler: { id: string; name: string; code: st
           style={girdiBicimi(170)}
         />
       </label>
-      <label style={etiketBicimi}>
+      <label className="alan-etiket">
         {tr.personel.telefon}
         <input
           value={telefon}
@@ -290,7 +298,7 @@ function DavetFormu({ subeler }: { subeler: { id: string; name: string; code: st
           style={girdiBicimi(150)}
         />
       </label>
-      <label style={etiketBicimi}>
+      <label className="alan-etiket">
         {tr.personel.rol}
         <select value={rol} onChange={(o) => setRol(o.target.value as Rol)} style={secimBicimi}>
           {ROLLER.map((r) => (
@@ -301,7 +309,7 @@ function DavetFormu({ subeler }: { subeler: { id: string; name: string; code: st
         </select>
       </label>
       {kapsamGerekli && (
-        <label style={etiketBicimi}>
+        <label className="alan-etiket">
           {secili?.kapsam === 'bolge' ? tr.personel.bolge : tr.personel.sube}
           <select
             value={kapsam}
@@ -318,20 +326,9 @@ function DavetFormu({ subeler }: { subeler: { id: string; name: string; code: st
           </select>
         </label>
       )}
-      <button
-        type="submit"
-        disabled={davet.isPending}
-        style={{
-          padding: '0 var(--bosluk-4)',
-          borderRadius: 'var(--kose-dugme)',
-          border: '1px solid var(--renk-marka)',
-          background: 'var(--renk-marka)',
-          color: '#fff',
-          cursor: 'pointer',
-        }}
-      >
+      <Dugme type="submit" disabled={davet.isPending}>
         {tr.personel.davet}
-      </button>
+      </Dugme>
 
       {davet.isError && (
         <p role="alert" style={{ width: '100%', margin: 0, color: 'var(--renk-kritik)' }}>
@@ -353,12 +350,6 @@ function kapsamAdiCozucu(adlar: Map<string, string>) {
     id ? (adlar.get(id) ?? tr.personel.bilinmeyenKapsam) : '';
 }
 
-const etiketBicimi = {
-  display: 'grid',
-  gap: 'var(--bosluk-1)',
-  fontSize: 'var(--etiket)',
-} as const;
-
 const secimBicimi = {
   height: 36,
   padding: '0 var(--bosluk-2)',
@@ -366,18 +357,6 @@ const secimBicimi = {
   border: '1px solid var(--renk-cizgi)',
   background: 'var(--renk-yuzey)',
   color: 'var(--renk-murekkep)',
-} as const;
-
-const kucukDugme = {
-  padding: '0 var(--bosluk-3)',
-  marginLeft: 'var(--bosluk-2)',
-  minHeight: 32,
-  borderRadius: 'var(--kose-dugme)',
-  border: '1px solid var(--renk-cizgi)',
-  background: 'var(--renk-yuzey2)',
-  color: 'var(--renk-murekkep)',
-  cursor: 'pointer',
-  fontSize: 'var(--etiket)',
 } as const;
 
 function girdiBicimi(genislik: number) {

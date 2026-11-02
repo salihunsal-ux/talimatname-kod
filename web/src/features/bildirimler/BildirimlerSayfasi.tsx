@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { bildirimListesi, bildirimSayaclari, type BildirimDurumu } from '../../api/bildirimler';
 import { Cip } from '../../bilesenler/Cip';
 import { tr } from '../../i18n/tr';
+import { Dugme } from '../../bilesenler/Dugme';
 
 const SUZGECLER: { anahtar: BildirimDurumu; ad: string }[] = [
   { anahtar: 'all', ad: tr.bildirim.hepsi },
@@ -96,24 +97,15 @@ export function BildirimlerSayfasi() {
 
       <div style={{ display: 'flex', gap: 'var(--bosluk-2)', marginBottom: 'var(--bosluk-3)' }}>
         {SUZGECLER.map(({ anahtar, ad }) => (
-          <button
+          <Dugme
+            boyut="kucuk"
             key={anahtar}
             type="button"
             aria-pressed={suzgec === anahtar}
             onClick={() => setSuzgec(anahtar)}
-            style={{
-              minHeight: 36,
-              padding: '0 var(--bosluk-3)',
-              border: '1px solid',
-              borderColor: suzgec === anahtar ? 'var(--renk-marka)' : 'var(--renk-cizgi)',
-              borderRadius: 'var(--kose-dugme)',
-              background: suzgec === anahtar ? 'var(--renk-marka-acik)' : 'transparent',
-              color: 'var(--renk-murekkep)',
-              cursor: 'pointer',
-            }}
           >
             {ad}
-          </button>
+          </Dugme>
         ))}
       </div>
 
@@ -126,7 +118,7 @@ export function BildirimlerSayfasi() {
       {liste.data?.length === 0 && <p style={{ color: 'var(--renk-sessiz)' }}>{tr.bildirim.bos}</p>}
 
       {liste.data && liste.data.length > 0 && (
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--govde)' }}>
+        <table className="tablo">
           <thead>
             <tr
               style={{ textAlign: 'left', color: 'var(--renk-sessiz)', fontSize: 'var(--etiket)' }}

@@ -22,6 +22,7 @@ import {
 } from '../../api/raporlar';
 import { Cip } from '../../bilesenler/Cip';
 import { tr } from '../../i18n/tr';
+import { Dugme } from '../../bilesenler/Dugme';
 
 type Sekme = 'ozet' | 'olcum' | 'galeri';
 
@@ -54,23 +55,14 @@ export function RaporlarSayfasi() {
             ['galeri', tr.rapor.galeri],
           ] as const
         ).map(([anahtar, ad]) => (
-          <button
+          <Dugme
             key={anahtar}
             role="tab"
             aria-selected={sekme === anahtar}
             onClick={() => setSekme(anahtar)}
-            style={{
-              minHeight: 44,
-              padding: '0 var(--bosluk-4)',
-              borderRadius: 'var(--kose-dugme)',
-              border: `1px solid ${sekme === anahtar ? 'var(--renk-marka)' : 'var(--renk-cizgi)'}`,
-              background: sekme === anahtar ? 'var(--renk-marka-acik)' : 'var(--renk-yuzey2)',
-              color: 'var(--renk-murekkep)',
-              cursor: 'pointer',
-            }}
           >
             {ad}
-          </button>
+          </Dugme>
         ))}
       </div>
 
@@ -114,22 +106,9 @@ function PdfDugmesi({ uret, dosyaAdi }: { uret: () => Promise<PdfSonucu>; dosyaA
 
   return (
     <div>
-      <button
-        type="button"
-        onClick={tikla}
-        disabled={durum === 'calisiyor'}
-        style={{
-          minHeight: 44,
-          padding: '0 var(--bosluk-4)',
-          borderRadius: 'var(--kose-dugme)',
-          border: '1px solid var(--renk-cizgi)',
-          background: 'var(--renk-yuzey2)',
-          color: 'var(--renk-murekkep)',
-          cursor: durum === 'calisiyor' ? 'progress' : 'pointer',
-        }}
-      >
+      <Dugme gorunum="ikincil" type="button" onClick={tikla} disabled={durum === 'calisiyor'}>
         {durum === 'calisiyor' ? tr.rapor.pdfHazirlaniyor : tr.rapor.pdfIndir}
-      </button>
+      </Dugme>
       {durum === 'hata' && (
         <p role="alert" style={{ color: 'var(--renk-kritik)', fontSize: 'var(--etiket)' }}>
           {tr.rapor.pdfHata}
@@ -212,9 +191,9 @@ function CiktiSatiri({ is }: { is: CiktiIsi }) {
         {tr.cikti.calistirma(is.run_count)}
       </span>
       {is.downloadable && (
-        <button type="button" onClick={() => void indir()} style={ciktiDugmesi}>
+        <Dugme type="button" onClick={() => void indir()}>
           {tr.rapor.pdfIndir}
-        </button>
+        </Dugme>
       )}
       {is.state === 'ready' && !is.downloadable && (
         <span style={{ color: 'var(--renk-sessiz)', fontSize: 'var(--etiket)' }}>
@@ -244,16 +223,6 @@ function donemMetni(is: CiktiIsi): string {
   return `${is.params.first_day ?? ''} – ${is.params.last_day ?? ''}`;
 }
 
-const ciktiDugmesi = {
-  minHeight: 36,
-  padding: '0 var(--bosluk-3)',
-  borderRadius: 'var(--kose-dugme)',
-  border: '1px solid var(--renk-cizgi)',
-  background: 'var(--renk-yuzey2)',
-  color: 'var(--renk-murekkep)',
-  cursor: 'pointer',
-} as const;
-
 function aralik(gunSayisi: number): { ilk: string; son: string } {
   const son = new Date();
   const ilk = new Date(son.getTime() - gunSayisi * 24 * 60 * 60 * 1000);
@@ -276,9 +245,9 @@ function AylikOzetBolumu({
   return (
     <section>
       <div style={{ display: 'flex', gap: 'var(--bosluk-3)', alignItems: 'end', flexWrap: 'wrap' }}>
-        <label style={etiket}>
+        <label className="alan-etiket">
           {tr.rapor.ay}
-          <select value={ay} onChange={(o) => onAy(Number(o.target.value))} style={alan}>
+          <select value={ay} onChange={(o) => onAy(Number(o.target.value))} className="alan">
             {tr.rapor.aylar.map((ad, sira) => (
               <option key={ad} value={sira + 1}>
                 {ad}
@@ -286,7 +255,7 @@ function AylikOzetBolumu({
             ))}
           </select>
         </label>
-        <label style={etiket}>
+        <label className="alan-etiket">
           {tr.rapor.yil}
           <input
             type="number"
@@ -294,7 +263,8 @@ function AylikOzetBolumu({
             min={2020}
             max={2100}
             onChange={(o) => onYil(Number(o.target.value))}
-            style={{ ...alan, width: 120 }}
+            className="alan"
+            style={{ width: 120 }}
           />
         </label>
         <PdfDugmesi
@@ -370,35 +340,35 @@ function SubeTablosu({ ozet }: { ozet: AylikOzet }) {
       <p style={{ color: 'var(--renk-murekkep2)', fontSize: 'var(--etiket)' }}>
         {tr.rapor.siraAciklamasi}
       </p>
-      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+      <table className="tablo">
         <thead>
           <tr>
-            <th style={baslikHucre}>{tr.rapor.sube}</th>
-            <th style={baslikHucre}>{tr.rapor.zamanindaYuzde}</th>
-            <th style={baslikHucre}>{tr.rapor.zamaninda}</th>
-            <th style={baslikHucre}>{tr.rapor.gec}</th>
-            <th style={baslikHucre}>{tr.rapor.kacirilan}</th>
-            <th style={baslikHucre}>{tr.rapor.basarisiz}</th>
+            <th>{tr.rapor.sube}</th>
+            <th>{tr.rapor.zamanindaYuzde}</th>
+            <th>{tr.rapor.zamaninda}</th>
+            <th>{tr.rapor.gec}</th>
+            <th>{tr.rapor.kacirilan}</th>
+            <th>{tr.rapor.basarisiz}</th>
           </tr>
         </thead>
         <tbody>
           {ozet.branches.map((sube) => (
             <tr key={sube.branch_id}>
-              <td style={hucre}>
+              <td>
                 {sube.branch_name}{' '}
                 <span style={{ color: 'var(--renk-sessiz)' }}>{sube.branch_code}</span>
               </td>
-              <td style={hucre}>
+              <td>
                 {sube.counters.on_time_percent === null ? (
                   <span style={{ color: 'var(--renk-sessiz)' }}>{tr.rapor.olculemedi}</span>
                 ) : (
                   `%${sube.counters.on_time_percent}`
                 )}
               </td>
-              <td style={hucre}>{sube.counters.on_time}</td>
-              <td style={hucre}>{sube.counters.late}</td>
-              <td style={hucre}>{sube.counters.missed}</td>
-              <td style={hucre}>{sube.counters.failed}</td>
+              <td>{sube.counters.on_time}</td>
+              <td>{sube.counters.late}</td>
+              <td>{sube.counters.missed}</td>
+              <td>{sube.counters.failed}</td>
             </tr>
           ))}
         </tbody>
@@ -596,34 +566,3 @@ function GaleriKarti({ kanit }: { kanit: GaleriKanidi }) {
     </figure>
   );
 }
-
-const etiket = {
-  display: 'block',
-  fontSize: 'var(--etiket)',
-  color: 'var(--renk-murekkep2)',
-} as const;
-
-const alan = {
-  display: 'block',
-  minHeight: 44,
-  marginTop: 'var(--bosluk-2)',
-  padding: '0 var(--bosluk-3)',
-  borderRadius: 'var(--kose-dugme)',
-  border: '1px solid var(--renk-cizgi)',
-  background: 'var(--renk-yuzey2)',
-  color: 'var(--renk-murekkep)',
-  fontSize: 'var(--govde)',
-} as const;
-
-const baslikHucre = {
-  textAlign: 'left',
-  fontSize: 'var(--etiket)',
-  color: 'var(--renk-murekkep2)',
-  borderBottom: '1px solid var(--renk-cizgi)',
-  padding: 'var(--bosluk-2)',
-} as const;
-
-const hucre = {
-  borderBottom: '1px solid var(--renk-cizgi)',
-  padding: 'var(--bosluk-2)',
-} as const;

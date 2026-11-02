@@ -13,6 +13,7 @@ import {
 import { subeAgaci } from '../../api/subeler';
 import { Cip } from '../../bilesenler/Cip';
 import { tr } from '../../i18n/tr';
+import { Dugme } from '../../bilesenler/Dugme';
 
 const ONCELIKLER: { deger: Oncelik; etiket: string; renk: 'kritik' | 'uyari' | 'nötr' }[] = [
   { deger: 'critical', etiket: 'Kritik', renk: 'kritik' },
@@ -82,12 +83,12 @@ export function AksiyonlarSayfasi() {
           marginBottom: 'var(--bosluk-3)',
         }}
       >
-        <label style={etiket}>
+        <label className="alan-etiket">
           {tr.aksiyon.durum}
           <select
             value={durum}
             onChange={(o) => setDurum(o.target.value as typeof durum)}
-            style={alan}
+            className="alan"
           >
             <option value="open">{tr.aksiyon.acikKayitlar}</option>
             <option value="closed">{tr.aksiyon.kapaliKayitlar}</option>
@@ -200,13 +201,15 @@ function AksiyonKarti({ aksiyon }: { aksiyon: AksiyonOzet }) {
 
       {aksiyon.status === 'open' &&
         (notAlani === null ? (
-          <button
+          <Dugme
+            gorunum="ikincil"
+            boyut="kucuk"
             type="button"
             onClick={() => setNotAlani('')}
-            style={{ ...kucukDugme, marginTop: 'var(--bosluk-2)' }}
+            style={{ marginTop: 'var(--bosluk-2)' }}
           >
             {tr.aksiyon.kapat}
-          </button>
+          </Dugme>
         ) : (
           <form
             onSubmit={(olay) => {
@@ -225,15 +228,16 @@ function AksiyonKarti({ aksiyon }: { aksiyon: AksiyonOzet }) {
               onChange={(o) => setNotAlani(o.target.value)}
               placeholder={tr.aksiyon.notZorunlu}
               aria-label={tr.aksiyon.kapanisNotu}
-              style={{ ...alan, flex: '1 1 260px' }}
+              className="alan"
+              style={{ flex: '1 1 260px' }}
               autoFocus
             />
-            <button type="submit" disabled={kapat.isPending} style={anaDugme}>
+            <Dugme type="submit" disabled={kapat.isPending}>
               {tr.aksiyon.kapat}
-            </button>
-            <button type="button" onClick={() => setNotAlani(null)} style={kucukDugme}>
+            </Dugme>
+            <Dugme gorunum="ikincil" boyut="kucuk" type="button" onClick={() => setNotAlani(null)}>
               {tr.aksiyon.vazgec}
-            </button>
+            </Dugme>
             {problem && (
               <p role="alert" style={{ width: '100%', margin: 0, color: 'var(--renk-kritik)' }}>
                 {problem.errors?.length ? problem.errors[0].sebep : problem.title}
@@ -290,18 +294,24 @@ function AksiyonAcFormu() {
         borderTop: '1px solid var(--renk-cizgi)',
       }}
     >
-      <label style={etiket}>
+      <label className="alan-etiket">
         {tr.aksiyon.yeniBaslik}
         <input
           value={baslik}
           onChange={(o) => setBaslik(o.target.value)}
           required
-          style={{ ...alan, width: 220 }}
+          className="alan"
+          style={{ width: 220 }}
         />
       </label>
-      <label style={etiket}>
+      <label className="alan-etiket">
         {tr.personel.sube}
-        <select value={subeId} onChange={(o) => setSubeId(o.target.value)} required style={alan}>
+        <select
+          value={subeId}
+          onChange={(o) => setSubeId(o.target.value)}
+          required
+          className="alan"
+        >
           <option value="">{tr.personel.seciniz}</option>
           {duzSubeler.map((sube) => (
             <option key={sube.id} value={sube.id}>
@@ -310,12 +320,12 @@ function AksiyonAcFormu() {
           ))}
         </select>
       </label>
-      <label style={etiket}>
+      <label className="alan-etiket">
         {tr.aksiyon.oncelik}
         <select
           value={oncelik}
           onChange={(o) => setOncelik(o.target.value as Oncelik)}
-          style={alan}
+          className="alan"
         >
           {ONCELIKLER.map((o) => (
             <option key={o.deger} value={o.deger}>
@@ -324,9 +334,9 @@ function AksiyonAcFormu() {
           ))}
         </select>
       </label>
-      <button type="submit" disabled={ac.isPending} style={anaDugme}>
+      <Dugme type="submit" disabled={ac.isPending}>
         {tr.aksiyon.ac}
-      </button>
+      </Dugme>
       <p style={{ width: '100%', margin: 0, color: 'var(--renk-sessiz)', fontSize: 'var(--meta)' }}>
         {tr.aksiyon.vadeNotu}
       </p>
@@ -338,35 +348,3 @@ function AksiyonAcFormu() {
     </form>
   );
 }
-
-const etiket = { display: 'grid', gap: 'var(--bosluk-1)', fontSize: 'var(--etiket)' } as const;
-
-const alan = {
-  height: 36,
-  padding: '0 var(--bosluk-2)',
-  borderRadius: 'var(--kose-dugme)',
-  border: '1px solid var(--renk-cizgi)',
-  background: 'var(--renk-yuzey)',
-  color: 'var(--renk-murekkep)',
-} as const;
-
-const kucukDugme = {
-  padding: '0 var(--bosluk-3)',
-  minHeight: 32,
-  borderRadius: 'var(--kose-dugme)',
-  border: '1px solid var(--renk-cizgi)',
-  background: 'var(--renk-yuzey2)',
-  color: 'var(--renk-murekkep)',
-  cursor: 'pointer',
-  fontSize: 'var(--etiket)',
-} as const;
-
-const anaDugme = {
-  padding: '0 var(--bosluk-4)',
-  minHeight: 36,
-  borderRadius: 'var(--kose-dugme)',
-  border: '1px solid var(--renk-marka)',
-  background: 'var(--renk-marka)',
-  color: '#fff',
-  cursor: 'pointer',
-} as const;

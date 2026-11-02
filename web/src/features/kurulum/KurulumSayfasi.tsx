@@ -23,6 +23,7 @@ import {
 } from '../../api/kurulum';
 import { Cip } from '../../bilesenler/Cip';
 import { tr } from '../../i18n/tr';
+import { Dugme } from '../../bilesenler/Dugme';
 
 /**
  * SCR-W-01 · Kurulum sihirbazı (FR-1401).
@@ -125,27 +126,15 @@ function AdimCubugu({
         const aktif = adim.step === secili;
         return (
           <li key={adim.step}>
-            <button
+            <Dugme
               type="button"
               onClick={() => onSec(adim.step)}
               aria-current={aktif ? 'step' : undefined}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 'var(--bosluk-2)',
-                minHeight: 44,
-                padding: '0 var(--bosluk-3)',
-                borderRadius: 'var(--kose-dugme)',
-                border: `1px solid ${aktif ? 'var(--renk-marka)' : 'var(--renk-cizgi)'}`,
-                background: aktif ? 'var(--renk-marka-acik)' : 'var(--renk-yuzey2)',
-                color: 'var(--renk-murekkep)',
-                cursor: 'pointer',
-              }}
             >
               <span aria-hidden="true">{adim.done ? '✓' : sira + 1}</span>
               <span>{adim.label}</span>
               {adim.done && <span className="sr-only">{tr.kurulum.tamamlandi}</span>}
-            </button>
+            </Dugme>
           </li>
         );
       })}
@@ -185,39 +174,39 @@ function MarkaAdimi({ durum, onKaydedildi }: { durum: KurulumDurumu; onKaydedild
       <h2 style={{ fontSize: 'var(--baslik-bolum)', marginTop: 0 }}>{tr.kurulum.markaBaslik}</h2>
       <p style={{ color: 'var(--renk-murekkep2)' }}>{tr.kurulum.markaAciklama}</p>
 
-      <label style={etiket}>
+      <label className="alan-etiket">
         {tr.kurulum.markaAdi}
         <input
           value={ad}
           onChange={(olay) => setAd(olay.target.value)}
           required
           maxLength={120}
-          style={alan}
+          className="alan"
         />
       </label>
 
-      <label style={etiket}>
+      <label className="alan-etiket">
         {tr.kurulum.saatDilimi}
-        <input value={dilim} onChange={(olay) => setDilim(olay.target.value)} style={alan} />
+        <input value={dilim} onChange={(olay) => setDilim(olay.target.value)} className="alan" />
       </label>
 
       <div style={{ display: 'flex', gap: 'var(--bosluk-4)', flexWrap: 'wrap' }}>
-        <label style={{ ...etiket, flex: '1 1 160px' }}>
+        <label className="alan-etiket" style={{ flex: '1 1 160px' }}>
           {tr.kurulum.acilis}
           <input
             type="time"
             value={acilis}
             onChange={(olay) => setAcilis(olay.target.value)}
-            style={alan}
+            className="alan"
           />
         </label>
-        <label style={{ ...etiket, flex: '1 1 160px' }}>
+        <label className="alan-etiket" style={{ flex: '1 1 160px' }}>
           {tr.kurulum.kapanis}
           <input
             type="time"
             value={kapanis}
             onChange={(olay) => setKapanis(olay.target.value)}
-            style={alan}
+            className="alan"
           />
         </label>
       </div>
@@ -248,9 +237,9 @@ function MarkaAdimi({ durum, onKaydedildi }: { durum: KurulumDurumu; onKaydedild
         </p>
       )}
 
-      <button type="submit" disabled={kaydet.isPending || !ad.trim()} style={birincilDugme}>
+      <Dugme type="submit" disabled={kaydet.isPending || !ad.trim()}>
         {kaydet.isPending ? tr.genel.yukleniyor : tr.kurulum.kaydet}
-      </button>
+      </Dugme>
     </form>
   );
 }
@@ -312,11 +301,11 @@ function YuklemeAdimi({
       <h2 style={{ fontSize: 'var(--baslik-bolum)', marginTop: 0 }}>{baslik}</h2>
       <p style={{ color: 'var(--renk-murekkep2)' }}>{aciklama}</p>
 
-      <button type="button" onClick={() => void sablon()} style={ikincilDugme}>
+      <Dugme gorunum="ikincil" type="button" onClick={() => void sablon()}>
         {sablonEtiketi}
-      </button>
+      </Dugme>
 
-      <label style={{ ...etiket, marginTop: 'var(--bosluk-4)' }}>
+      <label className="alan-etiket" style={{ marginTop: 'var(--bosluk-4)' }}>
         {tr.kurulum.dosyaSec}
         <input
           type="file"
@@ -339,13 +328,9 @@ function YuklemeAdimi({
         <div role="alert" style={{ color: 'var(--renk-kritik)', marginTop: 'var(--bosluk-4)' }}>
           <p>{hata}</p>
           {dosya && (
-            <button
-              type="button"
-              onClick={() => void hataRaporuIndir(dosya, tur)}
-              style={ikincilDugme}
-            >
+            <Dugme gorunum="ikincil" type="button" onClick={() => void hataRaporuIndir(dosya, tur)}>
               {tr.kurulum.hataRaporu}
-            </button>
+            </Dugme>
           )}
         </div>
       )}
@@ -353,14 +338,13 @@ function YuklemeAdimi({
       {rapor && <RaporOzeti rapor={rapor} dosya={dosya} tur={tur} yuklendi={yuklendi} />}
 
       {rapor && !yuklendi && (
-        <button
+        <Dugme
           type="button"
           onClick={() => yukle.mutate()}
           disabled={yukle.isPending || rapor.accepted === 0}
-          style={birincilDugme}
         >
           {yukleEtiketi.replace('{n}', String(rapor.accepted))}
-        </button>
+        </Dugme>
       )}
     </div>
   );
@@ -408,29 +392,25 @@ function RaporOzeti({
             <caption className="sr-only">{tr.kurulum.hataTablosu}</caption>
             <thead>
               <tr>
-                <th style={baslikHucre}>{tr.kurulum.satir}</th>
-                <th style={baslikHucre}>{tr.kurulum.sutun}</th>
-                <th style={baslikHucre}>{tr.kurulum.sorun}</th>
+                <th>{tr.kurulum.satir}</th>
+                <th>{tr.kurulum.sutun}</th>
+                <th>{tr.kurulum.sorun}</th>
               </tr>
             </thead>
             <tbody>
               {rapor.errors.slice(0, 20).map((hata, sira) => (
                 <tr key={`${hata.row}-${hata.field}-${sira}`}>
-                  <td style={hucre}>{hata.row}</td>
-                  <td style={hucre}>{hata.field}</td>
-                  <td style={hucre}>{hata.message}</td>
+                  <td>{hata.row}</td>
+                  <td>{hata.field}</td>
+                  <td>{hata.message}</td>
                 </tr>
               ))}
             </tbody>
           </table>
           {dosya && (
-            <button
-              type="button"
-              onClick={() => void hataRaporuIndir(dosya, tur)}
-              style={ikincilDugme}
-            >
+            <Dugme gorunum="ikincil" type="button" onClick={() => void hataRaporuIndir(dosya, tur)}>
               {tr.kurulum.hataRaporu}
-            </button>
+            </Dugme>
           )}
         </>
       )}
@@ -486,14 +466,9 @@ function SablonAdimi({ onSecildi }: { onSecildi: () => void }) {
             <p style={{ color: 'var(--renk-sessiz)', fontSize: 'var(--etiket)' }}>
               {sablon.window}
             </p>
-            <button
-              type="button"
-              onClick={() => sec.mutate(sablon.key)}
-              disabled={sec.isPending}
-              style={birincilDugme}
-            >
+            <Dugme type="button" onClick={() => sec.mutate(sablon.key)} disabled={sec.isPending}>
               {tr.kurulum.sablonuKullan}
-            </button>
+            </Dugme>
           </li>
         ))}
       </ul>
@@ -524,26 +499,21 @@ function PlanAdimi({ onKaydedildi }: { onKaydedildi: () => void }) {
 
       {oneri.data && (
         <>
-          <label style={etiket}>
+          <label className="alan-etiket">
             {tr.kurulum.planAdi}
             <input
               value={ad || oneri.data.name}
               onChange={(olay) => setAd(olay.target.value)}
-              style={alan}
+              className="alan"
             />
           </label>
           <ul style={{ paddingLeft: 'var(--bosluk-4)', color: 'var(--renk-murekkep2)' }}>
             <li>{oneri.data.window}</li>
             <li>{tr.kurulum.planSube.replace('{n}', String(oneri.data.branch_ids.length))}</li>
           </ul>
-          <button
-            type="button"
-            onClick={() => kaydet.mutate()}
-            disabled={kaydet.isPending}
-            style={birincilDugme}
-          >
+          <Dugme type="button" onClick={() => kaydet.mutate()} disabled={kaydet.isPending}>
             {tr.kurulum.planiOlustur}
-          </button>
+          </Dugme>
         </>
       )}
     </div>
@@ -583,14 +553,13 @@ function SonrakiAdimlar({
               {tr.kurulum.yayinEngeli}
             </p>
           )}
-          <button
+          <Dugme
             type="button"
             onClick={() => yayin.mutate()}
             disabled={!durum.publishable || yayin.isPending}
-            style={birincilDugme}
           >
             {tr.kurulum.yayinla}
-          </button>
+          </Dugme>
 
           {yayin.data && (
             <p style={{ marginTop: 'var(--bosluk-4)' }}>
@@ -610,56 +579,3 @@ function SonrakiAdimlar({
     </div>
   );
 }
-
-const etiket = {
-  display: 'block',
-  fontSize: 'var(--etiket)',
-  color: 'var(--renk-murekkep2)',
-  marginBottom: 'var(--bosluk-4)',
-} as const;
-
-const alan = {
-  display: 'block',
-  width: '100%',
-  minHeight: 44,
-  marginTop: 'var(--bosluk-2)',
-  padding: '0 var(--bosluk-3)',
-  borderRadius: 'var(--kose-dugme)',
-  border: '1px solid var(--renk-cizgi)',
-  background: 'var(--renk-yuzey2)',
-  color: 'var(--renk-murekkep)',
-  fontSize: 'var(--govde)',
-} as const;
-
-const birincilDugme = {
-  minHeight: 44,
-  marginTop: 'var(--bosluk-4)',
-  padding: '0 var(--bosluk-4)',
-  borderRadius: 'var(--kose-dugme)',
-  border: 'none',
-  background: 'var(--renk-marka)',
-  color: 'var(--renk-yuzey)',
-  cursor: 'pointer',
-  fontSize: 'var(--govde)',
-} as const;
-
-const ikincilDugme = {
-  ...birincilDugme,
-  background: 'var(--renk-yuzey2)',
-  color: 'var(--renk-murekkep)',
-  border: '1px solid var(--renk-cizgi)',
-} as const;
-
-const baslikHucre = {
-  textAlign: 'left',
-  fontSize: 'var(--etiket)',
-  color: 'var(--renk-murekkep2)',
-  borderBottom: '1px solid var(--renk-cizgi)',
-  padding: 'var(--bosluk-2)',
-} as const;
-
-const hucre = {
-  borderBottom: '1px solid var(--renk-cizgi)',
-  padding: 'var(--bosluk-2)',
-  fontSize: 'var(--etiket)',
-} as const;
