@@ -1,9 +1,15 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 
-import { calistirmaGorunumu, calistirmaPdf, type MaddeDurumu } from '../../api/calistirma';
+import {
+  calistirmaIptal,
+  calistirmaGorunumu,
+  calistirmaPdf,
+  type MaddeDurumu,
+} from '../../api/calistirma';
 import { dosyayiIndir } from '../../api/raporlar';
 import { Cip } from '../../bilesenler/Cip';
+import { useYonetici } from '../../api/yetki';
 import { calistirmaKanitlari, type Kanit } from '../../api/kanitlar';
 import { tr } from '../../i18n/tr';
 import { Kanitlar } from './Kanitlar';
@@ -70,7 +76,70 @@ function PdfDugmesi({ runId }: { runId: string }) {
   );
 }
 
+/**
+ * "Yapılmayacak" (FR-0514, TC-038).
+ *
+ * Sebep zorunlu ve kutu tıklayınca açılıyor: tek tıkla iptal, yanlış
+ * satıra basmayı geri alınamaz hale getirirdi. Geçiş olay günlüğüne
+ * sebebiyle yazılıyor.
+ */
+function YapilmayacakDugmesi({ runId }: { runId: string }) {
+  const [acik, setAcik] = useState(false);
+  const [sebep, setSebep] = useState('');
+  const sorgular = useQueryClient();
+
+  const iptal = useMutation({
+    mutationFn: () => calistirmaIptal(runId, sebep),
+    onSuccess: () => {
+      setAcik(false);
+      setSebep('');
+      void sorgular.invalidateQueries();
+    },
+  });
+
+  if (!acik) {
+    return (
+      <Dugme gorunum="ikincil" boyut="kucuk" type="button" onClick={() => setAcik(true)}>
+        {tr.durum.yapilmayacak}
+      </Dugme>
+    );
+  }
+
+  return (
+    <form
+      onSubmit={(olay) => {
+        olay.preventDefault();
+        iptal.mutate();
+      }}
+      style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--bosluk-2)', alignItems: 'center' }}
+    >
+      <input
+        className="alan"
+        style={{ width: 220 }}
+        value={sebep}
+        onChange={(o) => setSebep(o.target.value)}
+        placeholder={tr.calistirma.yapilmayacakSebep}
+        aria-label={tr.calistirma.yapilmayacakSebep}
+        required
+      />
+      <Dugme boyut="kucuk" type="submit" disabled={iptal.isPending || sebep.trim() === ''}>
+        {tr.calistirma.yapilmayacakOnay}
+      </Dugme>
+      <Dugme gorunum="sessiz" boyut="kucuk" type="button" onClick={() => setAcik(false)}>
+        {tr.calistirma.yapilmayacakVazgec}
+      </Dugme>
+      <span className="meta">{tr.calistirma.yapilmayacakNotu}</span>
+    </form>
+  );
+}
+
+//: Listede gösterilen en çok engel. Kalanı sayıyla söyleniyor:
+//: başlıkta "(7)" yazıp altta altı satır göstermek, sayan kişiyi
+//: kendi gözünden şüphe ettiriyordu.
+const ENGEL_GOSTERILEN = 6;
+
 export function CalistirmaDetayi({ runId, onKapat }: { runId: string; onKapat: () => void }) {
+  const yonetici = useYonetici();
   const gorunum = useQuery({
     queryKey: ['calistirma', runId],
     queryFn: () => calistirmaGorunumu(runId),
@@ -123,6 +192,9 @@ export function CalistirmaDetayi({ runId, onKapat }: { runId: string; onKapat: (
           <strong style={{ fontVariantNumeric: 'tabular-nums' }}>%{veri.score_percent}</strong>
         )}
         <PdfDugmesi runId={runId} />
+        {yonetici && (veri.status === 'scheduled' || veri.status === 'in_progress') && (
+          <YapilmayacakDugmesi runId={runId} />
+        )}
         <Dugme type="button" onClick={onKapat} gorunum="ikincil" boyut="kucuk">
           {tr.calistirma.kapat}
         </Dugme>
@@ -143,11 +215,14 @@ export function CalistirmaDetayi({ runId, onKapat }: { runId: string; onKapat: (
             {tr.calistirma.eksikler} ({veri.blockers.length})
           </strong>
           <ul style={{ margin: 'var(--bosluk-2) 0 0', paddingLeft: 'var(--bosluk-4)' }}>
-            {veri.blockers.slice(0, 6).map((eksik) => (
+            {veri.blockers.slice(0, ENGEL_GOSTERILEN).map((eksik) => (
               <li key={`${eksik.item_id}-${eksik.kind}`}>
                 {eksik.title} — {tr.calistirma.eksikTuru[eksik.kind]}
               </li>
             ))}
+            {veri.blockers.length > ENGEL_GOSTERILEN && (
+              <li>{tr.calistirma.dahaFazlaEksik(veri.blockers.length - ENGEL_GOSTERILEN)}</li>
+            )}
           </ul>
         </div>
       )}

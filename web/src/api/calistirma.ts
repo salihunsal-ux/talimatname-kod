@@ -27,3 +27,13 @@ export async function calistirmaPdf(runId: string): Promise<Blob> {
   if (error) throw error;
   return data;
 }
+
+/** Yapılmayacak (FR-0514). Sebep zorunlu; sunucu da boş kabul etmiyor. */
+export async function calistirmaIptal(id: string, sebep: string): Promise<CalistirmaGorunumu> {
+  const { data, error } = await api.POST('/api/v1/runs/{run_id}/cancel', {
+    params: { path: { run_id: id } },
+    body: { reason: sebep },
+  });
+  if (error) throw error;
+  return data;
+}

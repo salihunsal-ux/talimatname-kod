@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { problemCoz } from '../../api/client';
 import {
   gununCalistirmalari,
+  planBaslat,
   planDurdur,
   planListesi,
   planOlustur,
@@ -49,6 +50,10 @@ export function PlanlarSayfasi() {
   const planlar = useQuery({ queryKey: ['planlar'], queryFn: () => planListesi(true) });
   const bugun = useQuery({ queryKey: ['calistirmalar'], queryFn: () => gununCalistirmalari() });
   const kuyruk = useQueryClient();
+  const baslat = useMutation({
+    mutationFn: planBaslat,
+    onSuccess: () => void kuyruk.invalidateQueries({ queryKey: ['planlar'] }),
+  });
   const durdur = useMutation({
     mutationFn: planDurdur,
     onSuccess: async () => {
@@ -99,14 +104,16 @@ export function PlanlarSayfasi() {
                   {plan.branch_count} {tr.plan.sube}
                 </td>
                 <td style={{ textAlign: 'right' }}>
-                  {plan.active && yonetici && (
+                  {yonetici && (
                     <Dugme
                       gorunum="ikincil"
                       boyut="kucuk"
                       type="button"
-                      onClick={() => durdur.mutate(plan.id)}
+                      onClick={() =>
+                        plan.active ? durdur.mutate(plan.id) : baslat.mutate(plan.id)
+                      }
                     >
-                      {tr.plan.durdur}
+                      {plan.active ? tr.plan.durdur : tr.plan.baslat}
                     </Dugme>
                   )}
                 </td>
@@ -184,8 +191,17 @@ function PlanFormu() {
   const [ad, setAd] = useState('');
   const [surumId, setSurumId] = useState('');
   const [seciliSubeler, setSeciliSubeler] = useState<string[]>([]);
-  const [tekrar, setTekrar] = useState<'daily' | 'weekly' | 'once'>('daily');
+  const [tekrar, setTekrar] = useState<'daily' | 'weekly' | 'monthly' | 'once'>('daily');
   const [gunler, setGunler] = useState<number[]>([0]);
+  const [ayKurali, setAyKurali] = useState<'gun' | 'ninci'>('gun');
+  const [ayinGunu, setAyinGunu] = useState(1);
+  const [ninci, setNinci] = useState(1);
+  const [ayHaftaGunu, setAyHaftaGunu] = useState(0);
+  const [gunIci, setGunIci] = useState<'yok' | 'liste' | 'aralik'>('yok');
+  const [saatler, setSaatler] = useState<string[]>(['09:00', '14:00']);
+  const [araSaat, setAraSaat] = useState(2);
+  const [gunIciBitis, setGunIciBitis] = useState('18:00');
+  const [bitisTarihi, setBitisTarihi] = useState('');
   const [baslangicTuru, setBaslangicTuru] = useState<'fixed' | 'anchor'>('fixed');
   const [saatDegeri, setSaatDegeri] = useState('22:00');
   const [cipa, setCipa] = useState<'open' | 'close'>('close');
@@ -205,6 +221,13 @@ function PlanFormu() {
     schedule: {
       repeat: tekrar,
       weekdays: gunler,
+      times: gunIci === 'liste' ? saatler.map((x) => x + ':00') : [],
+      every_hours: gunIci === 'aralik' ? araSaat : null,
+      until_time: gunIci === 'aralik' ? gunIciBitis + ':00' : null,
+      month_day: tekrar === 'monthly' && ayKurali === 'gun' ? ayinGunu : null,
+      month_nth: tekrar === 'monthly' && ayKurali === 'ninci' ? ninci : null,
+      month_weekday: tekrar === 'monthly' && ayKurali === 'ninci' ? ayHaftaGunu : null,
+      ends_on: bitisTarihi === '' ? null : bitisTarihi,
       starts_on: new Date().toISOString().slice(0, 10),
       start_mode: baslangicTuru,
       start_time: baslangicTuru === 'fixed' ? `${saatDegeri}:00` : null,
@@ -283,6 +306,7 @@ function PlanFormu() {
           >
             <option value="daily">{tr.plan.herGun}</option>
             <option value="weekly">{tr.plan.haftalik}</option>
+            <option value="monthly">{tr.plan.aylik}</option>
             <option value="once">{tr.plan.tekSeferlik}</option>
           </select>
         </label>
@@ -305,6 +329,150 @@ function PlanFormu() {
               </label>
             ))}
           </fieldset>
+        )}
+
+        {tekrar === 'monthly' && (
+          <label className="alan-etiket">
+            {tr.plan.aylik}
+            <div style={{ display: 'flex', gap: 'var(--bosluk-2)' }}>
+              <select
+                value={ayKurali}
+                onChange={(o) => setAyKurali(o.target.value as typeof ayKurali)}
+                className="alan"
+              >
+                <option value="gun">{tr.plan.ayinGunu}</option>
+                <option value="ninci">{tr.plan.nInciHaftaGunu}</option>
+              </select>
+              {ayKurali === 'gun' ? (
+                <input
+                  type="number"
+                  min={1}
+                  max={31}
+                  value={ayinGunu}
+                  onChange={(o) => setAyinGunu(Number(o.target.value))}
+                  aria-label={tr.plan.ayinGunu}
+                  className="alan"
+                />
+              ) : (
+                <>
+                  <select
+                    value={ninci}
+                    onChange={(o) => setNinci(Number(o.target.value))}
+                    aria-label={tr.plan.nInciHaftaGunu}
+                    className="alan"
+                  >
+                    {tr.plan.ninci.map((ad, i) => (
+                      <option key={ad} value={i === 4 ? -1 : i + 1}>
+                        {ad}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    value={ayHaftaGunu}
+                    onChange={(o) => setAyHaftaGunu(Number(o.target.value))}
+                    aria-label={tr.plan.gunler}
+                    className="alan"
+                  >
+                    {GUNLER.map((g, i) => (
+                      <option key={g} value={i}>
+                        {g}
+                      </option>
+                    ))}
+                  </select>
+                </>
+              )}
+            </div>
+          </label>
+        )}
+
+        {baslangicTuru === 'fixed' && tekrar !== 'once' && (
+          <label className="alan-etiket">
+            {tr.plan.gunIci}
+            <select
+              value={gunIci}
+              onChange={(o) => setGunIci(o.target.value as typeof gunIci)}
+              className="alan"
+            >
+              <option value="yok">{tr.plan.gunIciYok}</option>
+              <option value="liste">{tr.plan.saatListesi}</option>
+              <option value="aralik">{tr.plan.herNSaat}</option>
+            </select>
+          </label>
+        )}
+
+        {baslangicTuru === 'fixed' && tekrar !== 'once' && gunIci === 'liste' && (
+          <fieldset style={{ border: 'none', padding: 0, margin: 0 }}>
+            <legend className="alan-etiket">{tr.plan.saatListesi}</legend>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--bosluk-2)' }}>
+              {saatler.map((saat, i) => (
+                <span key={i} style={{ display: 'flex', gap: 4 }}>
+                  <input
+                    type="time"
+                    value={saat}
+                    onChange={(o) =>
+                      setSaatler(saatler.map((x, j) => (i === j ? o.target.value : x)))
+                    }
+                    aria-label={tr.plan.saatListesi + ' ' + (i + 1)}
+                    className="alan"
+                  />
+                  <Dugme
+                    gorunum="ikincil"
+                    boyut="kucuk"
+                    type="button"
+                    aria-label={tr.plan.saatSil}
+                    onClick={() => setSaatler(saatler.filter((_, j) => j !== i))}
+                  >
+                    x
+                  </Dugme>
+                </span>
+              ))}
+              <Dugme
+                gorunum="ikincil"
+                boyut="kucuk"
+                type="button"
+                onClick={() => setSaatler([...saatler, '12:00'])}
+              >
+                {tr.plan.saatEkle}
+              </Dugme>
+            </div>
+          </fieldset>
+        )}
+
+        {baslangicTuru === 'fixed' && tekrar !== 'once' && gunIci === 'aralik' && (
+          <div style={{ display: 'flex', gap: 'var(--bosluk-3)' }}>
+            <label className="alan-etiket">
+              {tr.plan.araSaat}
+              <input
+                type="number"
+                min={1}
+                max={12}
+                value={araSaat}
+                onChange={(o) => setAraSaat(Number(o.target.value))}
+                className="alan"
+              />
+            </label>
+            <label className="alan-etiket">
+              {tr.plan.gunIciBitis}
+              <input
+                type="time"
+                value={gunIciBitis}
+                onChange={(o) => setGunIciBitis(o.target.value)}
+                className="alan"
+              />
+            </label>
+          </div>
+        )}
+
+        {tekrar !== 'once' && (
+          <label className="alan-etiket">
+            {tr.plan.bitisTarihi}
+            <input
+              type="date"
+              value={bitisTarihi}
+              onChange={(o) => setBitisTarihi(o.target.value)}
+              className="alan"
+            />
+          </label>
         )}
 
         <label className="alan-etiket">

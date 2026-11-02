@@ -1850,6 +1850,60 @@
         }
       }
     },
+    "/api/v1/runs/{run_id}/cancel": {
+      "post": {
+        "tags": [
+          "yürütme"
+        ],
+        "summary": "Yapılmayacak (FR-0514)",
+        "description": "Planlandı/Açık bir çalıştırmayı \"yapılmayacak\" yapar.\n\nMüdür yetkisi ister (rol matrisi: personel yapamaz) ve **sebep\nzorunlu**. Sebepsiz iptal, denetimde kaçırılmış listeden ayırt\nedilemez; ikisi de aynı şüpheyi doğurur.",
+        "operationId": "calistirma_iptal_api_v1_runs__run_id__cancel_post",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Run Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IptalGirdisi"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalistirmaGorunumu"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/runs/{run_id}/pdf": {
       "get": {
         "tags": [
@@ -5212,6 +5266,22 @@
         ],
         "title": "Hucre"
       },
+      "IptalGirdisi": {
+        "properties": {
+          "reason": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Reason",
+            "description": "Neden yapılmayacağı"
+          }
+        },
+        "type": "object",
+        "required": [
+          "reason"
+        ],
+        "title": "IptalGirdisi"
+      },
       "IstasyonOzet": {
         "properties": {
           "id": {
@@ -8287,6 +8357,7 @@
             "enum": [
               "daily",
               "weekly",
+              "monthly",
               "once"
             ],
             "title": "Repeat",
@@ -8299,6 +8370,97 @@
             "type": "array",
             "title": "Weekdays",
             "description": "0 = Pazartesi (haftalıkta)"
+          },
+          "times": {
+            "items": {
+              "type": "string",
+              "format": "time"
+            },
+            "type": "array",
+            "title": "Times",
+            "description": "Gün içinde birden çok pencere; boşsa yalnızca start_time"
+          },
+          "every_hours": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 12.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Every Hours",
+            "description": "Her N saat (başlangıç–bitiş aralığında)"
+          },
+          "until_time": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Until Time",
+            "description": "Her N saat kuralının gün içi sonu"
+          },
+          "month_day": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 31.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Month Day",
+            "description": "Ayın günü"
+          },
+          "month_nth": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 4.0,
+                "minimum": -1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Month Nth",
+            "description": "N'inci hafta günü; -1 = son"
+          },
+          "month_weekday": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 6.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Month Weekday",
+            "description": "0 = Pazartesi"
+          },
+          "ends_on": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ends On",
+            "description": "Tekrarın son günü (dâhil)"
           },
           "starts_on": {
             "type": "string",

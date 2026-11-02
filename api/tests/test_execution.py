@@ -435,3 +435,50 @@ def test_kritik_madde_gecerse_aksiyon_acilmaz() -> None:
     servis.submit(run_id)
 
     assert [a for a in aksiyonlar.actions() if a.source == "critical_item"] == []
+
+
+# --- Yapılmayacak (FR-0514, TC-038) -----------------------------------
+
+
+def test_tc038_yapilmayacak_sebeple_isaretlenir(istemci: TestClient) -> None:
+    """Planlandı bir çalıştırma, sebebiyle birlikte iptal edilir."""
+    mudur = oturum_ac(istemci, "branch_manager")
+    kosu = _acik_calistirma(mudur)["id"]
+
+    yanit = mudur.post(f"/api/v1/runs/{kosu}/cancel", json={"reason": "Şube su baskını"})
+
+    assert yanit.status_code == 200, yanit.text
+    assert yanit.json()["status"] == "cancelled"
+    assert mudur.get(f"/api/v1/runs/{kosu}").json()["status"] == "cancelled"
+
+
+def test_yapilmayacak_sebep_istiyor(istemci: TestClient) -> None:
+    """Sebepsiz iptal, denetimde kaçırılmış listeden ayırt edilemez."""
+    mudur = oturum_ac(istemci, "branch_manager")
+    kosu = _acik_calistirma(mudur)["id"]
+
+    yanit = mudur.post(f"/api/v1/runs/{kosu}/cancel", json={"reason": "   "})
+
+    assert yanit.status_code == 422, yanit.text
+
+
+def test_gonderilmis_calistirma_iptal_edilemez(istemci: TestClient) -> None:
+    """Gönderilmiş listeyi iptal etmek kanıtı geçersiz kılmak olurdu."""
+    mudur = oturum_ac(istemci, "branch_manager")
+    kosu = _acik_calistirma(mudur)["id"]
+    mudur.post(f"/api/v1/runs/{kosu}/cancel", json={"reason": "ilk iptal"})
+
+    ikinci = mudur.post(f"/api/v1/runs/{kosu}/cancel", json={"reason": "yine"})
+
+    assert ikinci.status_code == 409, ikinci.text
+
+
+def test_personel_yapilmayacak_diyemez(istemci: TestClient) -> None:
+    """Rol matrisi: "Yapılmayacak" müdür yetkisi."""
+    mudur = oturum_ac(istemci, "branch_manager")
+    kosu = _acik_calistirma(mudur)["id"]
+    personel = oturum_ac(istemci, "staff")
+
+    yanit = personel.post(f"/api/v1/runs/{kosu}/cancel", json={"reason": "olmaz"})
+
+    assert yanit.status_code == 403

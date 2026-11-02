@@ -120,4 +120,38 @@ describe('Pano', () => {
 
     expect(getir).toHaveBeenCalledWith('2026-11-01');
   });
+
+  it('gece yarısını aşan pencereyi günüyle yazar', async () => {
+    /* "00:00–03:30", iş günü 2 Kasım olan satırda sabah geçmiş gibi
+       okunuyordu; oysa pencere o gecenin sonunda açılıyor. PDF bunu
+       iki tarihle yazıyordu, ızgara yazmıyordu. */
+    getir.mockResolvedValue({
+      ...PANO,
+      rows: [
+        {
+          branch_id: 'b-9',
+          branch_name: 'Beşiktaş',
+          region_name: 'Avrupa',
+          cells: [
+            {
+              plan_id: 'p-1',
+              run_id: 'r-9',
+              window_start: '2026-11-02T21:00:00Z',
+              window_end: '2026-11-03T00:30:00Z',
+              status: 'scheduled' as const,
+              late: false,
+              result: null,
+              exception: true,
+            },
+          ],
+          exception: true,
+        },
+      ],
+    });
+
+    kur();
+
+    const hucre = await screen.findByRole('button', { name: /Planlı/ });
+    expect(hucre.getAttribute('title')).toMatch(/03[./]11/);
+  });
 });

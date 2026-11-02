@@ -353,6 +353,92 @@ def _plan_govdesi(istemci: TestClient, **zamanlama: object) -> dict[str, object]
     }
 
 
+def _onizle(istemci: TestClient, **zamanlama: object) -> dict[str, object]:
+    yanit = istemci.post("/api/v1/plans/preview", json=_plan_govdesi(istemci, **zamanlama))
+    assert yanit.status_code == 200, yanit.text
+    govde: dict[str, object] = yanit.json()
+    return govde
+
+
+# --- v1 tekrar biçimleri (FR-0503) ------------------------------------
+
+
+def test_gunluk_birden_cok_saat(istemci: TestClient) -> None:
+    """Saat listesi: gün içinde birden çok pencere.
+
+    Motor eskiden pencerenin saatini `start_time`dan alıyordu; bu
+    plan günde tek pencereye iniyordu.
+    """
+    govde = _onizle(istemci, times=["09:00", "14:30"])
+
+    saatler = sorted({k["window_start"][11:16] for k in govde["runs"]})
+    gunler = {k["business_day"] for k in govde["runs"]}
+
+    assert len(saatler) == 2, saatler
+    # Her iş gününde iki pencere: sayı, gün sayısının iki katı.
+    assert len(govde["runs"]) == 2 * len(gunler)
+
+
+def test_her_n_saat(istemci: TestClient) -> None:
+    """08:00–14:00 arası her 2 saat → günde 4 pencere."""
+    govde = _onizle(istemci, start_time="08:00", every_hours=2, until_time="14:00")
+
+    ilk_gun = [k for k in govde["runs"] if k["business_day"] == govde["runs"][0]["business_day"]]
+    assert len(ilk_gun) == 4, [k["window_start"] for k in ilk_gun]
+
+
+def test_aylik_ayin_gunu(istemci: TestClient) -> None:
+    govde = _onizle(istemci, repeat="monthly", month_day=15)
+
+    assert all(k["business_day"].endswith("-15") for k in govde["runs"])
+
+
+def test_aylik_ninci_hafta_gunu(istemci: TestClient) -> None:
+    """Ayın ikinci Salı'sı gibi kurallar (FR-0503)."""
+    govde = _onizle(istemci, repeat="monthly", month_nth=2, month_weekday=1)
+
+    import datetime as _dt
+
+    for kosu in govde["runs"]:
+        gun = _dt.date.fromisoformat(kosu["business_day"])
+        assert gun.weekday() == 1
+        assert 8 <= gun.day <= 14  # ayın ikinci haftası
+
+
+def test_bitis_tarihi(istemci: TestClient) -> None:
+    """Bitiş tarihinden sonra çalıştırma üretilmez."""
+    tam = _onizle(istemci, starts_on="2026-11-03")
+    sinirli = _onizle(istemci, starts_on="2026-11-03", ends_on="2026-11-05")
+
+    assert len(sinirli["runs"]) < len(tam["runs"])
+    assert all(k["business_day"] <= "2026-11-05" for k in sinirli["runs"])
+
+
+def test_aylik_plan_gun_kurali_istiyor(istemci: TestClient) -> None:
+    yanit = istemci.post("/api/v1/plans/preview", json=_plan_govdesi(istemci, repeat="monthly"))
+
+    assert yanit.status_code == 422
+    assert "ayın günü" in yanit.text
+
+
+def test_calisma_saatinden_turetilen_pencere_gun_icinde_tekrarlanamaz(
+    istemci: TestClient,
+) -> None:
+    """Açılış/kapanış günde bir kez; ikisi birlikte anlamsız."""
+    yanit = istemci.post(
+        "/api/v1/plans/preview",
+        json=_plan_govdesi(
+            istemci,
+            start_mode="anchor",
+            anchor_reference="close",
+            start_time=None,
+            times=["09:00", "14:00"],
+        ),
+    )
+
+    assert yanit.status_code == 422
+
+
 def test_uc_nokta_tolerans_tavani(istemci: TestClient) -> None:
     """FR-0506: tolerans en çok 240 dk.
 

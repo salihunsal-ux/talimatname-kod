@@ -28,6 +28,15 @@ export async function planOlustur(girdi: PlanGirdisi): Promise<PlanOzet> {
   return data;
 }
 
+/** Durdurulan planı yeniden başlatır. Durdurmak tek yönlü kapı olmamalı. */
+export async function planBaslat(id: string): Promise<PlanOzet> {
+  const { data, error } = await api.POST('/api/v1/plans/{plan_id}/activate', {
+    params: { path: { plan_id: id } },
+  });
+  if (error) throw error;
+  return data;
+}
+
 export async function planDurdur(id: string): Promise<PlanOzet> {
   const { data, error } = await api.POST('/api/v1/plans/{plan_id}/deactivate', {
     params: { path: { plan_id: id } },

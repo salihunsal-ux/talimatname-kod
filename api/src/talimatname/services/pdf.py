@@ -133,6 +133,10 @@ class Brand:
         return ZoneInfo(self.timezone)
 
 
+#: Ürünün adı. Kâğıdın altında zincirin adıyla yan yana duruyor.
+URUN_ADI = "Talimatname"
+
+
 def brand_for(account: AccountSettings | None, *, verify_url: str | None = None) -> Brand:
     """Kâğıdın üstündeki hesap: kurulum ayarından marka.
 
@@ -144,7 +148,7 @@ def brand_for(account: AccountSettings | None, *, verify_url: str | None = None)
     başlığı kuran yer de tek (FR-1217).
     """
     if account is None:
-        return Brand(name="Talimatname", verify_url=verify_url)
+        return Brand(name=URUN_ADI, verify_url=verify_url)
     return Brand(name=account.brand_name, timezone=account.timezone, verify_url=verify_url)
 
 
@@ -246,8 +250,8 @@ class _Belge(BaseDocTemplate):
             rightMargin=KENAR,
             topMargin=KENAR,
             bottomMargin=ALT_BOSLUK,
-            title="Talimatname raporu",
-            author="Talimatname",
+            title=f"{URUN_ADI} raporu",
+            author=URUN_ADI,
         )
         self._alt_metin = alt_metin
         self._kod = kod
@@ -603,7 +607,12 @@ def _uret(ic: list[Flowable], *, brand: Brand, kod: str, generated_at: datetime)
     tampon = io.BytesIO()
     belge = _Belge(
         tampon,
-        alt_metin=f"{brand.name} · Talimatname · {_zaman(generated_at, brand.zone)}",
+        # Zincirin adı ile ürünün adı yan yana yazılıyor; kurulum
+        # bitmemişse marka ürün adına düşüyor (`brand_for`) ve kâğıdın
+        # tepesinde aynı kelime iki kez görünüyordu.
+        alt_metin=" · ".join(
+            dict.fromkeys([brand.name, URUN_ADI, _zaman(generated_at, brand.zone)])
+        ),
         kod=kod,
     )
     belge.build(ic)

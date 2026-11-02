@@ -270,3 +270,28 @@ def test_yazi_tipi_yoksa_rapor_uretilmez(monkeypatch: pytest.MonkeyPatch) -> Non
         monthly_pdf(_ozet(), brand=MARKA, generated_at=URETIM, generated_by="Cem")
 
     pdf.register_fonts.cache_clear()
+
+
+def test_marka_adi_kagitta_iki_kez_yazilmaz() -> None:
+    """Kurulum bitmemişken marka, ürünün adına düşüyor (`brand_for`).
+
+    Alt bilgi "zincir · ürün · zaman" yazıyor; ikisi aynı olunca
+    kâğıdın tepesinde "Talimatname · Talimatname" görünüyordu.
+    """
+    from talimatname.services.pdf import URUN_ADI, brand_for
+
+    marka = brand_for(None)
+
+    assert marka.name == URUN_ADI
+    alt = " · ".join(dict.fromkeys([marka.name, URUN_ADI, "02.11.2026 19:47"]))
+    assert alt.count(URUN_ADI) == 1, alt
+
+
+def test_zincir_adi_varsa_ikisi_de_yaziliyor() -> None:
+    """Ad farklıysa ikisi de görünmeli: kâğıt kimin, hangi ürünle."""
+    from talimatname.services.pdf import URUN_ADI
+
+    alt = " · ".join(dict.fromkeys(["Kahve Durağı", URUN_ADI, "02.11.2026 19:47"]))
+
+    assert "Kahve Durağı" in alt
+    assert URUN_ADI in alt

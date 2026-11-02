@@ -23,7 +23,7 @@ from talimatname.api.bagimliliklar import (
     sablon_servisi,
     yurutme_servisi,
 )
-from talimatname.api.guvenlik import Kullanici, sube_erisimi_zorunlu
+from talimatname.api.guvenlik import Kullanici, Mudur, sube_erisimi_zorunlu
 from talimatname.domain.sync import NOT_DONE_REASON_LABELS
 from talimatname.domain.templates import ITEM_TYPE_LABELS
 from talimatname.services.audit import AuditService
@@ -263,6 +263,31 @@ def calistirma_gonder(
     """
     sube_erisimi_zorunlu(kullanici, servis.view(run_id).run.branch_id, org)
     servis.submit(run_id, user_id=kullanici.id)
+    gorunum = servis.view(run_id)
+    return _gorunum(gorunum, sablonlar.get(gorunum.version.template_id).name)
+
+
+class IptalGirdisi(BaseModel):
+    reason: str = Field(min_length=1, max_length=200, description="Neden yapılmayacağı")
+
+
+@router.post("/runs/{run_id}/cancel", summary="Yapılmayacak (FR-0514)")
+def calistirma_iptal(
+    run_id: UUID,
+    girdi: IptalGirdisi,
+    servis: Servis,
+    sablonlar: SablonServis,
+    org: OrgServis,
+    kullanici: Mudur,
+) -> CalistirmaGorunumu:
+    """Planlandı/Açık bir çalıştırmayı "yapılmayacak" yapar.
+
+    Müdür yetkisi ister (rol matrisi: personel yapamaz) ve **sebep
+    zorunlu**. Sebepsiz iptal, denetimde kaçırılmış listeden ayırt
+    edilemez; ikisi de aynı şüpheyi doğurur.
+    """
+    sube_erisimi_zorunlu(kullanici, servis.view(run_id).run.branch_id, org)
+    servis.cancel(run_id, reason=girdi.reason, user_id=kullanici.id)
     gorunum = servis.view(run_id)
     return _gorunum(gorunum, sablonlar.get(gorunum.version.template_id).name)
 

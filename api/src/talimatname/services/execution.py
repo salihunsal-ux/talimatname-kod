@@ -29,9 +29,10 @@ from talimatname.domain.answers import (
     submission_blockers,
 )
 from talimatname.domain.errors import DomainError, ErrorKind
-from talimatname.domain.plans import Run
+from talimatname.domain.plans import RUN_STATUS_LABELS, Run
 from talimatname.domain.scoring import evaluate
 from talimatname.domain.templates import TemplateVersion
+from talimatname.domain.validation import ValidationError
 from talimatname.services.actions import ActionRepository
 from talimatname.services.audit import AuditService
 from talimatname.services.plans import PlanRepository
@@ -47,6 +48,12 @@ class RunNotFound(DomainError):
 class RunClosed(DomainError):
     code = "calistirma-kapali"
     title = "Bu çalıştırma gönderilmiş ya da iptal edilmiş"
+    kind: ErrorKind = "conflict"
+
+
+class RunNotCancellable(DomainError):
+    code = "calistirma-iptal-edilemez"
+    title = "Bu çalıştırma yapılmayacak yapılamaz"
     kind: ErrorKind = "conflict"
 
 
@@ -246,6 +253,38 @@ class ExecutionService:
                 },
             )
         return gonderilen
+
+    def cancel(self, run_id: UUID, *, reason: str, user_id: UUID | None = None) -> Run:
+        """Çalıştırmayı "yapılmayacak" yapar (FR-0514).
+
+        Sebep **zorunlu**: iptal edilen bir liste, denetimde kaçırılmış
+        listeden ayırt edilemezse ikisi de aynı şüpheyi doğurur. Sebep
+        hem kayıtta hem olay günlüğünde duruyor.
+
+        Yalnızca "Planlandı" ve "Devam ediyor" iptal edilebilir:
+        gönderilmiş bir listeyi iptal etmek kanıtı geçersiz kılmak,
+        kaçırılmışı iptal etmek ise geçmişi düzeltmek olurdu.
+        """
+        temiz = reason.strip()
+        if not temiz:
+            raise ValidationError("reason", "İptal sebebi yazılmalı")
+
+        run = self._run(run_id)
+        if run.status not in ("scheduled", "in_progress"):
+            raise RunNotCancellable(f"Durum: {RUN_STATUS_LABELS[run.status]}")
+
+        iptal = replace(run, status="cancelled", cancel_reason=temiz, locked_by=user_id)
+        self._plans.save_run(iptal)
+        self._answers.save_lock(run_id, None)
+        if self._izi is not None:
+            self._izi.record(
+                "calistirma.yapilmayacak",
+                object_type="calistirma",
+                object_id=run_id,
+                before={"durum": run.status},
+                after={"durum": "cancelled", "sebep": temiz},
+            )
+        return iptal
 
     def _kritik_aksiyonlar(
         self,

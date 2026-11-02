@@ -138,10 +138,19 @@ def to_utc(naive_local: datetime, zone: ZoneInfo) -> datetime:
     return aware.astimezone(UTC)
 
 
-def _local_start(rule: WindowRule, day: date, hours: BusinessHours) -> datetime:
-    """Pencerenin yerel başlangıç anı: sabit saat ya da çalışma saatinden türetme."""
+def _local_start(rule: WindowRule, occurrence: datetime, hours: BusinessHours) -> datetime:
+    """Pencerenin yerel başlangıç anı: sabit saat ya da çalışma saatinden türetme.
+
+    Sabit saatte **tekrarın kendi saati** kullanılıyor, `start_time`
+    değil. İkisi günlük planda aynı (dtstart o saatle kuruluyor); fark
+    gün içinde birden çok pencere olduğunda ortaya çıkıyor: "09:00 ve
+    14:30" ya da "08:00'den 18:00'e her 2 saat" (FR-0503). Saati
+    buradan sabitlemek, o planların hepsini günde bir pencereye
+    indirirdi.
+    """
+    day = occurrence.date()
     if rule.start_time is not None:
-        return datetime.combine(day, rule.start_time)
+        return occurrence.replace(tzinfo=None)
 
     assert rule.anchor is not None  # WindowRule.__post_init__ garantisi
     if rule.anchor.reference == "open":
@@ -191,9 +200,11 @@ def windows(
         return []
 
     zone = calendar.zone
+    # dtstart saatiyle kuruluyor: tekrar dizgesi gün içi saat taşımıyorsa
+    # her tekrar bu saate düşer, taşıyorsa (BYHOUR) kendi saatine.
     rrule_set = rrulestr(
         rule.recurrence,
-        dtstart=datetime.combine(rule.starts_on, time(0, 0)),
+        dtstart=datetime.combine(rule.starts_on, rule.start_time or time(0, 0)),
         forceset=True,
     )
     out: list[Window] = []
@@ -207,7 +218,7 @@ def windows(
         if hours is None:
             continue  # kapalı gün: çalıştırma üretilmez (FR-0515)
 
-        local_start = _local_start(rule, day, hours)
+        local_start = _local_start(rule, occurrence, hours)
         # Süre ve tolerans **geçen zaman** olarak sayılır: pencere başlangıcı
         # UTC'ye çevrilir, uzunluklar oradan eklenir. Yerel saatte eklemek,
         # yaz saati geçişinin olduğu gece pencereyi 0 ya da 120 dakikaya

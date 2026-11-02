@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import UTC, date, datetime, time
+from datetime import UTC, date, datetime, time, timedelta
 from typing import Annotated, Literal
 from uuid import UUID, uuid4
 
@@ -40,6 +40,12 @@ ZamanlayiciServis = Annotated[SchedulerService, Depends(zamanlayici_servisi)]
 
 GUN_KISA = ("MO", "TU", "WE", "TH", "FR", "SA", "SU")
 
+#: Gün içinde açılabilecek en çok pencere. Sınır keyfi değil: tekrar
+#: dizgesi veritabanında 200 karakter ve her saat bir satır yazıyor.
+#: Altı pencere, "her 2 saat, 08:00–18:00" gibi gerçek bir kuralı
+#: karşılıyor.
+MAX_GUNLUK_PENCERE = 6
+
 
 class Zamanlama(BaseModel):
     """Plan editörünün zaman kuralı (FR-0502…0507).
@@ -49,8 +55,22 @@ class Zamanlama(BaseModel):
     şubenin çalışma saatinden türetilir ("kapanıştan 60 dk önce").
     """
 
-    repeat: Literal["daily", "weekly", "once"] = "daily"
+    repeat: Literal["daily", "weekly", "monthly", "once"] = "daily"
     weekdays: list[int] = Field(default_factory=list, description="0 = Pazartesi (haftalıkta)")
+    times: list[time] = Field(
+        default_factory=list,
+        description="Gün içinde birden çok pencere; boşsa yalnızca start_time",
+    )
+    every_hours: int | None = Field(
+        default=None, ge=1, le=12, description="Her N saat (başlangıç–bitiş aralığında)"
+    )
+    until_time: time | None = Field(default=None, description="Her N saat kuralının gün içi sonu")
+    month_day: int | None = Field(default=None, ge=1, le=31, description="Ayın günü")
+    month_nth: int | None = Field(
+        default=None, ge=-1, le=4, description="N'inci hafta günü; -1 = son"
+    )
+    month_weekday: int | None = Field(default=None, ge=0, le=6, description="0 = Pazartesi")
+    ends_on: date | None = Field(default=None, description="Tekrarın son günü (dâhil)")
     starts_on: date
     start_mode: Literal["fixed", "anchor"] = "fixed"
     start_time: time | None = None
@@ -82,15 +102,74 @@ class Zamanlama(BaseModel):
             raise ValueError("Çalışma saatinden türetmede açılış/kapanış seçilmeli")
         if self.repeat == "weekly" and not self.weekdays:
             raise ValueError("Haftalık planda en az bir gün seçilmeli")
+        if self.repeat == "monthly":
+            ayin_gunu = self.month_day is not None
+            ninci = self.month_nth is not None and self.month_weekday is not None
+            if ayin_gunu == ninci:
+                raise ValueError("Aylık planda ya ayın günü ya da n'inci hafta günü verilmeli")
+        if self.times and self.every_hours is not None:
+            raise ValueError("Saat listesi ile 'her N saat' birlikte verilmez")
+        if self.every_hours is not None and self.until_time is None:
+            raise ValueError("'Her N saat' kuralında gün içi bitiş saati verilmeli")
+        if self.start_mode == "anchor" and (self.times or self.every_hours is not None):
+            raise ValueError(
+                "Çalışma saatinden türetilen pencere gün içinde tekrarlanamaz: "
+                "açılış/kapanış günde bir kez"
+            )
+        if self.ends_on is not None and self.ends_on < self.starts_on:
+            raise ValueError("Bitiş tarihi başlangıçtan önce olamaz")
+        if len(self._saatler()) > MAX_GUNLUK_PENCERE:
+            raise ValueError(f"Gün içinde en çok {MAX_GUNLUK_PENCERE} pencere açılabilir")
         return self
 
-    def rrule(self) -> str:
-        if self.repeat == "daily":
-            return "FREQ=DAILY"
+    def _saatler(self) -> list[time]:
+        """Gün içindeki pencere başlangıçları.
+
+        Tek saatlik planda boş döner: o saat `dtstart`ten geliyor ve
+        tekrar dizgesine yazmaya gerek yok.
+        """
+        if self.every_hours is not None and self.start_time and self.until_time:
+            saatler: list[time] = []
+            an = datetime.combine(date.min, self.start_time)
+            son = datetime.combine(date.min, self.until_time)
+            while an <= son:
+                saatler.append(an.time())
+                an += timedelta(hours=self.every_hours)
+            return saatler
+        return sorted(set(self.times))
+
+    def _tekrar_govdesi(self) -> str:
         if self.repeat == "weekly":
             gunler = ",".join(GUN_KISA[g] for g in sorted(set(self.weekdays)))
             return f"FREQ=WEEKLY;BYDAY={gunler}"
-        return "FREQ=DAILY;COUNT=1"  # tek seferlik (FR-0512)
+        if self.repeat == "monthly":
+            if self.month_day is not None:
+                return f"FREQ=MONTHLY;BYMONTHDAY={self.month_day}"
+            assert self.month_nth is not None  # _tutarli garantisi
+            assert self.month_weekday is not None
+            return f"FREQ=MONTHLY;BYDAY={self.month_nth}{GUN_KISA[self.month_weekday]}"
+        if self.repeat == "once":
+            return "FREQ=DAILY;COUNT=1"  # tek seferlik (FR-0512)
+        return "FREQ=DAILY"
+
+    def rrule(self) -> str:
+        """RFC 5545 metni. Arayüz seçenek der, motor kural alır (FR-0503).
+
+        Gün içinde birden çok pencere varsa her saat için ayrı bir
+        `RRULE` satırı yazılıyor. `BYHOUR=9,14;BYMINUTE=0,30` yazmak
+        dört pencere üretirdi (9:00, 9:30, 14:00, 14:30); satır başına
+        bir saat, dakikası farklı saatleri de doğru veriyor.
+        """
+        govde = self._tekrar_govdesi()
+        if self.ends_on is not None:
+            govde += f";UNTIL={self.ends_on.strftime('%Y%m%d')}T235959"
+
+        saatler = self._saatler()
+        if len(saatler) <= 1:
+            return govde
+        return "\n".join(
+            f"RRULE:{govde};BYHOUR={saat.hour};BYMINUTE={saat.minute}" for saat in saatler
+        )
 
     def to_rule(self) -> WindowRule:
         return WindowRule(

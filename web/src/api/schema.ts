@@ -699,6 +699,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/runs/{run_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Yapılmayacak (FR-0514)
+         * @description Planlandı/Açık bir çalıştırmayı "yapılmayacak" yapar.
+         *
+         *     Müdür yetkisi ister (rol matrisi: personel yapamaz) ve **sebep
+         *     zorunlu**. Sebepsiz iptal, denetimde kaçırılmış listeden ayırt
+         *     edilemez; ikisi de aynı şüpheyi doğurur.
+         */
+        post: operations["calistirma_iptal_api_v1_runs__run_id__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/runs/{run_id}/pdf": {
         parameters: {
             query?: never;
@@ -2253,6 +2277,14 @@ export interface components {
              */
             exception?: boolean;
         };
+        /** IptalGirdisi */
+        IptalGirdisi: {
+            /**
+             * Reason
+             * @description Neden yapılmayacağı
+             */
+            reason: string;
+        };
         /** IstasyonOzet */
         IstasyonOzet: {
             /**
@@ -3624,12 +3656,47 @@ export interface components {
              * @default daily
              * @enum {string}
              */
-            repeat?: "daily" | "weekly" | "once";
+            repeat?: "daily" | "weekly" | "monthly" | "once";
             /**
              * Weekdays
              * @description 0 = Pazartesi (haftalıkta)
              */
             weekdays?: number[];
+            /**
+             * Times
+             * @description Gün içinde birden çok pencere; boşsa yalnızca start_time
+             */
+            times?: string[];
+            /**
+             * Every Hours
+             * @description Her N saat (başlangıç–bitiş aralığında)
+             */
+            every_hours?: number | null;
+            /**
+             * Until Time
+             * @description Her N saat kuralının gün içi sonu
+             */
+            until_time?: string | null;
+            /**
+             * Month Day
+             * @description Ayın günü
+             */
+            month_day?: number | null;
+            /**
+             * Month Nth
+             * @description N'inci hafta günü; -1 = son
+             */
+            month_nth?: number | null;
+            /**
+             * Month Weekday
+             * @description 0 = Pazartesi
+             */
+            month_weekday?: number | null;
+            /**
+             * Ends On
+             * @description Tekrarın son günü (dâhil)
+             */
+            ends_on?: string | null;
             /**
              * Starts On
              * Format: date
@@ -4935,6 +5002,41 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["GonderimGirdisi"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalistirmaGorunumu"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    calistirma_iptal_api_v1_runs__run_id__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IptalGirdisi"];
             };
         };
         responses: {

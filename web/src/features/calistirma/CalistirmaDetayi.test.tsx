@@ -286,4 +286,21 @@ describe('Çalıştırma detayı', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('PDF üretilemedi');
     expect(indir).not.toHaveBeenCalled();
   });
+
+  it('listelenmeyen engelleri sayıyla söyler', async () => {
+    /* Başlık "(9)" deyip altta altı satır göstermek, sayan kişiyi
+       kendi gözünden şüphe ettiriyordu. */
+    getir.mockResolvedValue({
+      ...GORUNUM,
+      blockers: Array.from({ length: 9 }, (_, i) => ({
+        item_id: `i-${i}`,
+        title: `Eksik ${i}`,
+        kind: 'unanswered' as const,
+      })),
+    });
+
+    kur();
+
+    expect(await screen.findByText(/ve 3 eksik daha/)).toBeInTheDocument();
+  });
 });

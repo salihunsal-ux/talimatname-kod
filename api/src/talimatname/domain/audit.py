@@ -64,6 +64,7 @@ EVENT_TYPES: dict[str, str] = {
     "oturum.kod_istendi": "Doğrulama kodu istendi",
     "calistirma.gonderildi": "Çalıştırma gönderildi",
     "calistirma.kacirildi": "Çalıştırma kaçırıldı",
+    "calistirma.yapilmayacak": "Çalıştırma yapılmayacak",
     "kanit.alindi": "Kanıt alındı",
     "kanit.tekrar_denemesi": "Aynı fotoğraf ikinci kez denendi",
     "kanit.supuruldu": "Bekleyen kanıt süpürüldü",

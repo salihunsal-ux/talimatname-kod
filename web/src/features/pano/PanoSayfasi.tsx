@@ -72,6 +72,30 @@ function saat(iso: string | null | undefined): string {
     : '';
 }
 
+function gun(iso: string | null | undefined): string {
+  return iso ? new Date(iso).toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit' }) : '';
+}
+
+/**
+ * Pencerenin okunabilir hâli. Gece yarısını aşan pencere (BR-01,
+ * FR-0505) günsüz yazılınca yanıltıyor: "00:00–03:30", iş günü 2
+ * Kasım olan satırda sabah geçmiş gibi okunuyor — oysa pencere o
+ * gecenin sonunda açılıyor. PDF bunu iki tarihle yazıyordu; ızgara
+ * yazmıyordu.
+ */
+function pencere(
+  isGunu: string,
+  bas: string | null | undefined,
+  son: string | null | undefined,
+): string {
+  if (!bas) return '';
+  const basGun = new Date(bas).toLocaleDateString('sv-SE'); // yerel YYYY-AA-GG
+  const sonGun = son ? new Date(son).toLocaleDateString('sv-SE') : basGun;
+  const onEk = basGun === isGunu ? '' : `${gun(bas)} `;
+  const sonEk = sonGun === basGun ? '' : ` ${gun(son)}`;
+  return `${onEk}${saat(bas)}–${saat(son)}${sonEk}`;
+}
+
 /**
  * SCR-W-07 · Operasyon panosu (E-4). **Varsayılan görünüm istisna
  * odaklıdır**: yalnızca sorunlu satırlar listelenir; sorun yoksa bunu
@@ -198,7 +222,11 @@ export function PanoSayfasi() {
                         type="button"
                         disabled={!hucre.run_id}
                         onClick={() => hucre.run_id && setAcikCalistirma(hucre.run_id)}
-                        title={`${g.ad}${hucre.window_start ? ` · ${saat(hucre.window_start)}–${saat(hucre.window_end)}` : ''}`}
+                        title={`${g.ad}${
+                          hucre.window_start
+                            ? ` · ${pencere(veri.business_day, hucre.window_start, hucre.window_end)}`
+                            : ''
+                        }`}
                         className="izgara-hucre"
                         style={{ background: g.zemin, color: g.yazi }}
                       >
