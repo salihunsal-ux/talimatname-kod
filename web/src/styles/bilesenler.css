@@ -313,8 +313,18 @@
     padding: var(--bosluk-3) var(--bosluk-4);
   }
 
+  /* Telefonda marka + kişi + çıkış zaten dar; alt başlık iki satıra
+     sarıp bandı şişiriyordu. */
+  .kabuk-bant > .meta {
+    display: none;
+  }
+
   .kabuk-govde {
+    /* Tek sütuna inince menü ve içerik iki satır oluyor; satırları
+       açıkça vermezsek `align-content: stretch` otomatik satırları
+       şişiriyor ve menüyle başlık arasında boşluk kalıyor. */
     grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
   }
 
   .kabuk-menu {
