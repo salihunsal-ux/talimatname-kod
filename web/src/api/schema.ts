@@ -2205,6 +2205,11 @@ export interface components {
              */
             object_store_configured: boolean;
             /**
+             * Demo Show Otp Code
+             * @description Doğrulama kodu yanıtta görünüyor mu (demo modu). Açıkken giriş tek faktöre iner; bu yüzden saklanmıyor, yazılıyor.
+             */
+            demo_show_otp_code: boolean;
+            /**
              * Timestamping Configured
              * @description Günlük kökü dış zaman damgasına çıpalanıyor mu (FR-1302). Kapalıyken zincir yalnızca tek tek değişiklikleri görünür kılar.
              */

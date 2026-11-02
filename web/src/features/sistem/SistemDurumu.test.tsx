@@ -29,6 +29,7 @@ describe('SistemDurumu', () => {
       environment: 'dev',
       database_configured: false,
       object_store_configured: false,
+      demo_show_otp_code: false,
       timestamping_configured: false,
     });
 
@@ -46,6 +47,7 @@ describe('SistemDurumu', () => {
       environment: 'prod',
       database_configured: true,
       object_store_configured: true,
+      demo_show_otp_code: false,
       timestamping_configured: false,
     });
 
@@ -62,12 +64,30 @@ describe('SistemDurumu', () => {
       environment: 'prod',
       database_configured: true,
       object_store_configured: true,
+      demo_show_otp_code: false,
       timestamping_configured: true,
     });
 
     kur();
 
     expect(await screen.findByText('açık')).toBeInTheDocument();
+  });
+
+  it('demo modu açıkken tek faktöre indiğini yazar', async () => {
+    getir.mockResolvedValue({
+      status: 'ok',
+      version: '0.1.0',
+      environment: 'staging',
+      database_configured: true,
+      object_store_configured: true,
+      demo_show_otp_code: true,
+      timestamping_configured: false,
+    });
+
+    kur();
+
+    // Açık kapıyı kapalı sanmak, kapalı kapıdan tehlikeli.
+    expect(await screen.findByText(/tek faktöre iniyor/)).toBeInTheDocument();
   });
 
   it('API ulaşılamazsa uyarı ve yeniden deneme düğmesi gösterilir', async () => {

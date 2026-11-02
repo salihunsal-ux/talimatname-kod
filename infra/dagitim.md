@@ -104,6 +104,11 @@ Deneme sürümünde:
   uydurma hem gerçek şube olursa "bu kayıt gerçek mi" sorusu kalıcı
   hale gelir. Bu yüzden deneme makinesi pilot makinesi olmaz — pilot
   temiz bir kurulumla başlar.
+- `DEMO_SHOW_OTP_CODE=true` gerekiyor. Giriş telefona gelen kodla ve
+  SMS sağlayıcısı bağlı değil; bu ayar olmadan doğrulama kodunu kimse
+  göremediği için demo kapısı kilitli kalır. Açıkken giriş tek faktöre
+  iner — `/health` ve panelin Sistem durumu ekranı bunu yazıyor, prod'da
+  ise ayar açılamıyor. Gerçek veri girilecek bir kurulumda kapalı.
 - `TSA_URL` boş bırakılır: çıpalama kapalı, `/health` bunu söylüyor.
   Zaman damgası sağlayıcısı bir hukuk kararı, demo için gerekmiyor.
 - Erişimi dar tutmak isterseniz güvenlik duvarında kaynak IP sınırı en

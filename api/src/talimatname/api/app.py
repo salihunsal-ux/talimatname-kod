@@ -64,6 +64,12 @@ class HealthResponse(BaseModel):
     object_store_configured: bool = Field(
         description="Nesne depolama **tam** yapılandırılmış mı (uç nokta, kova, anahtarlar)"
     )
+    demo_show_otp_code: bool = Field(
+        description=(
+            "Doğrulama kodu yanıtta görünüyor mu (demo modu). Açıkken giriş "
+            "tek faktöre iner; bu yüzden saklanmıyor, yazılıyor."
+        )
+    )
     timestamping_configured: bool = Field(
         description=(
             "Günlük kökü dış zaman damgasına çıpalanıyor mu (FR-1302). "
@@ -87,6 +93,7 @@ def build_router(settings: Settings) -> APIRouter:
             environment=settings.environment,
             database_configured=settings.database_url is not None,
             object_store_configured=settings.object_store_configured,
+            demo_show_otp_code=settings.demo_show_otp_code,
             timestamping_configured=settings.timestamping_configured,
         )
 

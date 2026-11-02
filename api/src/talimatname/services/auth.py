@@ -113,7 +113,12 @@ class AuthService:
             blocked_until=mevcut.blocked_until if mevcut else None,
         )
         log.info("auth.kod_uretildi", telefon=numara, gonderildi=False)
-        return numara, kod if self._ayar.environment == "dev" else None
+        # Kod yanıta yalnızca geliştirmede ya da demo modunda ekleniyor.
+        # Demo modu ayrı bir ayar, çünkü ortam adını giriş davranışı için
+        # zorlamak altı ay sonra "burası neden dev?" sorusunu doğuruyor;
+        # ayar prod'da açılamıyor (settings.model_post_init).
+        gorunur = self._ayar.environment == "dev" or self._ayar.demo_show_otp_code
+        return numara, kod if gorunur else None
 
     def verify_code(self, phone: str, code: str) -> tuple[User, str]:
         """Kodu doğrular ve belirteç üretir."""

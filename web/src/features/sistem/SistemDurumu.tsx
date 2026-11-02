@@ -84,6 +84,13 @@ export function SistemDurumu() {
                   : tr.sistem.yapilandirilmamis
               }
             />
+            {/* Demo modu açıkken doğrulama kodu yanıtta görünüyor, yani
+                giriş tek faktöre iniyor. Bunu ekranda söylemek şart:
+                kapalı sanılan bir kapı, açık kapıdan tehlikeli. */}
+            <Satir
+              ad={tr.sistem.demoKod}
+              deger={data.demo_show_otp_code ? tr.sistem.demoKodAcik : tr.sistem.demoKodKapali}
+            />
             {/* Kapalıyken sessizce "güvenli" demiyoruz: zincirin neyi
                 gösterip neyi göstermediği burada yazılı (FR-1302). */}
             <Satir

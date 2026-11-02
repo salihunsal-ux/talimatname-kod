@@ -31,6 +31,12 @@ class Settings(BaseSettings):
     # Zaman yolculuğu yalnızca staging'de açılır, prod'da asla (02-repo).
     time_travel_enabled: bool = False
 
+    # Demo: SMS sağlayıcısı bağlanana kadar (ST-067) doğrulama kodu
+    # yanıta ekleniyor, yoksa demoya kimse giremiyor. Prod'da asla:
+    # kodu yanıta koymak, telefona sahip olmayı giriş şartı olmaktan
+    # çıkarır — yani ikinci faktörü iptal eder.
+    demo_show_otp_code: bool = False
+
     # Kanıt dosyaları: S3 uyumlu uç nokta; dev'de yerel dizin adaptörü kullanılır.
     object_store_endpoint: str | None = None
     object_store_bucket: str | None = None
@@ -189,6 +195,11 @@ class Settings(BaseSettings):
         if self.environment == "prod":
             if self.time_travel_enabled:
                 raise RuntimeError("TIME_TRAVEL_ENABLED prod'da açık olamaz")
+            if self.demo_show_otp_code:
+                raise RuntimeError(
+                    "DEMO_SHOW_OTP_CODE prod'da açık olamaz: doğrulama kodunu "
+                    "yanıta koymak ikinci faktörü iptal eder"
+                )
             if not self.database_url:
                 raise RuntimeError("prod ortamında DATABASE_URL zorunlu")
             if not (self.jwt_private_key and self.jwt_public_key):

@@ -87,6 +87,22 @@ def test_kod_yalnizca_gelistirmede_yanitta_yer_alir() -> None:
     assert kod is None
 
 
+def test_demo_modu_kodu_yanita_ekler() -> None:
+    """SMS yokken demo kapısı kilitli kalmasın diye açık bir ayar var.
+
+    Ortam adını ("dev") giriş davranışı için zorlamak yerine ayrı bir
+    ayar: niyet yapılandırmada görünüyor ve prod'da yasak.
+    """
+    servis = AuthService(
+        MemoryUserRepository(),
+        settings=Settings(environment="staging", demo_show_otp_code=True),
+        now=Saat(),
+        code_factory=lambda: "123456",
+    )
+    _, kod = servis.request_code("+905321110001")
+    assert kod == "123456"
+
+
 def test_tc009_uc_hatali_deneme_bloklar() -> None:
     saat = Saat()
     servis = _servis(saat)
@@ -177,6 +193,17 @@ def test_uc_nokta_kod_gonderildi_demez() -> None:
     assert govde["delivered"] is False
     assert "ST-067" in govde["note"]
     assert govde["dev_code"] is not None
+
+
+def test_health_demo_modunu_saklamiyor() -> None:
+    """Açık kapıyı kapalı sanmak, kapalı kapıdan tehlikeli."""
+    acik = TestClient(create_app(Settings(environment="staging", demo_show_otp_code=True))).get(
+        "/api/v1/health"
+    )
+    kapali = TestClient(create_app(Settings(environment="staging"))).get("/api/v1/health")
+
+    assert acik.json()["demo_show_otp_code"] is True
+    assert kapali.json()["demo_show_otp_code"] is False
 
 
 def test_uc_nokta_kod_ile_oturum_ve_ben() -> None:

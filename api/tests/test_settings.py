@@ -88,6 +88,23 @@ def test_prod_zaman_yolculugu_acik_olamaz() -> None:
         )
 
 
+def test_prod_demo_modu_acik_olamaz() -> None:
+    """Kodu yanıta koymak ikinci faktörü iptal eder: prod'da yasak."""
+    with pytest.raises(RuntimeError, match="DEMO_SHOW_OTP_CODE"):
+        _ayar(
+            environment="prod",
+            demo_show_otp_code=True,
+            database_url="postgresql://x/y",
+            jwt_private_key="a",
+            jwt_public_key="b",
+            **TAM_KOVA,
+        )
+
+
+def test_demo_modu_varsayilan_kapali() -> None:
+    assert _ayar().demo_show_otp_code is False
+
+
 def test_cors_jokeri_kabul_edilmez() -> None:
     with pytest.raises(RuntimeError, match="joker"):
         _ayar(cors_origins=["*"])

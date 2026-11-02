@@ -5096,6 +5096,11 @@
             "title": "Object Store Configured",
             "description": "Nesne depolama **tam** yapılandırılmış mı (uç nokta, kova, anahtarlar)"
           },
+          "demo_show_otp_code": {
+            "type": "boolean",
+            "title": "Demo Show Otp Code",
+            "description": "Doğrulama kodu yanıtta görünüyor mu (demo modu). Açıkken giriş tek faktöre iner; bu yüzden saklanmıyor, yazılıyor."
+          },
           "timestamping_configured": {
             "type": "boolean",
             "title": "Timestamping Configured",
@@ -5108,6 +5113,7 @@
           "environment",
           "database_configured",
           "object_store_configured",
+          "demo_show_otp_code",
           "timestamping_configured"
         ],
         "title": "HealthResponse",
