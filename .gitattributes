@@ -1,0 +1,7 @@
+# Kabuk betikleri ve kapsayıcı dosyaları Linux'ta koşuyor: CRLF ile
+# kalkmıyorlar (bash satır sonundaki \r'yi komutun parçası sayar).
+# Windows'ta çalışılırken `core.autocrlf=true` bunları sessizce
+# bozuyordu — `git archive` çıktısı dahil.
+*.sh        text eol=lf
+Dockerfile  text eol=lf
+*.yml       text eol=lf
