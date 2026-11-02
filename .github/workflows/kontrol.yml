@@ -2,6 +2,12 @@ name: kontrol
 
 # Her itme ve her PR'da koşar. Üç iş bağımsız: biri düşünce diğerleri
 # yine de sonuç verir, böylece tek koşuda tüm sorunları görürüz.
+#
+# Koşucu imajı **sabit**: `ubuntu-latest` etiketi 19 Ekim 2026'dan
+# itibaren Ubuntu 26'ya taşınıyor. Etiketi kullanmak, kimse bir şey
+# değiştirmeden bir gün ortamın değişmesi demek — yeşilden kırmızıya
+# geçişin sebebini aramakla vakit kaybedilir. Yükseltmek bir karar
+# olsun: bu satırı değiştirip CI'ın ne dediğine bakarız.
 
 on:
   push:
@@ -20,7 +26,7 @@ env:
 jobs:
   api:
     name: API (ruff · mypy · pytest + PostgreSQL)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     # Veritabanı testleri gerçek PostgreSQL ister. Sağlayıcıya özel bir
     # şey kullanmadığımız için sade bir postgres imajı yetiyor — bu aynı
@@ -48,9 +54,9 @@ jobs:
         working-directory: api
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
@@ -107,15 +113,15 @@ jobs:
 
   web:
     name: Panel (tsc · eslint · vitest · build)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: web
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
@@ -148,10 +154,10 @@ jobs:
 
   fikstur:
     name: Ortak fikstürler (kural motoru sözleşmesi)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ env.PYTHON_VERSION }}
       - name: Fikstür dosyaları geçerli JSON mu
@@ -173,9 +179,9 @@ jobs:
 
   dagitim:
     name: Dağıtım (imajlar · compose dumanı)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Ortam dosyası (yalnızca CI için üretilen anahtarlar)
         # Gerçek anahtar yok: her koşuda yenisi üretiliyor. Üretim
