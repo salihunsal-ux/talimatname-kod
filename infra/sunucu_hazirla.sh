@@ -34,15 +34,32 @@ if ! docker compose version >/dev/null 2>&1; then
 fi
 
 echo "== Güvenlik duvarı =="
-# SSH önce: sırası kaçarsa kendimizi dışarıda bırakırız.
-ufw allow OpenSSH >/dev/null
-if [ -n "$ALAN" ]; then
-  ufw allow 80/tcp >/dev/null
-  ufw allow 443/tcp >/dev/null
+# Bazı bulut imajları (OCI, kimi AWS AMI'leri) INPUT zincirini hazır
+# kurallarla ve sonda bir REJECT ile veriyor. Böyle bir makinede ufw'yi
+# açmak iki kural setini üst üste bindirir; var olan zincire eklemek
+# daha az sürpriz.
+#
+# Not: Docker'ın yayınladığı portlar INPUT'a değil FORWARD/DOCKER
+# zincirine düşüyor, yani kapsayıcılar bu kurallar olmadan da
+# erişilebilir. Kurallar host üstünde koşan bir şey için duruyor.
+PORTLAR=(22)
+if [ -n "$ALAN" ]; then PORTLAR+=(80 443); else PORTLAR+=(8080); fi
+
+if iptables -S INPUT 2>/dev/null | grep -q -- "-j REJECT"; then
+  echo "hazır iptables zinciri bulundu (bulut imajı) — ona ekleniyor"
+  for p in "${PORTLAR[@]}"; do
+    KURAL=(-p tcp -m state --state NEW -m tcp --dport "$p" -j ACCEPT)
+    iptables -C INPUT "${KURAL[@]}" 2>/dev/null || iptables -I INPUT 1 "${KURAL[@]}"
+  done
+  command -v netfilter-persistent >/dev/null && netfilter-persistent save >/dev/null
 else
-  ufw allow 8080/tcp >/dev/null
+  # SSH önce: sırası kaçarsa kendimizi dışarıda bırakırız.
+  ufw allow OpenSSH >/dev/null
+  for p in "${PORTLAR[@]}"; do
+    [ "$p" = 22 ] || ufw allow "$p/tcp" >/dev/null
+  done
+  ufw --force enable >/dev/null
 fi
-ufw --force enable >/dev/null
 echo "açık: SSH + $([ -n "$ALAN" ] && echo '80/443' || echo '8080')"
 
 echo "== .env =="
