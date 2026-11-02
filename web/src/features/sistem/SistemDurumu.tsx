@@ -26,7 +26,7 @@ export function SistemDurumu() {
         maxWidth: 520,
       }}
     >
-      <h1 id="sistem-baslik" style={{ fontSize: 'var(--baslik-bolum)', margin: 0 }}>
+      <h1 id="sistem-baslik" style={{ fontSize: 'var(--baslik-ekran)', margin: 0 }}>
         {tr.sistem.baslik}
       </h1>
 

@@ -51,7 +51,7 @@ export function KurulumSayfasi() {
 
   return (
     <div style={{ maxWidth: 860 }}>
-      <h1 style={{ fontSize: 'var(--baslik-bolum)', margin: 0 }}>{tr.kurulum.baslik}</h1>
+      <h1 style={{ fontSize: 'var(--baslik-ekran)', margin: 0 }}>{tr.kurulum.baslik}</h1>
       <p style={{ color: 'var(--renk-murekkep2)', marginTop: 'var(--bosluk-2)' }}>
         {tr.kurulum.aciklama}
       </p>
@@ -62,7 +62,7 @@ export function KurulumSayfasi() {
         style={{
           border: '1px solid var(--renk-cizgi)',
           borderRadius: 'var(--kose-kart)',
-          padding: 'var(--bosluk-5)',
+          padding: 'var(--bosluk-4)',
           background: 'var(--renk-yuzey)',
         }}
       >
@@ -118,7 +118,7 @@ function AdimCubugu({
         gap: 'var(--bosluk-2)',
         listStyle: 'none',
         padding: 0,
-        margin: 'var(--bosluk-5) 0',
+        margin: 'var(--bosluk-4) 0',
       }}
     >
       {durum.steps.map((adim, sira) => {
@@ -182,7 +182,7 @@ function MarkaAdimi({ durum, onKaydedildi }: { durum: KurulumDurumu; onKaydedild
         kaydet.mutate();
       }}
     >
-      <h2 style={{ fontSize: 'var(--baslik-kart)', marginTop: 0 }}>{tr.kurulum.markaBaslik}</h2>
+      <h2 style={{ fontSize: 'var(--baslik-bolum)', marginTop: 0 }}>{tr.kurulum.markaBaslik}</h2>
       <p style={{ color: 'var(--renk-murekkep2)' }}>{tr.kurulum.markaAciklama}</p>
 
       <label style={etiket}>
@@ -309,14 +309,14 @@ function YuklemeAdimi({
 
   return (
     <div>
-      <h2 style={{ fontSize: 'var(--baslik-kart)', marginTop: 0 }}>{baslik}</h2>
+      <h2 style={{ fontSize: 'var(--baslik-bolum)', marginTop: 0 }}>{baslik}</h2>
       <p style={{ color: 'var(--renk-murekkep2)' }}>{aciklama}</p>
 
       <button type="button" onClick={() => void sablon()} style={ikincilDugme}>
         {sablonEtiketi}
       </button>
 
-      <label style={{ ...etiket, marginTop: 'var(--bosluk-5)' }}>
+      <label style={{ ...etiket, marginTop: 'var(--bosluk-4)' }}>
         {tr.kurulum.dosyaSec}
         <input
           type="file"
@@ -450,7 +450,7 @@ function SablonAdimi({ onSecildi }: { onSecildi: () => void }) {
 
   return (
     <div>
-      <h2 style={{ fontSize: 'var(--baslik-kart)', marginTop: 0 }}>{tr.kurulum.sablonBaslik}</h2>
+      <h2 style={{ fontSize: 'var(--baslik-bolum)', marginTop: 0 }}>{tr.kurulum.sablonBaslik}</h2>
       <p style={{ color: 'var(--renk-murekkep2)' }}>{tr.kurulum.sablonAciklama}</p>
 
       {liste.isPending && <p style={{ color: 'var(--renk-sessiz)' }}>{tr.genel.yukleniyor}</p>}
@@ -512,7 +512,7 @@ function PlanAdimi({ onKaydedildi }: { onKaydedildi: () => void }) {
 
   return (
     <div>
-      <h2 style={{ fontSize: 'var(--baslik-kart)', marginTop: 0 }}>{tr.kurulum.planBaslik}</h2>
+      <h2 style={{ fontSize: 'var(--baslik-bolum)', marginTop: 0 }}>{tr.kurulum.planBaslik}</h2>
       <p style={{ color: 'var(--renk-murekkep2)' }}>{tr.kurulum.planAciklama}</p>
 
       {oneri.isPending && <p style={{ color: 'var(--renk-sessiz)' }}>{tr.genel.yukleniyor}</p>}
@@ -532,7 +532,7 @@ function PlanAdimi({ onKaydedildi }: { onKaydedildi: () => void }) {
               style={alan}
             />
           </label>
-          <ul style={{ paddingLeft: 'var(--bosluk-5)', color: 'var(--renk-murekkep2)' }}>
+          <ul style={{ paddingLeft: 'var(--bosluk-4)', color: 'var(--renk-murekkep2)' }}>
             <li>{oneri.data.window}</li>
             <li>{tr.kurulum.planSube.replace('{n}', String(oneri.data.branch_ids.length))}</li>
           </ul>
@@ -564,12 +564,12 @@ function SonrakiAdimlar({
 
   return (
     <div>
-      <h2 style={{ fontSize: 'var(--baslik-kart)', marginTop: 0 }}>{bilgi?.label}</h2>
+      <h2 style={{ fontSize: 'var(--baslik-bolum)', marginTop: 0 }}>{bilgi?.label}</h2>
       <p style={{ color: 'var(--renk-murekkep2)' }}>{bilgi?.detail}</p>
 
       {adim === 'review' ? (
         <>
-          <ul style={{ paddingLeft: 'var(--bosluk-5)' }}>
+          <ul style={{ paddingLeft: 'var(--bosluk-4)' }}>
             {durum.steps
               .filter((a) => a.step !== 'review')
               .map((a) => (
@@ -634,7 +634,7 @@ const alan = {
 const birincilDugme = {
   minHeight: 44,
   marginTop: 'var(--bosluk-4)',
-  padding: '0 var(--bosluk-5)',
+  padding: '0 var(--bosluk-4)',
   borderRadius: 'var(--kose-dugme)',
   border: 'none',
   background: 'var(--renk-marka)',

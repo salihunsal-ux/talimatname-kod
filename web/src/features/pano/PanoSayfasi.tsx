@@ -104,7 +104,7 @@ export function PanoSayfasi() {
           marginBottom: 'var(--bosluk-3)',
         }}
       >
-        <h1 style={{ fontSize: 'var(--baslik-bolum)', margin: 0 }}>{tr.pano.baslik}</h1>
+        <h1 style={{ fontSize: 'var(--baslik-ekran)', margin: 0 }}>{tr.pano.baslik}</h1>
         <label style={{ display: 'flex', gap: 'var(--bosluk-2)', fontSize: 'var(--etiket)' }}>
           {tr.pano.isGunu}
           <input

@@ -40,7 +40,7 @@ export function RaporlarSayfasi() {
 
   return (
     <div>
-      <h1 style={{ fontSize: 'var(--baslik-bolum)', margin: 0 }}>{tr.rapor.baslik}</h1>
+      <h1 style={{ fontSize: 'var(--baslik-ekran)', margin: 0 }}>{tr.rapor.baslik}</h1>
 
       <div
         role="tablist"
@@ -164,8 +164,8 @@ function CiktilarBolumu() {
   if (!isler.data || isler.data.length === 0) return null;
 
   return (
-    <section style={{ marginTop: 'var(--bosluk-5)' }}>
-      <h2 style={{ fontSize: 'var(--baslik-kart)', margin: 0 }}>{tr.cikti.baslik}</h2>
+    <section style={{ marginTop: 'var(--bosluk-4)' }}>
+      <h2 style={{ fontSize: 'var(--baslik-bolum)', margin: 0 }}>{tr.cikti.baslik}</h2>
       <p style={{ color: 'var(--renk-murekkep2)', fontSize: 'var(--etiket)' }}>
         {tr.cikti.aciklama}
       </p>
@@ -356,7 +356,7 @@ function OzetKartlari({ ozet }: { ozet: AylikOzet }) {
           }}
         >
           <div style={{ fontSize: 'var(--etiket)', color: 'var(--renk-murekkep2)' }}>{ad}</div>
-          <div style={{ fontSize: 'var(--baslik-kart)', marginTop: 4 }}>{deger}</div>
+          <div style={{ fontSize: 'var(--baslik-bolum)', marginTop: 4 }}>{deger}</div>
         </div>
       ))}
     </div>
@@ -366,7 +366,7 @@ function OzetKartlari({ ozet }: { ozet: AylikOzet }) {
 function SubeTablosu({ ozet }: { ozet: AylikOzet }) {
   return (
     <>
-      <h2 style={{ fontSize: 'var(--baslik-kart)' }}>{tr.rapor.subeKirilimi}</h2>
+      <h2 style={{ fontSize: 'var(--baslik-bolum)' }}>{tr.rapor.subeKirilimi}</h2>
       <p style={{ color: 'var(--renk-murekkep2)', fontSize: 'var(--etiket)' }}>
         {tr.rapor.siraAciklamasi}
       </p>

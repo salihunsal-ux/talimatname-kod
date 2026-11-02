@@ -31,7 +31,7 @@ export function DogrulamaSayfasi({ kod: ilkKod }: { kod: string }) {
   return (
     <main style={sayfa}>
       <section aria-labelledby="dogrulama-baslik" style={kart}>
-        <h1 id="dogrulama-baslik" style={{ fontSize: 'var(--baslik-bolum)', margin: 0 }}>
+        <h1 id="dogrulama-baslik" style={{ fontSize: 'var(--baslik-ekran)', margin: 0 }}>
           {tr.dogrulama.baslik}
         </h1>
         <p style={{ color: 'var(--renk-sessiz)', fontSize: 'var(--meta)', marginTop: 4 }}>
@@ -178,7 +178,7 @@ const kart = {
   background: 'var(--renk-yuzey)',
   border: '1px solid var(--renk-cizgi)',
   borderRadius: 'var(--kose-kart)',
-  padding: 'var(--bosluk-5)',
+  padding: 'var(--bosluk-4)',
   width: '100%',
   maxWidth: 440,
 } as const;

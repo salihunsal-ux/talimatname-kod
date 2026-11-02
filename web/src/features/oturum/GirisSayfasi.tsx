@@ -2,6 +2,9 @@ import { useState } from 'react';
 
 import { problemCoz } from '../../api/client';
 import { kodDogrula, kodIste, type KodYaniti } from '../../api/oturum';
+import { Alan } from '../../bilesenler/Alan';
+import { Dugme } from '../../bilesenler/Dugme';
+import { Kart } from '../../bilesenler/Kart';
 import { tr } from '../../i18n/tr';
 
 /**
@@ -9,7 +12,7 @@ import { tr } from '../../i18n/tr';
  *
  * SMS sağlayıcısı bağlı olmadığı için "kod gönderildi" **yazmıyoruz**;
  * sunucu `delivered: false` döndürüyor, ekran da bunu olduğu gibi
- * söylüyor ve geliştirme ortamında kodu gösteriyor. Sağlayıcı
+ * söylüyor ve kodu görünür kılan ayar açıksa kodu gösteriyor. Sağlayıcı
  * bağlandığında (ST-067) bu uyarı kendiliğinden kaybolur.
  */
 export function GirisSayfasi({ onGiris }: { onGiris: () => void }) {
@@ -34,34 +37,22 @@ export function GirisSayfasi({ onGiris }: { onGiris: () => void }) {
   }
 
   return (
-    <main
-      style={{
-        minHeight: '100vh',
-        display: 'grid',
-        placeItems: 'center',
-        padding: 'var(--bosluk-4)',
-      }}
-    >
-      <section
-        aria-labelledby="giris-baslik"
-        style={{
-          background: 'var(--renk-yuzey)',
-          border: '1px solid var(--renk-cizgi)',
-          borderRadius: 'var(--kose-kart)',
-          padding: 'var(--bosluk-5)',
-          width: '100%',
-          maxWidth: 380,
-        }}
-      >
-        <h1 id="giris-baslik" style={{ fontSize: 'var(--baslik-bolum)', margin: 0 }}>
-          {tr.uygulama.ad}
-        </h1>
-        <p style={{ color: 'var(--renk-sessiz)', fontSize: 'var(--meta)', marginTop: 4 }}>
-          {tr.giris.aciklama}
-        </p>
+    <main className="giris">
+      <Kart yuzen className="giris-kart" aria-labelledby="giris-baslik">
+        {/* Marka bloğu kartın içinde: işaret dosyası henüz yok, bu
+            yüzden yazıyla duruyor (tasarım sistemi · İkonografi). */}
+        <div className="giris-marka">
+          <h1 id="giris-baslik" className="baslik-ekran">
+            {tr.uygulama.ad}
+          </h1>
+          <p className="meta" style={{ margin: 'var(--bosluk-1) 0 0' }}>
+            {tr.giris.aciklama}
+          </p>
+        </div>
 
         {adim === 'telefon' ? (
           <form
+            className="yigin"
             onSubmit={(olay) => {
               olay.preventDefault();
               void calistir(async () => {
@@ -71,11 +62,9 @@ export function GirisSayfasi({ onGiris }: { onGiris: () => void }) {
               });
             }}
           >
-            <label htmlFor="giris-telefon" style={etiket}>
-              {tr.giris.telefon}
-            </label>
-            <input
+            <Alan
               id="giris-telefon"
+              etiket={tr.giris.telefon}
               type="tel"
               autoComplete="tel"
               inputMode="tel"
@@ -83,14 +72,14 @@ export function GirisSayfasi({ onGiris }: { onGiris: () => void }) {
               value={telefon}
               onChange={(olay) => setTelefon(olay.target.value)}
               placeholder={tr.giris.telefonOrnek}
-              style={alan}
             />
-            <button type="submit" disabled={calisiyor} style={dugme}>
+            <Dugme type="submit" tam disabled={calisiyor}>
               {calisiyor ? tr.genel.yukleniyor : tr.giris.kodIste}
-            </button>
+            </Dugme>
           </form>
         ) : (
           <form
+            className="yigin"
             onSubmit={(olay) => {
               olay.preventDefault();
               void calistir(async () => {
@@ -100,7 +89,7 @@ export function GirisSayfasi({ onGiris }: { onGiris: () => void }) {
             }}
           >
             {bilgi != null && !bilgi.delivered && (
-              <p role="status" style={uyari}>
+              <p role="status" className="bildiri" style={{ margin: 0 }}>
                 {tr.giris.gonderilmedi}
                 {bilgi.dev_code !== null && bilgi.dev_code !== undefined && (
                   <>
@@ -111,96 +100,51 @@ export function GirisSayfasi({ onGiris }: { onGiris: () => void }) {
               </p>
             )}
 
-            <label htmlFor="giris-kod" style={etiket}>
-              {tr.giris.kod}
-            </label>
-            <input
+            <Alan
               id="giris-kod"
+              etiket={tr.giris.kod}
+              className="alan--kod"
               type="text"
               inputMode="numeric"
               autoComplete="one-time-code"
               required
               value={kod}
               onChange={(olay) => setKod(olay.target.value)}
-              style={{ ...alan, letterSpacing: '0.3em' }}
             />
-            <button type="submit" disabled={calisiyor} style={dugme}>
-              {calisiyor ? tr.genel.yukleniyor : tr.giris.gir}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setAdim('telefon');
-                setKod('');
-                setHata(null);
-              }}
-              style={{ ...dugme, background: 'transparent', color: 'var(--renk-murekkep2)' }}
-            >
-              {tr.giris.numarayiDegistir}
-            </button>
+            <div className="yigin--dar" style={{ display: 'grid' }}>
+              <Dugme type="submit" tam disabled={calisiyor}>
+                {calisiyor ? tr.genel.yukleniyor : tr.giris.gir}
+              </Dugme>
+              <Dugme
+                type="button"
+                gorunum="sessiz"
+                tam
+                onClick={() => {
+                  setAdim('telefon');
+                  setKod('');
+                  setHata(null);
+                }}
+              >
+                {tr.giris.numarayiDegistir}
+              </Dugme>
+            </div>
           </form>
         )}
 
         {hata !== null && (
-          <p role="alert" style={{ color: 'var(--renk-kritik)', marginTop: 'var(--bosluk-3)' }}>
+          <p role="alert" className="bildiri bildiri--hata" style={{ marginBottom: 0 }}>
             {hata}
           </p>
         )}
+      </Kart>
 
-        {/* Belge doğrulama oturum istemiyor (FR-1218); kâğıdı eline alan
-            buraya da gelebilsin diye giriş ekranında duruyor. */}
-        <a
-          href="/dogrula"
-          style={{
-            display: 'inline-block',
-            marginTop: 'var(--bosluk-4)',
-            fontSize: 'var(--meta)',
-            color: 'var(--renk-marka)',
-          }}
-        >
+      {/* Belge doğrulama oturum istemiyor (FR-1218); kâğıdı eline alan
+          buraya da gelebilsin diye giriş ekranında duruyor. */}
+      <div className="giris-alt">
+        <a href="/dogrula" className="meta" style={{ color: 'var(--renk-marka)' }}>
           {tr.giris.belgeDogrula}
         </a>
-      </section>
+      </div>
     </main>
   );
 }
-
-const etiket = {
-  display: 'block',
-  marginTop: 'var(--bosluk-4)',
-  fontSize: 'var(--meta)',
-  color: 'var(--renk-murekkep2)',
-} as const;
-
-const alan = {
-  width: '100%',
-  minHeight: 44,
-  marginTop: 4,
-  padding: '0 var(--bosluk-3)',
-  border: '1px solid var(--renk-cizgi)',
-  borderRadius: 'var(--kose-dugme)',
-  background: 'var(--renk-zemin)',
-  color: 'var(--renk-murekkep)',
-  boxSizing: 'border-box',
-} as const;
-
-const dugme = {
-  width: '100%',
-  minHeight: 44,
-  marginTop: 'var(--bosluk-3)',
-  border: '1px solid var(--renk-marka)',
-  borderRadius: 'var(--kose-dugme)',
-  background: 'var(--renk-marka)',
-  color: '#fff',
-  cursor: 'pointer',
-} as const;
-
-const uyari = {
-  marginTop: 'var(--bosluk-3)',
-  padding: 'var(--bosluk-2) var(--bosluk-3)',
-  border: '1px solid var(--renk-cizgi)',
-  borderRadius: 'var(--kose-kart)',
-  background: 'var(--renk-zemin)',
-  color: 'var(--renk-murekkep2)',
-  fontSize: 'var(--meta)',
-} as const;

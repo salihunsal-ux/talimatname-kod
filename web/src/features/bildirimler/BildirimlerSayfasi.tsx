@@ -39,7 +39,7 @@ export function BildirimlerSayfasi() {
 
   return (
     <div>
-      <h1 style={{ fontSize: 'var(--baslik-bolum)', margin: '0 0 var(--bosluk-3)' }}>
+      <h1 style={{ fontSize: 'var(--baslik-ekran)', margin: '0 0 var(--bosluk-3)' }}>
         {tr.bildirim.baslik}
       </h1>
 

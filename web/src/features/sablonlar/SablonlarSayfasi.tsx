@@ -55,7 +55,7 @@ export function SablonlarSayfasi() {
   return (
     <div style={{ display: 'flex', gap: 'var(--bosluk-6)', flexWrap: 'wrap' }}>
       <div style={{ flex: '0 1 320px', minWidth: 260 }}>
-        <h1 style={{ fontSize: 'var(--baslik-bolum)', margin: '0 0 var(--bosluk-3)' }}>
+        <h1 style={{ fontSize: 'var(--baslik-ekran)', margin: '0 0 var(--bosluk-3)' }}>
           {tr.sablon.baslik}
         </h1>
 
