@@ -193,12 +193,10 @@ function CiktiSatiri({ is }: { is: CiktiIsi }) {
           <span className="meta">{tr.cikti.suresiDoldu}</span>
         )}
         {is.state === 'failed' && (
-          <span className="vade-metni vade-metni--gecikmis">
-            {tr.cikti.uretilemedi(is.error_code ?? '')}
-          </span>
+          <span className="hata-metni">{tr.cikti.uretilemedi(is.error_code ?? '')}</span>
         )}
         {hata && (
-          <span role="alert" className="vade-metni vade-metni--gecikmis">
+          <span role="alert" className="hata-metni">
             {tr.rapor.pdfHata}
           </span>
         )}

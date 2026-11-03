@@ -4,6 +4,7 @@ import { sistemDurumuGetir } from '../../api/sistem';
 import { tr } from '../../i18n/tr';
 import { Cip } from '../../bilesenler/Cip';
 import { Dugme } from '../../bilesenler/Dugme';
+import { Yukleniyor } from '../../bilesenler/Durum';
 
 /**
  * İlk uçtan uca dilim: üretilmiş istemciyle /health çağrısı, üç durum
@@ -17,47 +18,33 @@ export function SistemDurumu() {
   });
 
   return (
-    <section
-      aria-labelledby="sistem-baslik"
-      style={{
-        background: 'var(--renk-yuzey)',
-        border: '1px solid var(--renk-cizgi)',
-        borderRadius: 'var(--kose-kart)',
-        padding: 'var(--bosluk-4)',
-        maxWidth: 520,
-      }}
-    >
-      <h1 id="sistem-baslik" style={{ fontSize: 'var(--baslik-ekran)', margin: 0 }}>
+    <section className="kart dar-kart" aria-labelledby="sistem-baslik">
+      <h1 id="sistem-baslik" className="baslik-ekran">
         {tr.sistem.baslik}
       </h1>
 
-      {isPending && (
-        <p style={{ color: 'var(--renk-sessiz)' }} role="status">
-          {tr.sistem.yukleniyor}
-        </p>
-      )}
+      {isPending && <Yukleniyor metin={tr.sistem.yukleniyor} />}
 
       {isError && (
-        <div role="alert" style={{ marginTop: 'var(--bosluk-3)' }}>
-          <Cip renk="kritik" ikon="✕" metin={tr.sistem.ulasilamiyor} />
-          <p style={{ color: 'var(--renk-murekkep2)' }}>{tr.hata.aglaBaglanilamadi}</p>
-          <Dugme gorunum="ikincil" type="button" onClick={() => void refetch()}>
-            {tr.sistem.yenile}
-          </Dugme>
+        <div role="alert" className="yigin yigin--dar">
+          <div className="cip-listesi">
+            <Cip renk="kritik" ikon="✕" metin={tr.sistem.ulasilamiyor} />
+          </div>
+          <p>{tr.hata.aglaBaglanilamadi}</p>
+          <div className="eylemler">
+            <Dugme gorunum="ikincil" type="button" onClick={() => void refetch()}>
+              {tr.sistem.yenile}
+            </Dugme>
+          </div>
         </div>
       )}
 
       {data && (
-        <div style={{ marginTop: 'var(--bosluk-3)' }}>
-          <Cip renk="marka" ikon="✓" metin={tr.sistem.saglikli} />
-          <dl
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'auto 1fr',
-              gap: 'var(--bosluk-2) var(--bosluk-4)',
-              margin: 'var(--bosluk-3) 0 0',
-            }}
-          >
+        <div className="yigin yigin--dar">
+          <div className="cip-listesi">
+            <Cip renk="marka" ikon="✓" metin={tr.sistem.saglikli} />
+          </div>
+          <dl className="veri-liste">
             <Satir ad={tr.sistem.surum} deger={data.version} />
             <Satir ad={tr.sistem.ortam} deger={data.environment} />
             <Satir
@@ -97,8 +84,8 @@ export function SistemDurumu() {
 function Satir({ ad, deger }: { ad: string; deger: string }) {
   return (
     <>
-      <dt style={{ color: 'var(--renk-sessiz)', fontSize: 'var(--etiket)' }}>{ad}</dt>
-      <dd style={{ margin: 0, fontVariantNumeric: 'tabular-nums' }}>{deger}</dd>
+      <dt>{ad}</dt>
+      <dd>{deger}</dd>
     </>
   );
 }

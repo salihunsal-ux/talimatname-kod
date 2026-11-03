@@ -60,18 +60,9 @@ export function GirisSayfasi({ onGiris }: { onGiris: () => void }) {
           <p className="giris-aciklama">{tr.giris.vaatAciklama}</p>
         </div>
 
-        <ul className="giris-sayilar" style={{ display: 'grid', gap: 'var(--bosluk-3)' }}>
+        <ul className="giris-maddeler">
           {tr.giris.ozellikler.map((madde) => (
-            <li
-              key={madde}
-              style={{
-                display: 'flex',
-                gap: 'var(--bosluk-2)',
-                alignItems: 'center',
-                listStyle: 'none',
-                fontSize: 'var(--govde)',
-              }}
-            >
+            <li key={madde}>
               <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true" focusable="false">
                 <circle cx="9" cy="9" r="8" fill="none" stroke="var(--renk-koyu-marka)" />
                 <path
@@ -94,9 +85,7 @@ export function GirisSayfasi({ onGiris }: { onGiris: () => void }) {
           <h2 id="giris-form-baslik" className="baslik-ekran">
             {tr.giris.gir}
           </h2>
-          <p className="meta" style={{ margin: 'var(--bosluk-2) 0 var(--bosluk-6)' }}>
-            {tr.giris.aciklama}
-          </p>
+          <p className="sayfa-basligi-alt">{tr.giris.aciklama}</p>
 
           {adim === 'telefon' ? (
             <form
@@ -124,9 +113,7 @@ export function GirisSayfasi({ onGiris }: { onGiris: () => void }) {
               <Dugme type="submit" tam disabled={calisiyor}>
                 {calisiyor ? tr.genel.yukleniyor : tr.giris.kodIste}
               </Dugme>
-              <p className="meta" style={{ margin: 0 }}>
-                {tr.giris.kodGelmedi}
-              </p>
+              <p className="meta">{tr.giris.kodGelmedi}</p>
             </form>
           ) : (
             <form
@@ -140,7 +127,7 @@ export function GirisSayfasi({ onGiris }: { onGiris: () => void }) {
               }}
             >
               {bilgi != null && !bilgi.delivered && (
-                <p role="status" className="bildiri" style={{ margin: 0 }}>
+                <p role="status" className="bildiri">
                   {tr.giris.gonderilmedi}
                   {bilgi.dev_code !== null && bilgi.dev_code !== undefined && (
                     <>
@@ -162,7 +149,7 @@ export function GirisSayfasi({ onGiris }: { onGiris: () => void }) {
                 value={kod}
                 onChange={(olay) => setKod(olay.target.value)}
               />
-              <div className="yigin--dar" style={{ display: 'grid' }}>
+              <div className="yigin yigin--dar">
                 <Dugme type="submit" tam disabled={calisiyor}>
                   {calisiyor ? tr.genel.yukleniyor : tr.giris.gir}
                 </Dugme>
@@ -183,11 +170,7 @@ export function GirisSayfasi({ onGiris }: { onGiris: () => void }) {
           )}
 
           {hata !== null && (
-            <p
-              role="alert"
-              className="bildiri bildiri--hata"
-              style={{ marginTop: 'var(--bosluk-4)', marginBottom: 0 }}
-            >
+            <p role="alert" className="bildiri bildiri--hata">
               {hata}
             </p>
           )}
@@ -196,9 +179,7 @@ export function GirisSayfasi({ onGiris }: { onGiris: () => void }) {
               alan buraya da gelebilsin diye giriş ekranında duruyor. */}
           <div className="giris-alt">
             <span className="meta">{tr.giris.belgeniz} </span>
-            <a href="/dogrula" style={{ fontSize: 'var(--meta)', fontWeight: 600 }}>
-              {tr.giris.belgeDogrula}
-            </a>
+            <a href="/dogrula">{tr.giris.belgeDogrula}</a>
           </div>
         </div>
       </section>

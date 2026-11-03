@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { kanitBaglantisi, type Kanit } from '../../api/kanitlar';
 import { Cip } from '../../bilesenler/Cip';
 import { tr } from '../../i18n/tr';
-import { Dugme } from '../../bilesenler/Dugme';
 
 /**
  * Bir maddenin kanıtları: küçük görsel + bayraklar (FR-0615).
@@ -21,15 +20,7 @@ export function Kanitlar({ kanitlar }: { kanitlar: Kanit[] }) {
   if (kanitlar.length === 0) return null;
 
   return (
-    <div
-      style={{
-        width: '100%',
-        display: 'flex',
-        gap: 'var(--bosluk-3)',
-        flexWrap: 'wrap',
-        marginTop: 'var(--bosluk-2)',
-      }}
-    >
+    <div className="kanit-serit">
       {kanitlar.map((kanit) => (
         <KanitKarti key={kanit.id} kanit={kanit} />
       ))}
@@ -57,11 +48,11 @@ function KanitKarti({ kanit }: { kanit: Kanit }) {
   }
 
   return (
-    <figure style={{ margin: 0, maxWidth: 160 }}>
+    <figure className="kanit-cerceve">
       {baglanti.data && !acilmadi ? (
-        <Dugme
-          gorunum="ikincil"
+        <button
           type="button"
+          className="kanit-dugme"
           onClick={tamBoyAc}
           title={kanit.has_stamp ? tr.kanit.damgaliAc : tr.kanit.hamAc}
         >
@@ -69,55 +60,23 @@ function KanitKarti({ kanit }: { kanit: Kanit }) {
             src={baglanti.data}
             alt={tr.kanit.gorselAlt}
             onError={() => setAcilmadi(true)}
-            style={{
-              width: 160,
-              height: 120,
-              objectFit: 'cover',
-              borderRadius: 'var(--kose-kart)',
-              border: '1px solid var(--renk-cizgi)',
-              background: 'var(--renk-yuzey2)',
-            }}
+            className="kanit-gorsel"
           />
-        </Dugme>
+        </button>
       ) : (
-        <div
-          style={{
-            width: 160,
-            height: 120,
-            display: 'grid',
-            placeItems: 'center',
-            borderRadius: 'var(--kose-kart)',
-            border: '1px solid var(--renk-cizgi)',
-            background: 'var(--renk-yuzey2)',
-            color: 'var(--renk-sessiz)',
-            fontSize: 'var(--etiket)',
-          }}
-        >
+        <div className="kanit-yer">
           {baglanti.isError || acilmadi ? tr.kanit.acilamadi : tr.genel.yukleniyor}
         </div>
       )}
 
-      <figcaption
-        style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: 'var(--bosluk-1)',
-          marginTop: 'var(--bosluk-1)',
-        }}
-      >
-        {!kanit.has_stamp && (
-          <span style={{ fontSize: 'var(--etiket)', color: 'var(--renk-sessiz)' }}>
-            {tr.kanit.damgaBekliyor}
-          </span>
-        )}
+      <figcaption className="kanit-alt">
+        {!kanit.has_stamp && <span className="durum-metni">{tr.kanit.damgaBekliyor}</span>}
         {kanit.flags?.length ? (
           kanit.flags.map((bayrak) => (
             <Cip key={bayrak.code} renk="uyari" ikon="⚑" metin={bayrak.label} />
           ))
         ) : (
-          <span style={{ fontSize: 'var(--etiket)', color: 'var(--renk-sessiz)' }}>
-            {tr.kanit.bayraksiz}
-          </span>
+          <span className="durum-metni">{tr.kanit.bayraksiz}</span>
         )}
       </figcaption>
     </figure>

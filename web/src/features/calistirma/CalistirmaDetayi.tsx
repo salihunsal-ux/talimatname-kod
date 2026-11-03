@@ -12,6 +12,7 @@ import { Cip } from '../../bilesenler/Cip';
 import { useYonetici } from '../../api/yetki';
 import { calistirmaKanitlari, type Kanit } from '../../api/kanitlar';
 import { tr } from '../../i18n/tr';
+import { Hata, Yukleniyor } from '../../bilesenler/Durum';
 import { Kanitlar } from './Kanitlar';
 import { Dugme } from '../../bilesenler/Dugme';
 
@@ -65,9 +66,9 @@ function PdfDugmesi({ runId }: { runId: string }) {
   }
 
   return (
-    <span style={{ marginLeft: 'auto', display: 'flex', gap: 'var(--bosluk-2)' }}>
+    <span className="kart-serit">
       {durum === 'hata' && (
-        <span role="alert" style={{ color: 'var(--renk-kritik)', fontSize: 'var(--etiket)' }}>
+        <span role="alert" className="hata-metni">
           {tr.rapor.pdfHata}
         </span>
       )}
@@ -119,11 +120,10 @@ function YapilmayacakDugmesi({ runId }: { runId: string }) {
         olay.preventDefault();
         iptal.mutate();
       }}
-      style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--bosluk-2)', alignItems: 'center' }}
+      className="kart-serit"
     >
       <input
-        className="alan"
-        style={{ width: 220 }}
+        className="alan alan--genis"
         value={sebep}
         onChange={(o) => setSebep(o.target.value)}
         placeholder={tr.calistirma.yapilmayacakSebep}
@@ -157,49 +157,24 @@ export function CalistirmaDetayi({ runId, onKapat }: { runId: string; onKapat: (
     queryFn: () => calistirmaKanitlari(runId),
   });
 
-  if (gorunum.isPending)
-    return <p style={{ color: 'var(--renk-sessiz)' }}>{tr.genel.yukleniyor}</p>;
-  if (gorunum.isError || !gorunum.data)
-    return (
-      <p role="alert" style={{ color: 'var(--renk-kritik)' }}>
-        {tr.hata.genel}
-      </p>
-    );
+  if (gorunum.isPending) return <Yukleniyor />;
+  if (gorunum.isError || !gorunum.data) return <Hata />;
 
   const veri = gorunum.data;
 
   return (
-    <article
-      style={{
-        background: 'var(--renk-yuzey)',
-        border: '1px solid var(--renk-cizgi)',
-        borderRadius: 'var(--kose-kart)',
-        padding: 'var(--bosluk-4)',
-      }}
-    >
+    <article className="kart">
       {/* Başlıkta şube adı önde: kart panoda ızgaranın altında açılıyor
           ve hangi satıra ait olduğu yalnızca tıklama anında belliydi.
           Liste adı, gün ve pencere altına iniyor — kartı ayıran şey
           "hangi şube", "hangi liste" değil. */}
-      <header
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 'var(--bosluk-3)',
-          flexWrap: 'wrap',
-        }}
-      >
-        <div>
-          <h2 style={{ fontSize: 'var(--baslik-bolum)', margin: 0 }}>
+      <header className="kart-serit">
+        <div className="kart-serit-ad">
+          <h2 className="baslik-bolum">
             {veri.branch_name}
-            {veri.region_name && (
-              <span style={{ color: 'var(--renk-sessiz)', fontWeight: 400 }}>
-                {' '}
-                · {veri.region_name}
-              </span>
-            )}
+            {veri.region_name && <span className="baslik-eki"> · {veri.region_name}</span>}
           </h2>
-          <p className="meta" style={{ margin: 'var(--bosluk-1) 0 0' }}>
+          <p className="meta">
             {veri.template_name} · {tarih(veri.business_day)} · {saat(veri.window_start)}–
             {saat(veri.window_end)}
           </p>
@@ -211,9 +186,7 @@ export function CalistirmaDetayi({ runId, onKapat }: { runId: string; onKapat: (
             metin={veri.result === 'passed' ? tr.calistirma.basarili : tr.calistirma.basarisiz}
           />
         )}
-        {veri.score_percent !== null && (
-          <strong style={{ fontVariantNumeric: 'tabular-nums' }}>%{veri.score_percent}</strong>
-        )}
+        {veri.score_percent !== null && <strong className="sayisal">%{veri.score_percent}</strong>}
         <PdfDugmesi runId={runId} />
         {yonetici && (veri.status === 'scheduled' || veri.status === 'in_progress') && (
           <YapilmayacakDugmesi runId={runId} />
@@ -223,61 +196,44 @@ export function CalistirmaDetayi({ runId, onKapat }: { runId: string; onKapat: (
         </Dugme>
       </header>
 
-      {veri.blockers.length > 0 && (
-        <div
-          role="status"
-          style={{
-            marginTop: 'var(--bosluk-3)',
-            background: 'var(--renk-uyari-acik)',
-            borderRadius: 'var(--kose-dugme)',
-            padding: 'var(--bosluk-3)',
-            fontSize: 'var(--etiket)',
-          }}
-        >
-          <strong>
-            {tr.calistirma.eksikler} ({veri.blockers.length})
-          </strong>
-          <ul style={{ margin: 'var(--bosluk-2) 0 0', paddingLeft: 'var(--bosluk-4)' }}>
-            {veri.blockers.slice(0, ENGEL_GOSTERILEN).map((eksik) => (
-              <li key={`${eksik.item_id}-${eksik.kind}`}>
-                {eksik.title} — {tr.calistirma.eksikTuru[eksik.kind]}
-              </li>
-            ))}
-            {veri.blockers.length > ENGEL_GOSTERILEN && (
-              <li>{tr.calistirma.dahaFazlaEksik(veri.blockers.length - ENGEL_GOSTERILEN)}</li>
-            )}
-          </ul>
-        </div>
-      )}
+      <div className="yigin">
+        {veri.blockers.length > 0 && (
+          <div role="status" className="bildiri bildiri--uyari">
+            <strong>
+              {tr.calistirma.eksikler} ({veri.blockers.length})
+            </strong>
+            <ul className="madde-listesi">
+              {veri.blockers.slice(0, ENGEL_GOSTERILEN).map((eksik) => (
+                <li key={`${eksik.item_id}-${eksik.kind}`}>
+                  {eksik.title} — {tr.calistirma.eksikTuru[eksik.kind]}
+                </li>
+              ))}
+              {veri.blockers.length > ENGEL_GOSTERILEN && (
+                <li>{tr.calistirma.dahaFazlaEksik(veri.blockers.length - ENGEL_GOSTERILEN)}</li>
+              )}
+            </ul>
+          </div>
+        )}
 
-      {veri.sections.map((bolum) => (
-        <section key={bolum.id} style={{ marginTop: 'var(--bosluk-4)' }}>
-          <h3
-            style={{
-              fontSize: 'var(--etiket)',
-              textTransform: 'uppercase',
-              letterSpacing: '0.06em',
-              color: 'var(--renk-sessiz)',
-              margin: '0 0 var(--bosluk-2)',
-            }}
-          >
-            {bolum.title}
-          </h3>
-          <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-            {bolum.items.map((madde) => (
-              <MaddeSatiri
-                key={madde.item_id}
-                madde={madde}
-                // Yalnızca doğrulanmış kanıt gösterilir: "pending" bir
-                // niyet beyanıdır, baytları henüz depoda değil (ST-054).
-                kanitlar={(kanitlar.data ?? []).filter(
-                  (k) => k.item_id === madde.item_id && k.status !== 'pending',
-                )}
-              />
-            ))}
-          </ul>
-        </section>
-      ))}
+        {veri.sections.map((bolum) => (
+          <section key={bolum.id}>
+            <h3 className="bolum-etiketi">{bolum.title}</h3>
+            <ul className="sade-liste">
+              {bolum.items.map((madde) => (
+                <MaddeSatiri
+                  key={madde.item_id}
+                  madde={madde}
+                  // Yalnızca doğrulanmış kanıt gösterilir: "pending" bir
+                  // niyet beyanıdır, baytları henüz depoda değil (ST-054).
+                  kanitlar={(kanitlar.data ?? []).filter(
+                    (k) => k.item_id === madde.item_id && k.status !== 'pending',
+                  )}
+                />
+              ))}
+            </ul>
+          </section>
+        ))}
+      </div>
     </article>
   );
 }
@@ -288,18 +244,8 @@ function MaddeSatiri({ madde, kanitlar }: { madde: MaddeDurumu; kanitlar: Kanit[
   const talimat = madde.type === 'instruction';
 
   return (
-    <li
-      style={{
-        display: 'flex',
-        gap: 'var(--bosluk-2)',
-        alignItems: 'center',
-        flexWrap: 'wrap',
-        padding: 'var(--bosluk-2) 0',
-        borderTop: '1px solid var(--renk-cizgi)',
-        color: talimat ? 'var(--renk-murekkep2)' : undefined,
-      }}
-    >
-      <span style={{ flex: '1 1 240px' }}>
+    <li className={talimat ? 'madde-satiri madde-satiri--talimat' : 'madde-satiri'}>
+      <span className="madde-satiri-ad">
         {madde.title}
         {madde.critical && (
           <>
@@ -320,13 +266,7 @@ function MaddeSatiri({ madde, kanitlar }: { madde: MaddeDurumu; kanitlar: Kanit[
           ) : null}
           <Kanitlar kanitlar={kanitlar} />
           {cevap?.clock_flagged && <Cip renk="uyari" ikon="⏱" metin={tr.calistirma.saatSapmasi} />}
-          {cevap?.note && (
-            <span
-              style={{ width: '100%', color: 'var(--renk-murekkep2)', fontSize: 'var(--etiket)' }}
-            >
-              {cevap.note}
-            </span>
-          )}
+          {cevap?.note && <span className="madde-satiri-not">{cevap.note}</span>}
         </>
       ) : (
         <Cip renk="pasif" ikon="○" metin={tr.calistirma.cevapsiz} />

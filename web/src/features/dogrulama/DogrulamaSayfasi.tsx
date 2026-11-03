@@ -32,51 +32,42 @@ export function DogrulamaSayfasi({ kod: ilkKod }: { kod: string }) {
 
   return (
     <main className="orta-sayfa">
-      <Kart yuzen aria-labelledby="dogrulama-baslik" style={{ width: '100%', maxWidth: 440 }}>
+      <Kart yuzen aria-labelledby="dogrulama-baslik" className="dar-kart">
         <h1 id="dogrulama-baslik" className="baslik-ekran">
           {tr.dogrulama.baslik}
         </h1>
-        <p className="meta" style={{ margin: 'var(--bosluk-1) 0 var(--bosluk-4)' }}>
-          {tr.dogrulama.aciklama}
-        </p>
+        <p className="sayfa-basligi-alt">{tr.dogrulama.aciklama}</p>
 
         <form
+          className="yigin yigin--dar"
           onSubmit={(olay) => {
             olay.preventDefault();
             setSorulan(kod.trim());
           }}
         >
-          <label htmlFor="belge-kodu" className="alan-etiket">
-            {tr.dogrulama.kod}
-          </label>
-          <input
-            id="belge-kodu"
-            name="kod"
-            required
-            value={kod}
-            onChange={(olay) => setKod(olay.target.value)}
-            placeholder={tr.dogrulama.kodOrnek}
-            autoCapitalize="characters"
-            spellCheck={false}
-            className="alan"
-            style={{ letterSpacing: '0.12em', textTransform: 'uppercase' }}
-          />
-          <Dugme
-            type="submit"
-            tam
-            disabled={sonuc.isFetching}
-            style={{ marginTop: 'var(--bosluk-3)' }}
-          >
+          <div className="alan-sarmal">
+            <label htmlFor="belge-kodu" className="alan-etiket">
+              {tr.dogrulama.kod}
+            </label>
+            <input
+              id="belge-kodu"
+              name="kod"
+              required
+              value={kod}
+              onChange={(olay) => setKod(olay.target.value)}
+              placeholder={tr.dogrulama.kodOrnek}
+              autoCapitalize="characters"
+              spellCheck={false}
+              className="alan alan--belge-kodu"
+            />
+          </div>
+          <Dugme type="submit" tam disabled={sonuc.isFetching}>
             {sonuc.isFetching ? tr.genel.yukleniyor : tr.dogrulama.sor}
           </Dugme>
         </form>
 
         {sonuc.isError && (
-          <p
-            role="alert"
-            className="bildiri bildiri--hata"
-            style={{ marginTop: 'var(--bosluk-3)' }}
-          >
+          <p role="alert" className="bildiri bildiri--hata">
             {hataMetni(sonuc.error)}
           </p>
         )}
@@ -84,7 +75,7 @@ export function DogrulamaSayfasi({ kod: ilkKod }: { kod: string }) {
         {sonuc.data !== undefined && !sonuc.isError && <Kayit kayit={sonuc.data} />}
 
         <p className="dipnot">{tr.dogrulama.sinir}</p>
-        <a href="/" className="meta" style={{ color: 'var(--renk-marka)' }}>
+        <a href="/" className="meta">
           {tr.dogrulama.panele}
         </a>
       </Kart>
@@ -95,12 +86,8 @@ export function DogrulamaSayfasi({ kod: ilkKod }: { kod: string }) {
 function Kayit({ kayit }: { kayit: DogrulamaSonucu }) {
   const saglam = kayit.record_intact && kayit.chain_linked;
   return (
-    <div style={{ marginTop: 'var(--bosluk-4)' }}>
-      <p
-        role="status"
-        className={saglam ? 'bildiri bildiri--saglam' : 'bildiri bildiri--uyari'}
-        style={{ margin: 0 }}
-      >
+    <div className="yigin yigin--dar">
+      <p role="status" className={saglam ? 'bildiri bildiri--saglam' : 'bildiri bildiri--uyari'}>
         {saglam ? tr.dogrulama.saglam : tr.dogrulama.kirik}
       </p>
 

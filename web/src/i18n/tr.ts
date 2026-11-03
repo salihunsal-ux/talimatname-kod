@@ -456,6 +456,8 @@ export const tr = {
   },
   bildirim: {
     baslik: 'Bildirimler',
+    altBaslik:
+      'Teslimat izi: bildirim gitti mi, gitmediyse neden. Sürücü bağlı değilken bu liste eksik entegrasyonun kendisidir.',
     hepsi: 'Hepsi',
     kuyrukta: 'Kuyrukta',
     kanalaVerildi: 'Kanala verildi',

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { panoGetir, type Hucre } from '../../api/pano';
 import { CalistirmaDetayi } from '../calistirma/CalistirmaDetayi';
 import { tr } from '../../i18n/tr';
+import { Hata } from '../../bilesenler/Durum';
 import { Dugme } from '../../bilesenler/Dugme';
 
 /** Hücre görünümü: renk tek başına anlam taşımaz, ikon + başlık var (NFR-11). */
@@ -127,9 +128,7 @@ export function PanoSayfasi() {
           <h1>{tr.pano.baslik}</h1>
           <p className="sayfa-basligi-alt">
             {tr.pano.altBaslik}
-            {pano.isFetching && (
-              <span style={{ color: 'var(--renk-sessiz)' }}> · {tr.pano.yenileniyor}</span>
-            )}
+            {pano.isFetching && <span className="durum-metni"> · {tr.pano.yenileniyor}</span>}
           </p>
         </div>
 
@@ -160,115 +159,91 @@ export function PanoSayfasi() {
         </div>
       </header>
 
-      {pano.isError && (
-        <p role="alert" style={{ color: 'var(--renk-kritik)' }}>
-          {tr.hata.aglaBaglanilamadi}
-        </p>
-      )}
+      <div className="yigin">
+        {pano.isError && <Hata metin={tr.hata.aglaBaglanilamadi} />}
 
-      {veri && <Gostergeler veri={veri} />}
+        {veri && <Gostergeler veri={veri} />}
 
-      {veri && veri.rows.length === 0 && (
-        <p style={{ color: 'var(--renk-sessiz)' }}>{tr.pano.gunBos}</p>
-      )}
+        {veri && veri.rows.length === 0 && <p className="bos-durum">{tr.pano.gunBos}</p>}
 
-      {veri && veri.rows.length > 0 && veri.exception_row_count === 0 && !tumu && (
-        <div
-          role="status"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 'var(--bosluk-3)',
-            background: veri.kpi.all_clear ? 'var(--renk-marka-acik)' : 'var(--renk-yuzey2)',
-            color: 'var(--renk-murekkep)',
-            borderRadius: 'var(--kose-kart)',
-            padding: 'var(--bosluk-4)',
-          }}
-        >
-          <span style={{ fontSize: 22 }} aria-hidden="true">
-            {veri.kpi.all_clear ? '✓' : '○'}
-          </span>
-          <div>
-            <strong>{veri.kpi.all_clear ? tr.pano.herSeyYolunda : tr.pano.henuzSorunYok}</strong>
-            <div style={{ color: 'var(--renk-murekkep2)', fontSize: 'var(--etiket)' }}>
-              {veri.kpi.all_clear
-                ? tr.pano.herSeyYolundaAlt
-                : `${veri.kpi.open_now} ${tr.pano.bekleyen}`}
+        {veri && veri.rows.length > 0 && veri.exception_row_count === 0 && !tumu && (
+          <div role="status" className={veri.kpi.all_clear ? 'mujde mujde--temiz' : 'mujde'}>
+            <span className="mujde-ikon" aria-hidden="true">
+              {veri.kpi.all_clear ? '✓' : '○'}
+            </span>
+            <div>
+              <strong>{veri.kpi.all_clear ? tr.pano.herSeyYolunda : tr.pano.henuzSorunYok}</strong>
+              <div className="ikincil-metin">
+                {veri.kpi.all_clear
+                  ? tr.pano.herSeyYolundaAlt
+                  : `${veri.kpi.open_now} ${tr.pano.bekleyen}`}
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {satirlar.length > 0 && veri && (
-        <div className="tablo-kaydirma">
-          <table className="tablo tablo--izgara">
-            <thead>
-              <tr>
-                <th>{tr.pano.sube}</th>
-                {veri.plans.map((plan) => (
-                  <th key={plan.id}>{plan.name}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {satirlar.map((satir) => (
-                <tr key={satir.branch_id}>
-                  <th scope="row">
-                    {satir.branch_name}
-                    {satir.region_name && (
-                      <span style={{ color: 'var(--renk-sessiz)', fontSize: 'var(--meta)' }}>
-                        {' '}
-                        · {satir.region_name}
-                      </span>
-                    )}
-                  </th>
-                  {satir.cells.map((hucre) => {
-                    const tur = hucreTuru(hucre);
-                    const g = HUCRE[tur];
-                    return (
-                      <td key={`${satir.branch_id}-${hucre.plan_id}`}>
-                        {/* Seçili hâlin tek kaynağı `aria-pressed`:
-                            satır vurgusu da bundan türüyor. */}
-                        <button
-                          type="button"
-                          disabled={!hucre.run_id}
-                          onClick={() => hucre.run_id && setAcikCalistirma(hucre.run_id)}
-                          aria-pressed={hucre.run_id ? acikCalistirma === hucre.run_id : undefined}
-                          title={`${g.ad}${
-                            hucre.window_start
-                              ? ` · ${pencere(veri.business_day, hucre.window_start, hucre.window_end)}`
-                              : ''
-                          }`}
-                          className="izgara-hucre"
-                          style={{ background: g.zemin, color: g.yazi }}
-                        >
-                          <span aria-hidden="true">{g.ikon}</span>
-                          {g.ad}
-                        </button>
-                      </td>
-                    );
-                  })}
+        {satirlar.length > 0 && veri && (
+          <div className="tablo-kaydirma">
+            <table className="tablo tablo--izgara">
+              <thead>
+                <tr>
+                  <th>{tr.pano.sube}</th>
+                  {veri.plans.map((plan) => (
+                    <th key={plan.id}>{plan.name}</th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+              </thead>
+              <tbody>
+                {satirlar.map((satir) => (
+                  <tr key={satir.branch_id}>
+                    <th scope="row">
+                      {satir.branch_name}
+                      {satir.region_name && <span className="meta"> · {satir.region_name}</span>}
+                    </th>
+                    {satir.cells.map((hucre) => {
+                      const tur = hucreTuru(hucre);
+                      const g = HUCRE[tur];
+                      return (
+                        <td key={`${satir.branch_id}-${hucre.plan_id}`}>
+                          {/* Seçili hâlin tek kaynağı `aria-pressed`:
+                            satır vurgusu da bundan türüyor. */}
+                          <button
+                            type="button"
+                            disabled={!hucre.run_id}
+                            onClick={() => hucre.run_id && setAcikCalistirma(hucre.run_id)}
+                            aria-pressed={
+                              hucre.run_id ? acikCalistirma === hucre.run_id : undefined
+                            }
+                            title={`${g.ad}${
+                              hucre.window_start
+                                ? ` · ${pencere(veri.business_day, hucre.window_start, hucre.window_end)}`
+                                : ''
+                            }`}
+                            className="izgara-hucre"
+                            style={{ background: g.zemin, color: g.yazi }}
+                          >
+                            <span aria-hidden="true">{g.ikon}</span>
+                            {g.ad}
+                          </button>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
 
-      {/* Detay yuvası boş bırakılmıyor: ızgaranın altındaki boşluk
+        {/* Detay yuvası boş bırakılmıyor: ızgaranın altındaki boşluk
           "sayfa bitti" gibi okunuyordu, oysa asıl içerik bir tık
           uzakta. */}
-      {acikCalistirma ? (
-        <div style={{ marginTop: 'var(--bosluk-4)' }}>
+        {acikCalistirma ? (
           <CalistirmaDetayi runId={acikCalistirma} onKapat={() => setAcikCalistirma(null)} />
-        </div>
-      ) : (
-        satirlar.length > 0 && (
-          <p className="bos-durum" style={{ marginTop: 'var(--bosluk-4)' }}>
-            {tr.pano.detayIpucu}
-          </p>
-        )
-      )}
+        ) : (
+          satirlar.length > 0 && <p className="bos-durum">{tr.pano.detayIpucu}</p>
+        )}
+      </div>
     </div>
   );
 }
