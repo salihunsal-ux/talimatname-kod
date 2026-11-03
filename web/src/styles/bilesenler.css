@@ -502,12 +502,6 @@ textarea.alan {
   .dugme--kucuk {
     min-height: 44px;
   }
-
-  /* Cip bir etiket, dugme degil; dokunma hedefi kurali yine de gecerli
-     (NFR-11). Masaustunde 36 px yeterli, parmakta degil. */
-  .secim-cipi {
-    min-height: 44px;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -975,6 +969,16 @@ textarea.alan {
 
 .secim-cipi input {
   margin: 0;
+}
+
+/* Çip bir etiket, düğme değil; dokunma hedefi kuralı yine de geçerli
+   (NFR-11). Masaüstünde 36 px yetiyor, parmakta yetmiyor.
+   Kural burada, sayfanın yukarısındaki dar ekran bloğunda değil:
+   aynı özgüllükte sonra gelen tanım kazanır. */
+@media (max-width: 720px) {
+  .secim-cipi {
+    min-height: 44px;
+  }
 }
 
 /* --- bölüm etiketi --------------------------------------------------
