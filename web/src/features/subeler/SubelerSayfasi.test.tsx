@@ -81,6 +81,13 @@ describe('Şubeler sayfası', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Bu şube kodu zaten var');
   });
 
+  it('şube yokken ne yapılacağını söyler', async () => {
+    agac.mockResolvedValue([{ id: 'r-1', name: 'Anadolu', branches: [] }]);
+    kur();
+
+    expect(await screen.findByText(/Henüz şube yok/)).toBeInTheDocument();
+  });
+
   it('şube müdürüne ekleme formu gösterilmez', async () => {
     // Asıl denetim sunucuda (403); arayüz basılamayacak düğmeyi hiç göstermiyor.
     kur(SUBE_MUDURU);

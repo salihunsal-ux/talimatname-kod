@@ -188,7 +188,7 @@ function PersonelSatiri({
           <span className="durum-metni">—</span>
         ) : (
           kisi.assignments.map((atama, sira) => (
-            <div key={`${atama.role}-${sira}`} className="atama-satiri">
+            <div key={`${atama.role}-${sira}`} className="ikincil-metin">
               {atama.role_label}
               {atama.scope_type !== 'tenant' && (
                 <span className="durum-metni"> · {kapsamAdi(atama.scope_id)}</span>

@@ -21,6 +21,10 @@ export const tr = {
   },
   rapor: {
     baslik: 'Raporlar',
+    altBaslik:
+      'Denetçiye verilebilecek kâğıt. Üç sekme: ay nasıl geçti, ölçümler ne durumda, kanıtı göster.',
+    olcumZamani: 'Ölçüm zamanı',
+    olcumDegeri: 'Değer',
     aylikOzet: 'Aylık özet',
     olcumGunlugu: 'Ölçüm günlüğü',
     galeri: 'Kanıt galerisi',
@@ -396,6 +400,9 @@ export const tr = {
   },
   aksiyon: {
     baslik: 'Aksiyonlar',
+    altBaslik:
+      'Denetimden düşen ve elle açılan işler. Kapatmak için ne yapıldığının yazılması zorunlu.',
+    yeniAksiyon: 'Yeni aksiyon',
     acik: 'açık',
     gecikmis: 'gecikmiş',
     kritikAdet: 'kritik',

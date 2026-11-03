@@ -189,6 +189,17 @@ describe('RaporlarSayfasi', () => {
     expect(screen.getByText('1 ölçüm aralık dışı')).toBeInTheDocument();
   });
 
+  it('ölçüm noktaları seri adıyla adlandırılmış bir tabloda', async () => {
+    // Zaman + değer bir tablo: sayılar hizalı okunsun, ekran okuyucu
+    // tabloyu serinin adıyla duyursun.
+    kur();
+
+    await userEvent.click(screen.getByRole('tab', { name: 'Ölçüm günlüğü' }));
+
+    const tablo = await screen.findByRole('table', { name: 'Süt dolabı sıcaklığı' });
+    expect(tablo).toBeInTheDocument();
+  });
+
   it('aralık dışı süzgeci sunucuya gider', async () => {
     kur();
 

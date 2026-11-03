@@ -238,6 +238,14 @@ describe('KurulumSayfasi', () => {
     expect(onizle).not.toHaveBeenCalled();
   });
 
+  it('açık adım aria-current ile işaretli, ayrı bir seçili bayrağıyla değil', async () => {
+    kur();
+
+    const marka = await screen.findByRole('button', { name: /Marka/ });
+    expect(marka).toHaveAttribute('aria-current', 'step');
+    expect(screen.getByRole('button', { name: /Şubeler/ })).not.toHaveAttribute('aria-current');
+  });
+
   it('yayın için eksik varsa düğme kapalı ve sebebi yazılı', async () => {
     durumGetir.mockResolvedValue({ ...DURUM, current: 'review' });
     kur();

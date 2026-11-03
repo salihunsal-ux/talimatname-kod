@@ -14,6 +14,7 @@ import { subeAgaci } from '../../api/subeler';
 import { Cip } from '../../bilesenler/Cip';
 import { tr } from '../../i18n/tr';
 import { Dugme } from '../../bilesenler/Dugme';
+import { Hata, Yukleniyor } from '../../bilesenler/Durum';
 
 const ONCELIKLER: { deger: Oncelik; etiket: string; renk: 'kritik' | 'uyari' | 'nötr' }[] = [
   { deger: 'critical', etiket: 'Kritik', renk: 'kritik' },
@@ -49,40 +50,28 @@ export function AksiyonlarSayfasi() {
 
   return (
     <div>
-      <h1 style={{ fontSize: 'var(--baslik-ekran)', margin: '0 0 var(--bosluk-3)' }}>
-        {tr.aksiyon.baslik}
-      </h1>
-
-      {sayaclar.data && (
-        <div
-          style={{
-            display: 'flex',
-            gap: 'var(--bosluk-2)',
-            flexWrap: 'wrap',
-            marginBottom: 'var(--bosluk-4)',
-          }}
-        >
-          <Cip renk="nötr" metin={`${sayaclar.data.open} ${tr.aksiyon.acik}`} />
-          <Cip
-            renk={sayaclar.data.overdue > 0 ? 'kritik' : 'nötr'}
-            ikon={sayaclar.data.overdue > 0 ? '!' : undefined}
-            metin={`${sayaclar.data.overdue} ${tr.aksiyon.gecikmis}`}
-          />
-          <Cip
-            renk={sayaclar.data.critical > 0 ? 'uyari' : 'nötr'}
-            metin={`${sayaclar.data.critical} ${tr.aksiyon.kritikAdet}`}
-          />
+      <header className="sayfa-basligi">
+        <div>
+          <h1>{tr.aksiyon.baslik}</h1>
+          <p className="sayfa-basligi-alt">{tr.aksiyon.altBaslik}</p>
         </div>
-      )}
+        {sayaclar.data && (
+          <div className="cip-listesi">
+            <Cip renk="nötr" metin={`${sayaclar.data.open} ${tr.aksiyon.acik}`} />
+            <Cip
+              renk={sayaclar.data.overdue > 0 ? 'kritik' : 'nötr'}
+              ikon={sayaclar.data.overdue > 0 ? '!' : undefined}
+              metin={`${sayaclar.data.overdue} ${tr.aksiyon.gecikmis}`}
+            />
+            <Cip
+              renk={sayaclar.data.critical > 0 ? 'uyari' : 'nötr'}
+              metin={`${sayaclar.data.critical} ${tr.aksiyon.kritikAdet}`}
+            />
+          </div>
+        )}
+      </header>
 
-      <div
-        style={{
-          display: 'flex',
-          gap: 'var(--bosluk-3)',
-          flexWrap: 'wrap',
-          marginBottom: 'var(--bosluk-3)',
-        }}
-      >
+      <div className="suzgec-serit">
         <label className="alan-etiket">
           {tr.aksiyon.durum}
           <select
@@ -95,14 +84,7 @@ export function AksiyonlarSayfasi() {
             <option value="all">{tr.personel.hepsi}</option>
           </select>
         </label>
-        <label
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 'var(--bosluk-2)',
-            fontSize: 'var(--etiket)',
-          }}
-        >
+        <label className="onay-etiketi">
           <input
             type="checkbox"
             checked={yalnizGecikmis}
@@ -112,25 +94,11 @@ export function AksiyonlarSayfasi() {
         </label>
       </div>
 
-      {aksiyonlar.isPending && <p style={{ color: 'var(--renk-sessiz)' }}>{tr.genel.yukleniyor}</p>}
-      {aksiyonlar.isError && (
-        <p role="alert" style={{ color: 'var(--renk-kritik)' }}>
-          {tr.hata.aglaBaglanilamadi}
-        </p>
-      )}
-      {aksiyonlar.data?.length === 0 && (
-        <p style={{ color: 'var(--renk-sessiz)' }}>{tr.aksiyon.bos}</p>
-      )}
+      {aksiyonlar.isPending && <Yukleniyor />}
+      {aksiyonlar.isError && <Hata metin={tr.hata.aglaBaglanilamadi} />}
+      {aksiyonlar.data?.length === 0 && <p className="bos-durum">{tr.aksiyon.bos}</p>}
 
-      <ul
-        style={{
-          listStyle: 'none',
-          margin: 0,
-          padding: 0,
-          display: 'grid',
-          gap: 'var(--bosluk-2)',
-        }}
-      >
+      <ul className="liste-yigin">
         {aksiyonlar.data?.map((aksiyon) => (
           <AksiyonKarti key={aksiyon.id} aksiyon={aksiyon} />
         ))}
@@ -157,94 +125,77 @@ function AksiyonKarti({ aksiyon }: { aksiyon: AksiyonOzet }) {
   const problem = problemCoz(kapat.error);
 
   return (
-    <li
-      style={{
-        border: '1px solid',
-        borderColor: aksiyon.overdue ? 'var(--renk-kritik)' : 'var(--renk-cizgi)',
-        borderRadius: 'var(--kose-kart)',
-        background: 'var(--renk-yuzey)',
-        padding: 'var(--bosluk-3)',
-      }}
-    >
-      <div
-        style={{ display: 'flex', gap: 'var(--bosluk-2)', alignItems: 'center', flexWrap: 'wrap' }}
-      >
-        <Cip renk={oncelik?.renk ?? 'nötr'} metin={aksiyon.priority_label} />
-        <strong style={{ flex: '1 1 220px' }}>{aksiyon.title}</strong>
-        <Cip renk="nötr" metin={aksiyon.branch_name} />
-        {aksiyon.status === 'open' ? (
-          <span
-            style={{
-              fontSize: 'var(--etiket)',
-              fontWeight: 600,
-              color: aksiyon.overdue ? 'var(--renk-kritik)' : 'var(--renk-murekkep2)',
-            }}
-          >
-            {vadeMetni(aksiyon)}
-          </span>
-        ) : (
-          <Cip renk="marka" ikon="✓" metin={tr.aksiyon.kapandi} />
-        )}
-      </div>
-
-      <div style={{ color: 'var(--renk-sessiz)', fontSize: 'var(--meta)', marginTop: 4 }}>
-        {aksiyon.source_label}
-        {aksiyon.description ? ` · ${aksiyon.description}` : ''}
-      </div>
-
-      {aksiyon.close_note && (
-        <div style={{ marginTop: 'var(--bosluk-2)', fontSize: 'var(--etiket)' }}>
-          <span style={{ color: 'var(--renk-sessiz)' }}>{tr.aksiyon.kapanisNotu}: </span>
-          {aksiyon.close_note}
+    <li className={aksiyon.overdue ? 'kart kart--kritik' : 'kart'}>
+      <div className="yigin yigin--dar">
+        <div className="kart-serit">
+          <Cip renk={oncelik?.renk ?? 'nötr'} metin={aksiyon.priority_label} />
+          <strong className="kart-serit-ad">{aksiyon.title}</strong>
+          <Cip renk="nötr" metin={aksiyon.branch_name} />
+          {aksiyon.status === 'open' ? (
+            <span className={aksiyon.overdue ? 'vade-metni vade-metni--gecikmis' : 'vade-metni'}>
+              {vadeMetni(aksiyon)}
+            </span>
+          ) : (
+            <Cip renk="marka" ikon="✓" metin={tr.aksiyon.kapandi} />
+          )}
         </div>
-      )}
 
-      {aksiyon.status === 'open' &&
-        (notAlani === null ? (
-          <Dugme
-            gorunum="ikincil"
-            boyut="kucuk"
-            type="button"
-            onClick={() => setNotAlani('')}
-            style={{ marginTop: 'var(--bosluk-2)' }}
-          >
-            {tr.aksiyon.kapat}
-          </Dugme>
-        ) : (
-          <form
-            onSubmit={(olay) => {
-              olay.preventDefault();
-              kapat.mutate(notAlani);
-            }}
-            style={{
-              display: 'flex',
-              gap: 'var(--bosluk-2)',
-              marginTop: 'var(--bosluk-2)',
-              flexWrap: 'wrap',
-            }}
-          >
-            <input
-              value={notAlani}
-              onChange={(o) => setNotAlani(o.target.value)}
-              placeholder={tr.aksiyon.notZorunlu}
-              aria-label={tr.aksiyon.kapanisNotu}
-              className="alan"
-              style={{ flex: '1 1 260px' }}
-              autoFocus
-            />
-            <Dugme type="submit" disabled={kapat.isPending}>
-              {tr.aksiyon.kapat}
-            </Dugme>
-            <Dugme gorunum="ikincil" boyut="kucuk" type="button" onClick={() => setNotAlani(null)}>
-              {tr.aksiyon.vazgec}
-            </Dugme>
-            {problem && (
-              <p role="alert" style={{ width: '100%', margin: 0, color: 'var(--renk-kritik)' }}>
-                {problem.errors?.length ? problem.errors[0].sebep : problem.title}
-              </p>
-            )}
-          </form>
-        ))}
+        <p className="meta">
+          {aksiyon.source_label}
+          {aksiyon.description ? ` · ${aksiyon.description}` : ''}
+        </p>
+
+        {aksiyon.close_note && (
+          <p className="ikincil-metin">
+            <span className="durum-metni">{tr.aksiyon.kapanisNotu}: </span>
+            {aksiyon.close_note}
+          </p>
+        )}
+
+        {aksiyon.status === 'open' &&
+          (notAlani === null ? (
+            <div className="kart-serit">
+              <Dugme gorunum="ikincil" boyut="kucuk" type="button" onClick={() => setNotAlani('')}>
+                {tr.aksiyon.kapat}
+              </Dugme>
+            </div>
+          ) : (
+            <form
+              onSubmit={(olay) => {
+                olay.preventDefault();
+                kapat.mutate(notAlani);
+              }}
+              className="yigin yigin--dar"
+            >
+              <div className="kart-serit">
+                <input
+                  value={notAlani}
+                  onChange={(o) => setNotAlani(o.target.value)}
+                  placeholder={tr.aksiyon.notZorunlu}
+                  aria-label={tr.aksiyon.kapanisNotu}
+                  className="alan alan--genis"
+                  autoFocus
+                />
+                <Dugme type="submit" disabled={kapat.isPending}>
+                  {tr.aksiyon.kapat}
+                </Dugme>
+                <Dugme
+                  gorunum="sessiz"
+                  boyut="kucuk"
+                  type="button"
+                  onClick={() => setNotAlani(null)}
+                >
+                  {tr.aksiyon.vazgec}
+                </Dugme>
+              </div>
+              {problem && (
+                <p role="alert" className="bildiri bildiri--hata">
+                  {problem.errors?.length ? problem.errors[0].sebep : problem.title}
+                </p>
+              )}
+            </form>
+          ))}
+      </div>
     </li>
   );
 }
@@ -284,67 +235,62 @@ function AksiyonAcFormu() {
         olay.preventDefault();
         ac.mutate();
       }}
-      style={{
-        display: 'flex',
-        gap: 'var(--bosluk-2)',
-        flexWrap: 'wrap',
-        alignItems: 'flex-end',
-        marginTop: 'var(--bosluk-6)',
-        paddingTop: 'var(--bosluk-4)',
-        borderTop: '1px solid var(--renk-cizgi)',
-      }}
     >
-      <label className="alan-etiket">
-        {tr.aksiyon.yeniBaslik}
-        <input
-          value={baslik}
-          onChange={(o) => setBaslik(o.target.value)}
-          required
-          className="alan"
-          style={{ width: 220 }}
-        />
-      </label>
-      <label className="alan-etiket">
-        {tr.personel.sube}
-        <select
-          value={subeId}
-          onChange={(o) => setSubeId(o.target.value)}
-          required
-          className="alan"
-        >
-          <option value="">{tr.personel.seciniz}</option>
-          {duzSubeler.map((sube) => (
-            <option key={sube.id} value={sube.id}>
-              {sube.name}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className="alan-etiket">
-        {tr.aksiyon.oncelik}
-        <select
-          value={oncelik}
-          onChange={(o) => setOncelik(o.target.value as Oncelik)}
-          className="alan"
-        >
-          {ONCELIKLER.map((o) => (
-            <option key={o.deger} value={o.deger}>
-              {o.etiket}
-            </option>
-          ))}
-        </select>
-      </label>
-      <Dugme type="submit" disabled={ac.isPending}>
-        {tr.aksiyon.ac}
-      </Dugme>
-      <p style={{ width: '100%', margin: 0, color: 'var(--renk-sessiz)', fontSize: 'var(--meta)' }}>
-        {tr.aksiyon.vadeNotu}
-      </p>
-      {problem && (
-        <p role="alert" style={{ width: '100%', margin: 0, color: 'var(--renk-kritik)' }}>
-          {problem.title}
-        </p>
-      )}
+      <fieldset className="alan-grubu alan-grubu--ayri">
+        <legend>{tr.aksiyon.yeniAksiyon}</legend>
+        <div className="yigin yigin--dar">
+          <div className="alan-sirasi">
+            <label className="alan-etiket">
+              {tr.aksiyon.yeniBaslik}
+              <input
+                value={baslik}
+                onChange={(o) => setBaslik(o.target.value)}
+                required
+                className="alan alan--orta"
+              />
+            </label>
+            <label className="alan-etiket">
+              {tr.personel.sube}
+              <select
+                value={subeId}
+                onChange={(o) => setSubeId(o.target.value)}
+                required
+                className="alan"
+              >
+                <option value="">{tr.personel.seciniz}</option>
+                {duzSubeler.map((sube) => (
+                  <option key={sube.id} value={sube.id}>
+                    {sube.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="alan-etiket">
+              {tr.aksiyon.oncelik}
+              <select
+                value={oncelik}
+                onChange={(o) => setOncelik(o.target.value as Oncelik)}
+                className="alan"
+              >
+                {ONCELIKLER.map((o) => (
+                  <option key={o.deger} value={o.deger}>
+                    {o.etiket}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <Dugme type="submit" disabled={ac.isPending}>
+              {tr.aksiyon.ac}
+            </Dugme>
+          </div>
+          <p className="alan-ipucu">{tr.aksiyon.vadeNotu}</p>
+          {problem && (
+            <p role="alert" className="bildiri bildiri--hata">
+              {problem.title}
+            </p>
+          )}
+        </div>
+      </fieldset>
     </form>
   );
 }

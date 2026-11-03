@@ -23,6 +23,7 @@ import {
 import { Cip } from '../../bilesenler/Cip';
 import { tr } from '../../i18n/tr';
 import { Dugme } from '../../bilesenler/Dugme';
+import { Hata, Yukleniyor } from '../../bilesenler/Durum';
 
 type Sekme = 'ozet' | 'olcum' | 'galeri';
 
@@ -41,13 +42,14 @@ export function RaporlarSayfasi() {
 
   return (
     <div>
-      <h1 style={{ fontSize: 'var(--baslik-ekran)', margin: 0 }}>{tr.rapor.baslik}</h1>
+      <header className="sayfa-basligi">
+        <div>
+          <h1>{tr.rapor.baslik}</h1>
+          <p className="sayfa-basligi-alt">{tr.rapor.altBaslik}</p>
+        </div>
+      </header>
 
-      <div
-        role="tablist"
-        aria-label={tr.rapor.baslik}
-        style={{ display: 'flex', gap: 'var(--bosluk-2)', margin: 'var(--bosluk-4) 0' }}
-      >
+      <div role="tablist" aria-label={tr.rapor.baslik} className="sekme-serit">
         {(
           [
             ['ozet', tr.rapor.aylikOzet],
@@ -107,17 +109,17 @@ function PdfDugmesi({ uret, dosyaAdi }: { uret: () => Promise<PdfSonucu>; dosyaA
   }
 
   return (
-    <div>
+    <div className="yigin yigin--dar">
       <Dugme gorunum="ikincil" type="button" onClick={tikla} disabled={durum === 'calisiyor'}>
         {durum === 'calisiyor' ? tr.rapor.pdfHazirlaniyor : tr.rapor.pdfIndir}
       </Dugme>
       {durum === 'hata' && (
-        <p role="alert" style={{ color: 'var(--renk-kritik)', fontSize: 'var(--etiket)' }}>
+        <p role="alert" className="bildiri bildiri--hata">
           {tr.rapor.pdfHata}
         </p>
       )}
       {durum === 'kuyrukta' && (
-        <p role="status" style={{ color: 'var(--renk-murekkep2)', fontSize: 'var(--etiket)' }}>
+        <p role="status" className="bildiri">
           {tr.cikti.kuyruga}
         </p>
       )}
@@ -145,12 +147,12 @@ function CiktilarBolumu() {
   if (!isler.data || isler.data.length === 0) return null;
 
   return (
-    <section style={{ marginTop: 'var(--bosluk-4)' }}>
-      <h2 style={{ fontSize: 'var(--baslik-bolum)', margin: 0 }}>{tr.cikti.baslik}</h2>
-      <p style={{ color: 'var(--renk-murekkep2)', fontSize: 'var(--etiket)' }}>
-        {tr.cikti.aciklama}
-      </p>
-      <ul style={{ listStyle: 'none', padding: 0, margin: 'var(--bosluk-3) 0 0' }}>
+    <section className="alan-grubu--ayri">
+      <header className="bolum-basligi">
+        <h2>{tr.cikti.baslik}</h2>
+        <p>{tr.cikti.aciklama}</p>
+      </header>
+      <ul className="liste-yigin">
         {isler.data.map((is) => (
           <CiktiSatiri key={is.id} is={is} />
         ))}
@@ -172,46 +174,35 @@ function CiktiSatiri({ is }: { is: CiktiIsi }) {
   }
 
   return (
-    <li
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 'var(--bosluk-3)',
-        flexWrap: 'wrap',
-        padding: 'var(--bosluk-2) 0',
-        borderTop: '1px solid var(--renk-cizgi)',
-      }}
-    >
-      <span style={{ flex: '1 1 220px' }}>
+    <li className="madde-satiri">
+      <span className="madde-satiri-ad">
         {is.kind_label} · {donemMetni(is)}
       </span>
       <Cip
         renk={is.state === 'ready' ? 'marka' : is.state === 'failed' ? 'kritik' : 'nötr'}
         metin={is.state_label}
       />
-      <span style={{ color: 'var(--renk-sessiz)', fontSize: 'var(--etiket)' }}>
-        {tr.cikti.calistirma(is.run_count)}
+      <span className="meta">{tr.cikti.calistirma(is.run_count)}</span>
+      <span className="madde-satiri-eylem">
+        {is.downloadable && (
+          <Dugme gorunum="ikincil" boyut="kucuk" type="button" onClick={() => void indir()}>
+            {tr.rapor.pdfIndir}
+          </Dugme>
+        )}
+        {is.state === 'ready' && !is.downloadable && (
+          <span className="meta">{tr.cikti.suresiDoldu}</span>
+        )}
+        {is.state === 'failed' && (
+          <span className="vade-metni vade-metni--gecikmis">
+            {tr.cikti.uretilemedi(is.error_code ?? '')}
+          </span>
+        )}
+        {hata && (
+          <span role="alert" className="vade-metni vade-metni--gecikmis">
+            {tr.rapor.pdfHata}
+          </span>
+        )}
       </span>
-      {is.downloadable && (
-        <Dugme type="button" onClick={() => void indir()}>
-          {tr.rapor.pdfIndir}
-        </Dugme>
-      )}
-      {is.state === 'ready' && !is.downloadable && (
-        <span style={{ color: 'var(--renk-sessiz)', fontSize: 'var(--etiket)' }}>
-          {tr.cikti.suresiDoldu}
-        </span>
-      )}
-      {is.state === 'failed' && (
-        <span style={{ color: 'var(--renk-kritik)', fontSize: 'var(--etiket)' }}>
-          {tr.cikti.uretilemedi(is.error_code ?? '')}
-        </span>
-      )}
-      {hata && (
-        <span role="alert" style={{ color: 'var(--renk-kritik)', fontSize: 'var(--etiket)' }}>
-          {tr.rapor.pdfHata}
-        </span>
-      )}
     </li>
   );
 }
@@ -245,8 +236,8 @@ function AylikOzetBolumu({
   const ozet = useQuery({ queryKey: ['rapor-aylik', yil, ay], queryFn: () => aylikOzet(yil, ay) });
 
   return (
-    <section>
-      <div style={{ display: 'flex', gap: 'var(--bosluk-3)', alignItems: 'end', flexWrap: 'wrap' }}>
+    <section className="yigin">
+      <div className="suzgec-serit">
         <label className="alan-etiket">
           {tr.rapor.ay}
           <select value={ay} onChange={(o) => onAy(Number(o.target.value))} className="alan">
@@ -265,8 +256,7 @@ function AylikOzetBolumu({
             min={2020}
             max={2100}
             onChange={(o) => onYil(Number(o.target.value))}
-            className="alan"
-            style={{ width: 120 }}
+            className="alan alan--dar"
           />
         </label>
         <PdfDugmesi
@@ -274,20 +264,14 @@ function AylikOzetBolumu({
           dosyaAdi={`talimatname-${yil}-${String(ay).padStart(2, '0')}-aylik-ozet.pdf`}
         />
       </div>
-      <p style={{ color: 'var(--renk-murekkep2)', fontSize: 'var(--etiket)' }}>
-        {tr.rapor.pdfAciklama}
-      </p>
+      <p className="alan-ipucu">{tr.rapor.pdfAciklama}</p>
 
-      {ozet.isPending && <p style={{ color: 'var(--renk-sessiz)' }}>{tr.genel.yukleniyor}</p>}
-      {ozet.isError && (
-        <p role="alert" style={{ color: 'var(--renk-kritik)' }}>
-          {tr.hata.aglaBaglanilamadi}
-        </p>
-      )}
+      {ozet.isPending && <Yukleniyor />}
+      {ozet.isError && <Hata metin={tr.hata.aglaBaglanilamadi} />}
       {ozet.data && <OzetKartlari ozet={ozet.data} />}
       {ozet.data && ozet.data.branches.length > 0 && <SubeTablosu ozet={ozet.data} />}
       {ozet.data && ozet.data.counters.total === 0 && (
-        <p style={{ color: 'var(--renk-sessiz)' }}>{tr.rapor.kayitYok}</p>
+        <p className="bos-durum">{tr.rapor.kayitYok}</p>
       )}
     </section>
   );
@@ -309,26 +293,11 @@ function OzetKartlari({ ozet }: { ozet: AylikOzet }) {
   ];
 
   return (
-    <div
-      style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
-        gap: 'var(--bosluk-3)',
-        margin: 'var(--bosluk-4) 0',
-      }}
-    >
+    <div className="kutu-izgara">
       {kartlar.map(([anahtar, ad, deger]) => (
-        <div
-          key={anahtar}
-          style={{
-            border: '1px solid var(--renk-cizgi)',
-            borderRadius: 'var(--kose-kart)',
-            padding: 'var(--bosluk-3)',
-            background: 'var(--renk-yuzey)',
-          }}
-        >
-          <div style={{ fontSize: 'var(--etiket)', color: 'var(--renk-murekkep2)' }}>{ad}</div>
-          <div style={{ fontSize: 'var(--baslik-bolum)', marginTop: 4 }}>{deger}</div>
+        <div key={anahtar} className="kutu">
+          <div className="kutu-ad">{ad}</div>
+          <div className="kutu-deger">{deger}</div>
         </div>
       ))}
     </div>
@@ -337,45 +306,46 @@ function OzetKartlari({ ozet }: { ozet: AylikOzet }) {
 
 function SubeTablosu({ ozet }: { ozet: AylikOzet }) {
   return (
-    <>
-      <h2 style={{ fontSize: 'var(--baslik-bolum)' }}>{tr.rapor.subeKirilimi}</h2>
-      <p style={{ color: 'var(--renk-murekkep2)', fontSize: 'var(--etiket)' }}>
-        {tr.rapor.siraAciklamasi}
-      </p>
-      <table className="tablo">
-        <thead>
-          <tr>
-            <th>{tr.rapor.sube}</th>
-            <th>{tr.rapor.zamanindaYuzde}</th>
-            <th>{tr.rapor.zamaninda}</th>
-            <th>{tr.rapor.gec}</th>
-            <th>{tr.rapor.kacirilan}</th>
-            <th>{tr.rapor.basarisiz}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {ozet.branches.map((sube) => (
-            <tr key={sube.branch_id}>
-              <td>
-                {sube.branch_name}{' '}
-                <span style={{ color: 'var(--renk-sessiz)' }}>{sube.branch_code}</span>
-              </td>
-              <td>
-                {sube.counters.on_time_percent === null ? (
-                  <span style={{ color: 'var(--renk-sessiz)' }}>{tr.rapor.olculemedi}</span>
-                ) : (
-                  `%${sube.counters.on_time_percent}`
-                )}
-              </td>
-              <td>{sube.counters.on_time}</td>
-              <td>{sube.counters.late}</td>
-              <td>{sube.counters.missed}</td>
-              <td>{sube.counters.failed}</td>
+    <section>
+      <header className="bolum-basligi">
+        <h2>{tr.rapor.subeKirilimi}</h2>
+        <p>{tr.rapor.siraAciklamasi}</p>
+      </header>
+      <div className="tablo-kaydirma">
+        <table className="tablo">
+          <thead>
+            <tr>
+              <th>{tr.rapor.sube}</th>
+              <th className="sayisal">{tr.rapor.zamanindaYuzde}</th>
+              <th className="sayisal">{tr.rapor.zamaninda}</th>
+              <th className="sayisal">{tr.rapor.gec}</th>
+              <th className="sayisal">{tr.rapor.kacirilan}</th>
+              <th className="sayisal">{tr.rapor.basarisiz}</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </>
+          </thead>
+          <tbody>
+            {ozet.branches.map((sube) => (
+              <tr key={sube.branch_id}>
+                <th scope="row">
+                  {sube.branch_name} <span className="kod">{sube.branch_code}</span>
+                </th>
+                <td className="sayisal">
+                  {sube.counters.on_time_percent === null ? (
+                    <span className="durum-metni">{tr.rapor.olculemedi}</span>
+                  ) : (
+                    `%${sube.counters.on_time_percent}`
+                  )}
+                </td>
+                <td className="sayisal">{sube.counters.on_time}</td>
+                <td className="sayisal">{sube.counters.late}</td>
+                <td className="sayisal">{sube.counters.missed}</td>
+                <td className="sayisal">{sube.counters.failed}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
   );
 }
 
@@ -388,29 +358,25 @@ function OlcumBolumu() {
   });
 
   return (
-    <section>
-      <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--bosluk-2)' }}>
-        <input
-          type="checkbox"
-          checked={yalnizAralikDisi}
-          onChange={(o) => setYalnizAralikDisi(o.target.checked)}
-        />
-        {tr.rapor.yalnizAralikDisi}
-      </label>
-      <p style={{ color: 'var(--renk-murekkep2)', fontSize: 'var(--etiket)' }}>
-        {tr.rapor.olcumAciklamasi}
-      </p>
-      <div style={{ margin: 'var(--bosluk-3) 0' }}>
+    <section className="yigin">
+      <div className="suzgec-serit">
+        <label className="onay-etiketi">
+          <input
+            type="checkbox"
+            checked={yalnizAralikDisi}
+            onChange={(o) => setYalnizAralikDisi(o.target.checked)}
+          />
+          {tr.rapor.yalnizAralikDisi}
+        </label>
         <PdfDugmesi
           uret={() => olcumGunluguPdf(ilk, son, yalnizAralikDisi)}
           dosyaAdi={`talimatname-olcum-gunlugu-${ilk.replaceAll('-', '')}-${son.replaceAll('-', '')}.pdf`}
         />
       </div>
+      <p className="alan-ipucu">{tr.rapor.olcumAciklamasi}</p>
 
-      {seriler.isPending && <p style={{ color: 'var(--renk-sessiz)' }}>{tr.genel.yukleniyor}</p>}
-      {seriler.data?.length === 0 && (
-        <p style={{ color: 'var(--renk-sessiz)' }}>{tr.rapor.olcumYok}</p>
-      )}
+      {seriler.isPending && <Yukleniyor />}
+      {seriler.data?.length === 0 && <p className="bos-durum">{tr.rapor.olcumYok}</p>}
       {(seriler.data ?? []).map((seri) => (
         <OlcumSerisiKarti key={seri.item_id} seri={seri} />
       ))}
@@ -425,54 +391,55 @@ function OlcumSerisiKarti({ seri }: { seri: OlcumSerisi }) {
       : '—';
 
   return (
-    <div
-      style={{
-        border: '1px solid var(--renk-cizgi)',
-        borderRadius: 'var(--kose-kart)',
-        padding: 'var(--bosluk-4)',
-        marginBottom: 'var(--bosluk-3)',
-        background: 'var(--renk-yuzey)',
-      }}
-    >
-      <div
-        style={{ display: 'flex', gap: 'var(--bosluk-2)', alignItems: 'center', flexWrap: 'wrap' }}
-      >
-        <strong>{seri.item_title}</strong>
-        <Cip renk="nötr" metin={tr.rapor.kabulAraligi.replace('{a}', aralikMetni)} />
-        {seri.out_of_range_count > 0 ? (
-          <Cip
-            renk="kritik"
-            ikon="!"
-            metin={tr.rapor.aralikDisiSayisi.replace('{n}', String(seri.out_of_range_count))}
-          />
-        ) : (
-          <Cip renk="marka" ikon="✓" metin={tr.rapor.hepsiAralikta} />
-        )}
-      </div>
+    <article className="kart">
+      <div className="yigin yigin--dar">
+        <div className="kart-serit">
+          <h3 className="kart-serit-ad" id={`seri-${seri.item_id}`}>
+            {seri.item_title}
+          </h3>
+          <Cip renk="nötr" metin={tr.rapor.kabulAraligi.replace('{a}', aralikMetni)} />
+          {seri.out_of_range_count > 0 ? (
+            <Cip
+              renk="kritik"
+              ikon="!"
+              metin={tr.rapor.aralikDisiSayisi.replace('{n}', String(seri.out_of_range_count))}
+            />
+          ) : (
+            <Cip renk="marka" ikon="✓" metin={tr.rapor.hepsiAralikta} />
+          )}
+        </div>
 
-      <ul style={{ listStyle: 'none', padding: 0, margin: 'var(--bosluk-3) 0 0' }}>
-        {seri.points.slice(-12).map((nokta, sira) => (
-          <li
-            key={`${nokta.run_id}-${sira}`}
-            style={{
-              display: 'flex',
-              gap: 'var(--bosluk-3)',
-              padding: '2px 0',
-              color: nokta.out_of_range ? 'var(--renk-kritik)' : undefined,
-            }}
-          >
-            <span style={{ minWidth: 150, color: 'var(--renk-murekkep2)' }}>
-              {nokta.measured_at ? new Date(nokta.measured_at).toLocaleString('tr-TR') : '—'}
-            </span>
-            <span>
-              {nokta.value}
-              {seri.unit ?? ''}
-            </span>
-            {nokta.out_of_range && <span>{tr.rapor.aralikDisi}</span>}
-          </li>
-        ))}
-      </ul>
-    </div>
+        <div className="tablo-kaydirma">
+          <table className="tablo" aria-labelledby={`seri-${seri.item_id}`}>
+            <thead>
+              <tr>
+                <th>{tr.rapor.olcumZamani}</th>
+                <th className="sayisal">{tr.rapor.olcumDegeri}</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              {seri.points.slice(-12).map((nokta, sira) => (
+                <tr key={`${nokta.run_id}-${sira}`}>
+                  <th scope="row">
+                    {nokta.measured_at ? new Date(nokta.measured_at).toLocaleString('tr-TR') : '—'}
+                  </th>
+                  <td className="sayisal">
+                    {nokta.value}
+                    {seri.unit ?? ''}
+                  </td>
+                  <td>
+                    {nokta.out_of_range && (
+                      <Cip renk="kritik" ikon="!" metin={tr.rapor.aralikDisi} />
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </article>
   );
 }
 
@@ -485,29 +452,22 @@ function GaleriBolumu() {
   });
 
   return (
-    <section>
-      <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--bosluk-2)' }}>
-        <input
-          type="checkbox"
-          checked={yalnizBayrakli}
-          onChange={(o) => setYalnizBayrakli(o.target.checked)}
-        />
-        {tr.rapor.yalnizBayrakli}
-      </label>
+    <section className="yigin">
+      <div className="suzgec-serit">
+        <label className="onay-etiketi">
+          <input
+            type="checkbox"
+            checked={yalnizBayrakli}
+            onChange={(o) => setYalnizBayrakli(o.target.checked)}
+          />
+          {tr.rapor.yalnizBayrakli}
+        </label>
+      </div>
 
-      {kanitlar.isPending && <p style={{ color: 'var(--renk-sessiz)' }}>{tr.genel.yukleniyor}</p>}
-      {kanitlar.data?.length === 0 && (
-        <p style={{ color: 'var(--renk-sessiz)' }}>{tr.rapor.kanitYok}</p>
-      )}
+      {kanitlar.isPending && <Yukleniyor />}
+      {kanitlar.data?.length === 0 && <p className="bos-durum">{tr.rapor.kanitYok}</p>}
 
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
-          gap: 'var(--bosluk-3)',
-          marginTop: 'var(--bosluk-4)',
-        }}
-      >
+      <div className="kanit-izgara">
         {(kanitlar.data ?? []).map((kanit) => (
           <GaleriKarti key={kanit.id} kanit={kanit} />
         ))}
@@ -527,42 +487,23 @@ function GaleriKarti({ kanit }: { kanit: GaleriKanidi }) {
   });
 
   return (
-    <figure style={{ margin: 0 }}>
+    <figure className="kanit-cerceve">
       {baglanti.data && !acilmadi ? (
         <img
           src={baglanti.data}
           alt={tr.kanit.gorselAlt}
           onError={() => setAcilmadi(true)}
-          style={{
-            width: '100%',
-            height: 120,
-            objectFit: 'cover',
-            borderRadius: 'var(--kose-kart)',
-            border: '1px solid var(--renk-cizgi)',
-          }}
+          className="kanit-gorsel"
         />
       ) : (
-        <div
-          style={{
-            height: 120,
-            display: 'grid',
-            placeItems: 'center',
-            borderRadius: 'var(--kose-kart)',
-            border: '1px solid var(--renk-cizgi)',
-            background: 'var(--renk-yuzey2)',
-            color: 'var(--renk-sessiz)',
-            fontSize: 'var(--etiket)',
-          }}
-        >
+        <div className="kanit-yer">
           {baglanti.isError || acilmadi ? tr.kanit.acilamadi : tr.genel.yukleniyor}
         </div>
       )}
-      <figcaption style={{ fontSize: 'var(--etiket)', color: 'var(--renk-murekkep2)' }}>
+      <figcaption className="kanit-alt">
         {new Date(kanit.captured_at ?? kanit.created_at).toLocaleString('tr-TR')}
         {kanit.flags && kanit.flags.length > 0 && (
-          <span style={{ display: 'block', color: 'var(--renk-uyari)' }}>
-            ⚑ {kanit.flags.join(' · ')}
-          </span>
+          <span className="kanit-bayrak">⚑ {kanit.flags.join(' · ')}</span>
         )}
       </figcaption>
     </figure>

@@ -24,6 +24,7 @@ import {
 import { Cip } from '../../bilesenler/Cip';
 import { tr } from '../../i18n/tr';
 import { Dugme } from '../../bilesenler/Dugme';
+import { Hata, Yukleniyor } from '../../bilesenler/Durum';
 
 /**
  * SCR-W-01 · Kurulum sihirbazı (FR-1401).
@@ -38,35 +39,25 @@ export function KurulumSayfasi() {
   const durum = useQuery({ queryKey: ['kurulum'], queryFn: kurulumDurumu });
   const [acik, setAcik] = useState<string | null>(null);
 
-  if (durum.isPending) return <p style={{ color: 'var(--renk-sessiz)' }}>{tr.genel.yukleniyor}</p>;
-  if (durum.isError || !durum.data)
-    return (
-      <p role="alert" style={{ color: 'var(--renk-kritik)' }}>
-        {tr.hata.aglaBaglanilamadi}
-      </p>
-    );
+  if (durum.isPending) return <Yukleniyor />;
+  if (durum.isError || !durum.data) return <Hata metin={tr.hata.aglaBaglanilamadi} />;
 
   const veri = durum.data;
   const secili = acik ?? veri.current;
   const yenile = () => istemci.invalidateQueries({ queryKey: ['kurulum'] });
 
   return (
-    <div style={{ maxWidth: 860 }}>
-      <h1 style={{ fontSize: 'var(--baslik-ekran)', margin: 0 }}>{tr.kurulum.baslik}</h1>
-      <p style={{ color: 'var(--renk-murekkep2)', marginTop: 'var(--bosluk-2)' }}>
-        {tr.kurulum.aciklama}
-      </p>
+    <div className="dar-sayfa">
+      <header className="sayfa-basligi">
+        <div>
+          <h1>{tr.kurulum.baslik}</h1>
+          <p className="sayfa-basligi-alt">{tr.kurulum.aciklama}</p>
+        </div>
+      </header>
 
       <AdimCubugu durum={veri} secili={secili} onSec={setAcik} />
 
-      <section
-        style={{
-          border: '1px solid var(--renk-cizgi)',
-          borderRadius: 'var(--kose-kart)',
-          padding: 'var(--bosluk-4)',
-          background: 'var(--renk-yuzey)',
-        }}
-      >
+      <section className="kart">
         {secili === 'brand' && <MarkaAdimi durum={veri} onKaydedildi={yenile} />}
         {secili === 'branches' && (
           <YuklemeAdimi
@@ -112,16 +103,7 @@ function AdimCubugu({
   onSec: (adim: string) => void;
 }) {
   return (
-    <ol
-      style={{
-        display: 'flex',
-        flexWrap: 'wrap',
-        gap: 'var(--bosluk-2)',
-        listStyle: 'none',
-        padding: 0,
-        margin: 'var(--bosluk-4) 0',
-      }}
-    >
+    <ol className="sekme-serit">
       {durum.steps.map((adim, sira) => {
         const aktif = adim.step === secili;
         return (
@@ -173,75 +155,84 @@ function MarkaAdimi({ durum, onKaydedildi }: { durum: KurulumDurumu; onKaydedild
         kaydet.mutate();
       }}
     >
-      <h2 style={{ fontSize: 'var(--baslik-bolum)', marginTop: 0 }}>{tr.kurulum.markaBaslik}</h2>
-      <p style={{ color: 'var(--renk-murekkep2)' }}>{tr.kurulum.markaAciklama}</p>
+      <header className="bolum-basligi">
+        <h2>{tr.kurulum.markaBaslik}</h2>
+        <p>{tr.kurulum.markaAciklama}</p>
+      </header>
 
-      <label className="alan-etiket">
-        {tr.kurulum.markaAdi}
-        <input
-          value={ad}
-          onChange={(olay) => setAd(olay.target.value)}
-          required
-          maxLength={120}
-          className="alan"
-        />
-      </label>
-
-      <label className="alan-etiket">
-        {tr.kurulum.saatDilimi}
-        <input value={dilim} onChange={(olay) => setDilim(olay.target.value)} className="alan" />
-      </label>
-
-      <div style={{ display: 'flex', gap: 'var(--bosluk-4)', flexWrap: 'wrap' }}>
-        <label className="alan-etiket" style={{ flex: '1 1 160px' }}>
-          {tr.kurulum.acilis}
-          <input
-            type="time"
-            value={acilis}
-            onChange={(olay) => setAcilis(olay.target.value)}
-            className="alan"
-          />
-        </label>
-        <label className="alan-etiket" style={{ flex: '1 1 160px' }}>
-          {tr.kurulum.kapanis}
-          <input
-            type="time"
-            value={kapanis}
-            onChange={(olay) => setKapanis(olay.target.value)}
-            className="alan"
-          />
-        </label>
-      </div>
-
-      <fieldset style={{ border: 'none', padding: 0, margin: 'var(--bosluk-4) 0' }}>
-        <legend style={{ padding: 0, fontSize: 'var(--etiket)' }}>{tr.kurulum.kapaliGunler}</legend>
-        <div style={{ display: 'flex', gap: 'var(--bosluk-2)', flexWrap: 'wrap' }}>
-          {tr.kurulum.gunler.map((gun, sira) => (
-            <label key={gun} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <input
-                type="checkbox"
-                checked={kapali.includes(sira)}
-                onChange={(olay) =>
-                  setKapali((onceki) =>
-                    olay.target.checked ? [...onceki, sira] : onceki.filter((g) => g !== sira),
-                  )
-                }
-              />
-              {gun}
-            </label>
-          ))}
+      <div className="yigin">
+        <div className="alan-sirasi">
+          <label className="alan-etiket">
+            {tr.kurulum.markaAdi}
+            <input
+              value={ad}
+              onChange={(olay) => setAd(olay.target.value)}
+              required
+              maxLength={120}
+              className="alan alan--orta"
+            />
+          </label>
+          <label className="alan-etiket">
+            {tr.kurulum.saatDilimi}
+            <input
+              value={dilim}
+              onChange={(olay) => setDilim(olay.target.value)}
+              className="alan alan--orta"
+            />
+          </label>
         </div>
-      </fieldset>
 
-      {kaydet.isError && (
-        <p role="alert" style={{ color: 'var(--renk-kritik)' }}>
-          {problemCoz(kaydet.error)?.title ?? tr.hata.aglaBaglanilamadi}
-        </p>
-      )}
+        <div className="alan-sirasi">
+          <label className="alan-etiket">
+            {tr.kurulum.acilis}
+            <input
+              type="time"
+              value={acilis}
+              onChange={(olay) => setAcilis(olay.target.value)}
+              className="alan alan--saat"
+            />
+          </label>
+          <label className="alan-etiket">
+            {tr.kurulum.kapanis}
+            <input
+              type="time"
+              value={kapanis}
+              onChange={(olay) => setKapanis(olay.target.value)}
+              className="alan alan--saat"
+            />
+          </label>
+        </div>
 
-      <Dugme type="submit" disabled={kaydet.isPending || !ad.trim()}>
-        {kaydet.isPending ? tr.genel.yukleniyor : tr.kurulum.kaydet}
-      </Dugme>
+        <fieldset className="alan-grubu">
+          <legend>{tr.kurulum.kapaliGunler}</legend>
+          <div className="alan-sirasi">
+            {tr.kurulum.gunler.map((gun, sira) => (
+              <label key={gun} className="secim-cipi">
+                <input
+                  type="checkbox"
+                  checked={kapali.includes(sira)}
+                  onChange={(olay) =>
+                    setKapali((onceki) =>
+                      olay.target.checked ? [...onceki, sira] : onceki.filter((g) => g !== sira),
+                    )
+                  }
+                />
+                {gun}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+
+        {kaydet.isError && (
+          <Hata metin={problemCoz(kaydet.error)?.title ?? tr.hata.aglaBaglanilamadi} />
+        )}
+
+        <div className="eylemler">
+          <Dugme type="submit" disabled={kaydet.isPending || !ad.trim()}>
+            {kaydet.isPending ? tr.genel.yukleniyor : tr.kurulum.kaydet}
+          </Dugme>
+        </div>
+      </div>
     </form>
   );
 }
@@ -300,54 +291,66 @@ function YuklemeAdimi({
 
   return (
     <div>
-      <h2 style={{ fontSize: 'var(--baslik-bolum)', marginTop: 0 }}>{baslik}</h2>
-      <p style={{ color: 'var(--renk-murekkep2)' }}>{aciklama}</p>
+      <header className="bolum-basligi">
+        <h2>{baslik}</h2>
+        <p>{aciklama}</p>
+      </header>
 
-      <Dugme gorunum="ikincil" type="button" onClick={() => void sablon()}>
-        {sablonEtiketi}
-      </Dugme>
-
-      <label className="alan-etiket" style={{ marginTop: 'var(--bosluk-4)' }}>
-        {tr.kurulum.dosyaSec}
-        <input
-          type="file"
-          accept=".xlsx"
-          onChange={(olay) => {
-            const secilen = olay.target.files?.[0] ?? null;
-            setDosya(secilen);
-            setRapor(null);
-            setYuklendi(false);
-            setHata(null);
-            if (secilen) onizle.mutate(secilen);
-          }}
-          style={{ marginTop: 'var(--bosluk-2)' }}
-        />
-      </label>
-
-      {onizle.isPending && <p style={{ color: 'var(--renk-sessiz)' }}>{tr.genel.yukleniyor}</p>}
-
-      {hata && (
-        <div role="alert" style={{ color: 'var(--renk-kritik)', marginTop: 'var(--bosluk-4)' }}>
-          <p>{hata}</p>
-          {dosya && (
-            <Dugme gorunum="ikincil" type="button" onClick={() => void hataRaporuIndir(dosya, tur)}>
-              {tr.kurulum.hataRaporu}
-            </Dugme>
-          )}
+      <div className="yigin">
+        <div className="eylemler">
+          <Dugme gorunum="ikincil" type="button" onClick={() => void sablon()}>
+            {sablonEtiketi}
+          </Dugme>
         </div>
-      )}
 
-      {rapor && <RaporOzeti rapor={rapor} dosya={dosya} tur={tur} yuklendi={yuklendi} />}
+        <label className="alan-etiket">
+          {tr.kurulum.dosyaSec}
+          <input
+            type="file"
+            accept=".xlsx"
+            onChange={(olay) => {
+              const secilen = olay.target.files?.[0] ?? null;
+              setDosya(secilen);
+              setRapor(null);
+              setYuklendi(false);
+              setHata(null);
+              if (secilen) onizle.mutate(secilen);
+            }}
+          />
+        </label>
 
-      {rapor && !yuklendi && (
-        <Dugme
-          type="button"
-          onClick={() => yukle.mutate()}
-          disabled={yukle.isPending || rapor.accepted === 0}
-        >
-          {yukleEtiketi.replace('{n}', String(rapor.accepted))}
-        </Dugme>
-      )}
+        {onizle.isPending && <Yukleniyor />}
+
+        {hata && (
+          <div role="alert" className="bildiri bildiri--hata">
+            <p>{hata}</p>
+            {dosya && (
+              <Dugme
+                gorunum="ikincil"
+                boyut="kucuk"
+                type="button"
+                onClick={() => void hataRaporuIndir(dosya, tur)}
+              >
+                {tr.kurulum.hataRaporu}
+              </Dugme>
+            )}
+          </div>
+        )}
+
+        {rapor && <RaporOzeti rapor={rapor} dosya={dosya} tur={tur} yuklendi={yuklendi} />}
+
+        {rapor && !yuklendi && (
+          <div className="eylemler">
+            <Dugme
+              type="button"
+              onClick={() => yukle.mutate()}
+              disabled={yukle.isPending || rapor.accepted === 0}
+            >
+              {yukleEtiketi.replace('{n}', String(rapor.accepted))}
+            </Dugme>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -364,8 +367,8 @@ function RaporOzeti({
   yuklendi: boolean;
 }) {
   return (
-    <div style={{ marginTop: 'var(--bosluk-4)' }}>
-      <div style={{ display: 'flex', gap: 'var(--bosluk-2)', flexWrap: 'wrap' }}>
+    <div className="yigin yigin--dar">
+      <div className="cip-listesi">
         <Cip renk="nötr" metin={tr.kurulum.satirSayisi.replace('{n}', String(rapor.total))} />
         <Cip renk="marka" metin={tr.kurulum.kabul.replace('{n}', String(rapor.accepted))} />
         {rapor.error_rows > 0 && (
@@ -388,31 +391,37 @@ function RaporOzeti({
 
       {rapor.errors.length > 0 && (
         <>
-          <table
-            style={{ width: '100%', borderCollapse: 'collapse', marginTop: 'var(--bosluk-3)' }}
-          >
-            <caption className="sr-only">{tr.kurulum.hataTablosu}</caption>
-            <thead>
-              <tr>
-                <th>{tr.kurulum.satir}</th>
-                <th>{tr.kurulum.sutun}</th>
-                <th>{tr.kurulum.sorun}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rapor.errors.slice(0, 20).map((hata, sira) => (
-                <tr key={`${hata.row}-${hata.field}-${sira}`}>
-                  <td>{hata.row}</td>
-                  <td>{hata.field}</td>
-                  <td>{hata.message}</td>
+          <div className="tablo-kaydirma">
+            <table className="tablo">
+              <caption className="sr-only">{tr.kurulum.hataTablosu}</caption>
+              <thead>
+                <tr>
+                  <th className="sayisal">{tr.kurulum.satir}</th>
+                  <th>{tr.kurulum.sutun}</th>
+                  <th>{tr.kurulum.sorun}</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {rapor.errors.slice(0, 20).map((hata, sira) => (
+                  <tr key={`${hata.row}-${hata.field}-${sira}`}>
+                    <td className="sayisal">{hata.row}</td>
+                    <td>{hata.field}</td>
+                    <td>{hata.message}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
           {dosya && (
-            <Dugme gorunum="ikincil" type="button" onClick={() => void hataRaporuIndir(dosya, tur)}>
-              {tr.kurulum.hataRaporu}
-            </Dugme>
+            <div className="eylemler">
+              <Dugme
+                gorunum="ikincil"
+                type="button"
+                onClick={() => void hataRaporuIndir(dosya, tur)}
+              >
+                {tr.kurulum.hataRaporu}
+              </Dugme>
+            </div>
           )}
         </>
       )}
@@ -432,45 +441,44 @@ function SablonAdimi({ onSecildi }: { onSecildi: () => void }) {
 
   return (
     <div>
-      <h2 style={{ fontSize: 'var(--baslik-bolum)', marginTop: 0 }}>{tr.kurulum.sablonBaslik}</h2>
-      <p style={{ color: 'var(--renk-murekkep2)' }}>{tr.kurulum.sablonAciklama}</p>
+      <header className="bolum-basligi">
+        <h2>{tr.kurulum.sablonBaslik}</h2>
+        <p>{tr.kurulum.sablonAciklama}</p>
+      </header>
 
-      {liste.isPending && <p style={{ color: 'var(--renk-sessiz)' }}>{tr.genel.yukleniyor}</p>}
+      {liste.isPending && <Yukleniyor />}
 
-      <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+      <ul className="liste-yigin">
         {(liste.data ?? []).map((sablon) => (
-          <li
-            key={sablon.key}
-            style={{
-              border: '1px solid var(--renk-cizgi)',
-              borderRadius: 'var(--kose-kart)',
-              padding: 'var(--bosluk-4)',
-              marginBottom: 'var(--bosluk-3)',
-              background: 'var(--renk-yuzey2)',
-            }}
-          >
-            <h3 style={{ margin: 0, fontSize: 'var(--govde)' }}>{sablon.name}</h3>
-            <p style={{ color: 'var(--renk-murekkep2)', margin: 'var(--bosluk-2) 0' }}>
-              {sablon.summary}
-            </p>
-            <div style={{ display: 'flex', gap: 'var(--bosluk-2)', flexWrap: 'wrap' }}>
-              <Cip
-                renk="nötr"
-                metin={tr.kurulum.maddeSayisi.replace('{n}', String(sablon.item_count))}
-              />
-              <Cip
-                renk="kritik"
-                ikon="!"
-                metin={tr.kurulum.kritikSayisi.replace('{n}', String(sablon.critical_count))}
-              />
-              <Cip renk="nötr" ikon="📷" metin={String(sablon.photo_count)} />
+          <li key={sablon.key} className="kart">
+            <div className="yigin yigin--dar">
+              <div>
+                <h3 className="kart-serit-ad">{sablon.name}</h3>
+                <p className="ikincil-metin">{sablon.summary}</p>
+              </div>
+              <div className="cip-listesi">
+                <Cip
+                  renk="nötr"
+                  metin={tr.kurulum.maddeSayisi.replace('{n}', String(sablon.item_count))}
+                />
+                <Cip
+                  renk="kritik"
+                  ikon="!"
+                  metin={tr.kurulum.kritikSayisi.replace('{n}', String(sablon.critical_count))}
+                />
+                <Cip renk="nötr" ikon="📷" metin={String(sablon.photo_count)} />
+              </div>
+              <p className="meta">{sablon.window}</p>
+              <div className="eylemler">
+                <Dugme
+                  type="button"
+                  onClick={() => sec.mutate(sablon.key)}
+                  disabled={sec.isPending}
+                >
+                  {tr.kurulum.sablonuKullan}
+                </Dugme>
+              </div>
             </div>
-            <p style={{ color: 'var(--renk-sessiz)', fontSize: 'var(--etiket)' }}>
-              {sablon.window}
-            </p>
-            <Dugme type="button" onClick={() => sec.mutate(sablon.key)} disabled={sec.isPending}>
-              {tr.kurulum.sablonuKullan}
-            </Dugme>
           </li>
         ))}
       </ul>
@@ -489,34 +497,36 @@ function PlanAdimi({ onKaydedildi }: { onKaydedildi: () => void }) {
 
   return (
     <div>
-      <h2 style={{ fontSize: 'var(--baslik-bolum)', marginTop: 0 }}>{tr.kurulum.planBaslik}</h2>
-      <p style={{ color: 'var(--renk-murekkep2)' }}>{tr.kurulum.planAciklama}</p>
+      <header className="bolum-basligi">
+        <h2>{tr.kurulum.planBaslik}</h2>
+        <p>{tr.kurulum.planAciklama}</p>
+      </header>
 
-      {oneri.isPending && <p style={{ color: 'var(--renk-sessiz)' }}>{tr.genel.yukleniyor}</p>}
+      {oneri.isPending && <Yukleniyor />}
       {oneri.isError && (
-        <p role="alert" style={{ color: 'var(--renk-kritik)' }}>
-          {problemCoz(oneri.error)?.title ?? tr.hata.aglaBaglanilamadi}
-        </p>
+        <Hata metin={problemCoz(oneri.error)?.title ?? tr.hata.aglaBaglanilamadi} />
       )}
 
       {oneri.data && (
-        <>
+        <div className="yigin">
           <label className="alan-etiket">
             {tr.kurulum.planAdi}
             <input
               value={ad || oneri.data.name}
               onChange={(olay) => setAd(olay.target.value)}
-              className="alan"
+              className="alan alan--orta"
             />
           </label>
-          <ul style={{ paddingLeft: 'var(--bosluk-4)', color: 'var(--renk-murekkep2)' }}>
+          <ul className="madde-listesi">
             <li>{oneri.data.window}</li>
             <li>{tr.kurulum.planSube.replace('{n}', String(oneri.data.branch_ids.length))}</li>
           </ul>
-          <Dugme type="button" onClick={() => kaydet.mutate()} disabled={kaydet.isPending}>
-            {tr.kurulum.planiOlustur}
-          </Dugme>
-        </>
+          <div className="eylemler">
+            <Dugme type="button" onClick={() => kaydet.mutate()} disabled={kaydet.isPending}>
+              {tr.kurulum.planiOlustur}
+            </Dugme>
+          </div>
+        </div>
       )}
     </div>
   );
@@ -536,35 +546,39 @@ function SonrakiAdimlar({
 
   return (
     <div>
-      <h2 style={{ fontSize: 'var(--baslik-bolum)', marginTop: 0 }}>{bilgi?.label}</h2>
-      <p style={{ color: 'var(--renk-murekkep2)' }}>{bilgi?.detail}</p>
+      <header className="bolum-basligi">
+        <h2>{bilgi?.label}</h2>
+        <p>{bilgi?.detail}</p>
+      </header>
 
       {adim === 'review' ? (
-        <>
-          <ul style={{ paddingLeft: 'var(--bosluk-4)' }}>
+        <div className="yigin">
+          <ul className="madde-listesi">
             {durum.steps
               .filter((a) => a.step !== 'review')
               .map((a) => (
-                <li key={a.step} style={{ marginBottom: 'var(--bosluk-2)' }}>
+                <li key={a.step}>
                   {a.done ? '✓' : '○'} {a.label} — {a.detail}
                 </li>
               ))}
           </ul>
           {!durum.publishable && (
-            <p role="alert" style={{ color: 'var(--renk-uyari)' }}>
+            <p role="alert" className="bildiri bildiri--uyari">
               {tr.kurulum.yayinEngeli}
             </p>
           )}
-          <Dugme
-            type="button"
-            onClick={() => yayin.mutate()}
-            disabled={!durum.publishable || yayin.isPending}
-          >
-            {tr.kurulum.yayinla}
-          </Dugme>
+          <div className="eylemler">
+            <Dugme
+              type="button"
+              onClick={() => yayin.mutate()}
+              disabled={!durum.publishable || yayin.isPending}
+            >
+              {tr.kurulum.yayinla}
+            </Dugme>
+          </div>
 
           {yayin.data && (
-            <p style={{ marginTop: 'var(--bosluk-4)' }}>
+            <p role="status" className="bildiri bildiri--saglam">
               ✓ {tr.kurulum.yayinSonucu.replace('{n}', String(yayin.data.runs_ready))}
               {yayin.data.first_window
                 ? ` · ${tr.kurulum.ilkPencere.replace(
@@ -574,9 +588,9 @@ function SonrakiAdimlar({
                 : ''}
             </p>
           )}
-        </>
+        </div>
       ) : (
-        <p style={{ color: 'var(--renk-sessiz)' }}>{tr.kurulum.panelden}</p>
+        <p className="durum-metni">{tr.kurulum.panelden}</p>
       )}
     </div>
   );

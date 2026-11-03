@@ -1182,8 +1182,9 @@ select.alan {
   margin-bottom: var(--bosluk-6);
 }
 
-/* Rol ve kapsam aynı hücrede birden çok satır olabiliyor. */
-.atama-satiri {
+/* İkincil metin: `.meta` 12 px ve sessiz, bu 13 px ve okunur — hücre
+   içindeki ikinci satır, rol/kapsam, kapanış notu gibi yerler. */
+.ikincil-metin {
   font-size: var(--etiket);
 }
 
@@ -1191,4 +1192,168 @@ select.alan {
    boşluk, yoksa son satıra yapışıyor. */
 .alan-grubu--ayri {
   margin-top: var(--bosluk-6);
+}
+
+/* --- kart şeridi ------------------------------------------------------
+   Çipler + ad + sağdaki durum tek satırda, dar ekranda sarar.
+   `.kart-ustu` künye içindir (metin, taban hizası); bu kutular için
+   (çipler, ortadan hiza). */
+
+.kart-serit {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--bosluk-2);
+}
+
+/* Başlık da olabiliyor (ölçüm serisi adı): tarayıcının h3 ölçüsünü
+   değil gövde ölçüsünü alsın. */
+.kart-serit-ad {
+  flex: 1 1 220px;
+  margin: 0;
+  font-size: var(--govde);
+  font-weight: 600;
+}
+
+.kart--kritik {
+  border-color: var(--renk-kritik);
+}
+
+/* --- vade ------------------------------------------------------------
+   Renk tek başına anlam taşımıyor: metin de "3 saat gecikti" diyor. */
+
+.vade-metni {
+  font-size: var(--etiket);
+  font-weight: 600;
+  color: var(--renk-murekkep2);
+}
+
+.vade-metni--gecikmis {
+  color: var(--renk-kritik);
+}
+
+/* Satır içi forma giren uzun alan: `.alan`ın tam genişliği düğmeleri
+   alt satıra atıyordu. */
+.alan--genis {
+  flex: 1 1 260px;
+  width: auto;
+}
+
+/* --- bölüm başlığı ----------------------------------------------------
+   `.sayfa-basligi`ın sayfa içindeki karşılığı: h2 + bir satır açıklama.
+   Kurulum ve Raporlar bunu altı yerde ayrı ayrı yazıyordu. */
+
+.bolum-basligi {
+  margin-bottom: var(--bosluk-4);
+}
+
+.bolum-basligi h2 {
+  margin: 0;
+  font-size: var(--baslik-bolum);
+  font-weight: 600;
+}
+
+.bolum-basligi p {
+  margin: var(--bosluk-1) 0 0;
+  max-width: 60ch;
+  font-size: var(--etiket);
+  color: var(--renk-murekkep2);
+}
+
+/* --- sekme / adım şeridi ---------------------------------------------
+   Seçili sekme `aria-selected`, açık adım `aria-current`ten okunuyor
+   (.dugme kuralı). `ol` üzerinde de kullanılıyor: liste işareti yok. */
+
+.sekme-serit {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--bosluk-2);
+  margin: 0 0 var(--bosluk-6);
+  padding: 0;
+  list-style: none;
+}
+
+/* --- kutu ızgarası (sayaçlar) ---------------------------------------- */
+
+.kutu-izgara {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: var(--bosluk-3);
+}
+
+/* --- kanıt ızgarası ---------------------------------------------------
+   Açılamayan görsel kırık simge değil, ne olduğunu söyleyen kutu. */
+
+.kanit-izgara {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: var(--bosluk-3);
+}
+
+.kanit-cerceve {
+  margin: 0;
+}
+
+.kanit-gorsel,
+.kanit-yer {
+  width: 100%;
+  height: 120px;
+  border: 1px solid var(--renk-cizgi);
+  border-radius: var(--kose-kart);
+}
+
+.kanit-gorsel {
+  object-fit: cover;
+  display: block;
+}
+
+.kanit-yer {
+  display: grid;
+  place-items: center;
+  padding: var(--bosluk-2);
+  background: var(--renk-yuzey2);
+  color: var(--renk-sessiz);
+  font-size: var(--etiket);
+  text-align: center;
+}
+
+.kanit-alt {
+  margin-top: var(--bosluk-1);
+  font-size: var(--etiket);
+  color: var(--renk-murekkep2);
+}
+
+.kanit-bayrak {
+  display: block;
+  color: var(--renk-uyari);
+}
+
+/* --- dar sayfa --------------------------------------------------------
+   Sihirbaz gibi tek kolonda okunan ekran: satır uzunluğu 860 px'i
+   geçince göz satır başını kaybediyor. */
+
+.dar-sayfa {
+  max-width: 860px;
+}
+
+/* --- madde listesi ----------------------------------------------------
+   Gerçek madde işaretli liste (sihirbazın özet maddeleri). */
+
+.madde-listesi {
+  display: grid;
+  gap: var(--bosluk-2);
+  margin: 0;
+  padding-left: var(--bosluk-4);
+  color: var(--renk-murekkep2);
+}
+
+/* --- yığın sıfırlaması — dosyanın sonunda olmalı ----------------------
+   Dikey ritim `gap`ten geliyor: yığına giren çocuğun kendi blok kenar
+   boşlukları (paragrafın 1em'i, `.eylemler`in 16 px'i) üstüne
+   eklenmesin. Aynı özgüllükte sonra gelen tanım kazandığı için bu kural
+   bileşen tanımlarından **sonra** duruyor; yukarı taşınırsa sessizce
+   etkisizleşir (bir kez olmuştu: dar ekran çip kuralı). */
+
+.yigin > * {
+  margin-block: 0;
 }
