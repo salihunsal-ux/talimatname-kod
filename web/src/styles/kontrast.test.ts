@@ -24,6 +24,8 @@ function blok(baslangic: string): Record<string, string> {
 
 const ACIK = blok(':root {');
 const KOYU = blok(":root[data-tema='koyu'] {");
+/** Aynı palet bir de medya sorgusunda yazılı; ikisi ayrışabilir. */
+const KOYU_MEDYA = blok(":root:not([data-tema='acik']) {");
 
 function parlaklik(renk: string): number {
   const kanal = [1, 3, 5].map((i) => parseInt(renk.slice(i, i + 2), 16) / 255);
@@ -51,7 +53,7 @@ const CIFTLER: [ad: string, yazi: string, zemin: string][] = [
   ['bildiri · uyarı', 'murekkep', 'uyari-acik'],
   ['bildiri · hata', 'kritik', 'kritik-acik'],
   ['bildiri · nötr', 'murekkep2', 'yuzey2'],
-  ['birincil düğme', 'koyu-murekkep', 'koyu'],
+  ['birincil düğme', 'birincil-yazi', 'birincil-zemin'],
   ['üst bant · yardımcı', 'koyu-sessiz', 'koyu'],
   ['üst bant · vurgu', 'koyu-marka', 'koyu'],
   ['gövde metni', 'murekkep', 'zemin'],
@@ -82,5 +84,28 @@ describe('token okuma', () => {
     // Koyu temada eksik kalan bir ad, açık temanınkini miras alır ve
     // koyu zeminde okunmaz. Eksikliği burada görelim.
     expect(Object.keys(KOYU).sort()).toEqual(Object.keys(ACIK).sort());
+  });
+
+  it('koyu palet iki yerde aynı yazılı', () => {
+    // Palet hem `[data-tema='koyu']` hem de `prefers-color-scheme`
+    // bloğunda duruyor; düz CSS'te bunu tek kaynağa indiremiyoruz.
+    // En azından ayrışmasınlar: elle düzeltilen bir değer öbürüne
+    // yazılmayı unutulabilir.
+    expect(KOYU_MEDYA).toEqual(KOYU);
+  });
+});
+
+describe('koyu çapa yüzeyi', () => {
+  // Yön C'nin fikri: sayfanın bir **ağırlık merkezi** var — üst bant,
+  // giriş paneli, pano manşeti. Açık temada bu yüzeyin kendisinden
+  // geliyor (15,3:1). Koyu temada sayfa da koyu olduğu için yüzeyle
+  // ayrılamıyor (1,19:1); ayrım kenardan gelmek zorunda.
+  it.each([
+    ['açık tema', ACIK],
+    ['koyu tema', KOYU],
+  ])('%s: çapa ya yüzeyiyle ya kenarıyla sayfadan ayrılıyor', (_ad, tema) => {
+    const yuzeyle = kontrast(tema['koyu'], tema['zemin']);
+    const kenarla = kontrast(tema['koyu-cizgi'], tema['koyu']);
+    expect(yuzeyle >= 3 || kenarla >= 1.25).toBe(true);
   });
 });

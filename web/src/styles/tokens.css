@@ -31,6 +31,16 @@
   --renk-koyu-murekkep: #f1eee6;
   --renk-koyu-sessiz: #9aa2a8;
   --renk-koyu-marka: #3fa98c;
+  /* Çapanın kenarı. Açık temada yüzeyin kendisi, yani görünmez: orada
+     çapa sayfadan 15,3:1 ayrılıyor, çizgiye gerek yok. Koyu temada
+     sayfa da koyu olduğu için ayrım kenardan geliyor. */
+  --renk-koyu-cizgi: #16201d;
+
+  /* Birincil eylem: sayfanın **tersi**. Açık temada mürekkep hapı,
+     koyu temada krem hap — ikisi de sayfadan ~15:1 ayrılıyor. Yeşil
+     her iki temada da vurgu olarak kalıyor (yön C kararı). */
+  --renk-birincil-zemin: #16201d;
+  --renk-birincil-yazi: #f1eee6;
 
   /* boşluk ölçeği */
   --bosluk-1: 4px;
@@ -73,10 +83,16 @@
   --renk-uyari: #e0a640;
   --renk-uyari-acik: #33290f;
   --renk-pasif: #3a424a;
-  --renk-koyu: #0f1416;
+  --renk-koyu: #1e2a26;
   --renk-koyu-murekkep: #f1eee6;
   --renk-koyu-sessiz: #9aa2a8;
   --renk-koyu-marka: #3fa98c;
+  --renk-koyu-cizgi: #324039;
+  --renk-birincil-zemin: #f1eee6;
+  --renk-birincil-yazi: #15191c;
+  /* Koyu zeminde koyu gölge görünmüyor: yüzen kart yükselmesini
+     kaybediyordu. */
+  --golge-yuzen: 0 6px 24px rgb(0 0 0 / 55%);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -95,10 +111,16 @@
     --renk-uyari: #e0a640;
     --renk-uyari-acik: #33290f;
     --renk-pasif: #3a424a;
-    --renk-koyu: #0f1416;
+    --renk-koyu: #1e2a26;
     --renk-koyu-murekkep: #f1eee6;
     --renk-koyu-sessiz: #9aa2a8;
     --renk-koyu-marka: #3fa98c;
+    --renk-koyu-cizgi: #324039;
+    --renk-birincil-zemin: #f1eee6;
+    --renk-birincil-yazi: #15191c;
+    /* Koyu zeminde koyu gölge görünmüyor: yüzen kart yükselmesini
+    kaybediyordu. */
+    --golge-yuzen: 0 6px 24px rgb(0 0 0 / 55%);
   }
 }
 

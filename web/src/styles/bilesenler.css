@@ -83,14 +83,16 @@
    durumu. İkisini aynı renge bağlamak, sayfadaki her yeşili eyleme
    benzetiyordu. */
 .dugme--birincil {
-  border-color: var(--renk-koyu);
-  background: var(--renk-koyu);
-  color: var(--renk-koyu-murekkep);
+  border-color: var(--renk-birincil-zemin);
+  background: var(--renk-birincil-zemin);
+  color: var(--renk-birincil-yazi);
 }
 
+/* Hover zemine doğru bir tık: açık temada mürekkep açılıyor, koyu
+   temada krem koyulaşıyor. İkisi de "aynı düğme, biraz hareket". */
 .dugme--birincil:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--renk-koyu) 82%, #fff);
-  border-color: color-mix(in srgb, var(--renk-koyu) 82%, #fff);
+  background: color-mix(in srgb, var(--renk-birincil-zemin) 82%, var(--renk-birincil-yazi));
+  border-color: color-mix(in srgb, var(--renk-birincil-zemin) 82%, var(--renk-birincil-yazi));
 }
 
 .dugme--ikincil {
@@ -130,10 +132,15 @@
   transform: translateY(1px);
 }
 
+/* Devre dışı düğme **okunabilir** kalıyor: yazısı `renk.yuzey` idi,
+   yani her iki temada da 1,58:1 — kurulum sihirbazında "neyin eksik
+   olduğunu" söyleyen düğmenin metni görünmüyordu. Şimdi 3,6:1: metin
+   eşiğinin altında (standart devre dışı denetimi muaf tutuyor) ama
+   okunuyor. */
 .dugme:disabled {
   background: var(--renk-pasif);
   border-color: var(--renk-pasif);
-  color: var(--renk-yuzey);
+  color: var(--renk-sessiz);
   cursor: not-allowed;
 }
 
@@ -261,6 +268,7 @@ textarea.alan {
   padding: var(--bosluk-8) var(--bosluk-8) var(--bosluk-6);
   background: var(--renk-koyu);
   color: var(--renk-koyu-murekkep);
+  border-right: 1px solid var(--renk-koyu-cizgi);
 }
 
 .giris-marka {
@@ -344,6 +352,9 @@ textarea.alan {
   .giris-panel {
     gap: var(--bosluk-4);
     padding: var(--bosluk-6) var(--bosluk-4) var(--bosluk-4);
+    /* Dar ekranda panel üste geçiyor: kenar da yanından altına iner. */
+    border-right: 0;
+    border-bottom: 1px solid var(--renk-koyu-cizgi);
   }
 
   .giris-vaat {
@@ -380,6 +391,7 @@ textarea.alan {
   padding: var(--bosluk-3) var(--bosluk-6);
   background: var(--renk-koyu);
   color: var(--renk-koyu-murekkep);
+  border-bottom: 1px solid var(--renk-koyu-cizgi);
 }
 
 .kabuk-marka {
@@ -776,6 +788,7 @@ textarea.alan {
   justify-content: center;
   min-width: 190px;
   padding: var(--bosluk-4) var(--bosluk-6);
+  border: 1px solid var(--renk-koyu-cizgi);
   border-radius: var(--kose-kart);
   background: var(--renk-koyu);
   color: var(--renk-koyu-murekkep);
