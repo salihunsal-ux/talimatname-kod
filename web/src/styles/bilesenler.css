@@ -502,6 +502,12 @@ textarea.alan {
   .dugme--kucuk {
     min-height: 44px;
   }
+
+  /* Cip bir etiket, dugme degil; dokunma hedefi kurali yine de gecerli
+     (NFR-11). Masaustunde 36 px yeterli, parmakta degil. */
+  .secim-cipi {
+    min-height: 44px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -929,8 +935,10 @@ textarea.alan {
   width: 9ch;
 }
 
+/* 16ch: 24 saatlik gosterimde fazla, ama tarayici dilini kullanicidan
+   aliyor ve 12 saatlik bicimde "PM" kutuya sigmiyordu. */
 .alan--saat {
-  width: 13ch;
+  width: 16ch;
 }
 
 /* --- seçim çipi ------------------------------------------------------
