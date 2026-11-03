@@ -221,6 +221,10 @@ export const tr = {
   },
   subeler: {
     baslik: 'Şubeler',
+    altBaslik:
+      'Bölge → şube ağacı. Bir şubeye tıklayınca çalışma saatleri ve istasyonları sağda açılır.',
+    subeYok: 'Henüz şube yok. Aşağıdaki formdan ilk şubeyi ekleyin.',
+    yeniSube: 'Yeni şube',
     pasifleriGoster: 'Pasifleri göster',
     pasif: 'Pasif',
     gunKisaltma: 'gün açık',
@@ -237,6 +241,9 @@ export const tr = {
   },
   personel: {
     baslik: 'Personel ve roller',
+    altBaslik:
+      'Kim hangi şubede, hangi rolde. Rolün kapsamı rolden belirlenir: yöneticide kapsam seçimi çıkmaz.',
+    yeniDavet: 'Yeni davet',
     sube: 'Şube',
     bolge: 'Bölge',
     rol: 'Rol',

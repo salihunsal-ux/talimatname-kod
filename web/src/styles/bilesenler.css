@@ -1046,3 +1046,149 @@ textarea.alan {
   text-align: right;
   white-space: nowrap;
 }
+
+/* --- durum metni ------------------------------------------------------
+   "Yükleniyor…" on bir ekranda `color: sessiz` olarak elde yazılıyordu. */
+
+.durum-metni {
+  color: var(--renk-sessiz);
+}
+
+/* --- onay etiketi ----------------------------------------------------
+   Kutu + metin; `.secim-cipi` gibi çerçeveli değil, filtre satırında
+   duran sade bir seçenek. Dokunma hedefi 44 px. */
+
+.onay-etiketi {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--bosluk-2);
+  min-height: 44px;
+  font-size: var(--etiket);
+  color: var(--renk-murekkep2);
+  cursor: pointer;
+}
+
+.onay-etiketi input {
+  margin: 0;
+}
+
+/* --- çip listesi ------------------------------------------------------ */
+
+.cip-listesi {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--bosluk-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* --- alan genişlikleri ------------------------------------------------
+   `.alan` varsayılanı tam genişlik; satır içi formda kod kutusu da ad
+   kutusu da sayfayı boydan boya kaplıyordu. */
+
+.alan--dar {
+  width: 11ch;
+}
+
+.alan--orta {
+  width: 24ch;
+}
+
+/* --- kod ---------------------------------------------------------------
+   Şube kodu, plan kimliği: makine tarafındaki ad, gövde metnine göre
+   geri planda. Liste satırında adların hizalanması için sabit genişlik. */
+
+.kod {
+  font-size: var(--meta);
+  color: var(--renk-sessiz);
+}
+
+.liste-satiri > .kod {
+  min-width: 5ch;
+}
+
+.liste-satiri-ad {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* --- kart üstü (başlık + yanındaki künye) ----------------------------- */
+
+.kart-ustu {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--bosluk-3);
+  margin-bottom: var(--bosluk-3);
+}
+
+.kart-ustu h2 {
+  margin: 0;
+  font-size: var(--baslik-bolum);
+}
+
+/* --- liste yığını (ul) ------------------------------------------------
+   Madde işareti ve tarayıcı dolgusu olmayan dikey liste; satırların
+   kendisi `.liste-satiri`. */
+
+.liste-yigin {
+  display: grid;
+  gap: var(--bosluk-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Süzgeç satırında seçiciler içerik kadar: `.alan`ın tam genişlik
+   varsayılanı üç seçiciyi üç satıra düşürüyordu. */
+select.alan {
+  width: auto;
+  max-width: 100%;
+}
+
+/* --- tehlikeli düğme -------------------------------------------------
+   Maskeleme ve silme geri alınamaz. Kırmızı birincil düğme ekranı
+   ele geçiriyordu: ikincil kalıp yalnızca yazısı kırmızı. */
+
+.dugme--tehlike {
+  color: var(--renk-kritik);
+  border-color: var(--renk-kritik);
+}
+
+.dugme--tehlike:hover:not(:disabled) {
+  background: var(--renk-kritik-acik);
+  border-color: var(--renk-kritik);
+}
+
+/* --- satır içi eylemler (tablo hücresi) ------------------------------ */
+
+.satir-eylem {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--bosluk-2);
+}
+
+/* --- süzgeç şeridi ---------------------------------------------------
+   Sayfa başlığının altında duran, sayfanın tamamını süzen denetimler.
+   Başlık satırına sığmayacak kadar çok olduğunda buraya iniyor. */
+
+.suzgec-serit {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--bosluk-4);
+  margin-bottom: var(--bosluk-6);
+}
+
+/* Rol ve kapsam aynı hücrede birden çok satır olabiliyor. */
+.atama-satiri {
+  font-size: var(--etiket);
+}
+
+/* Listeden ya da tablodan sonra gelen ekleme formu: araya bir ölçü
+   boşluk, yoksa son satıra yapışıyor. */
+.alan-grubu--ayri {
+  margin-top: var(--bosluk-6);
+}

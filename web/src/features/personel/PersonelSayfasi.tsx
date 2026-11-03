@@ -15,6 +15,7 @@ import { Cip } from '../../bilesenler/Cip';
 import { useYonetici } from '../../api/yetki';
 import { tr } from '../../i18n/tr';
 import { Dugme } from '../../bilesenler/Dugme';
+import { Hata, Yukleniyor } from '../../bilesenler/Durum';
 
 const ROLLER: { deger: Rol; etiket: string; kapsam: 'yok' | 'bolge' | 'sube' }[] = [
   { deger: 'admin', etiket: 'Yönetici', kapsam: 'yok' },
@@ -60,25 +61,20 @@ export function PersonelSayfasi() {
 
   return (
     <div>
-      <h1 style={{ fontSize: 'var(--baslik-ekran)', margin: '0 0 var(--bosluk-3)' }}>
-        {tr.personel.baslik}
-      </h1>
+      <header className="sayfa-basligi">
+        <div>
+          <h1>{tr.personel.baslik}</h1>
+          <p className="sayfa-basligi-alt">{tr.personel.altBaslik}</p>
+        </div>
+      </header>
 
-      <div
-        style={{
-          display: 'flex',
-          gap: 'var(--bosluk-3)',
-          flexWrap: 'wrap',
-          alignItems: 'center',
-          marginBottom: 'var(--bosluk-4)',
-        }}
-      >
+      <div className="suzgec-serit">
         <label className="alan-etiket">
           {tr.personel.sube}
           <select
             value={subeSuzgeci}
             onChange={(o) => setSubeSuzgeci(o.target.value)}
-            style={secimBicimi}
+            className="alan"
           >
             <option value="">{tr.personel.hepsi}</option>
             {duzSubeler.map((sube) => (
@@ -94,7 +90,7 @@ export function PersonelSayfasi() {
           <select
             value={rolSuzgeci}
             onChange={(o) => setRolSuzgeci(o.target.value)}
-            style={secimBicimi}
+            className="alan"
           >
             <option value="">{tr.personel.hepsi}</option>
             {ROLLER.map((rol) => (
@@ -105,7 +101,7 @@ export function PersonelSayfasi() {
           </select>
         </label>
 
-        <label style={{ display: 'flex', gap: 'var(--bosluk-2)', fontSize: 'var(--etiket)' }}>
+        <label className="onay-etiketi">
           <input
             type="checkbox"
             checked={pasifDahil}
@@ -115,35 +111,35 @@ export function PersonelSayfasi() {
         </label>
       </div>
 
-      {personel.isPending && <p style={{ color: 'var(--renk-sessiz)' }}>{tr.genel.yukleniyor}</p>}
-      {personel.isError && (
-        <p role="alert" style={{ color: 'var(--renk-kritik)' }}>
-          {tr.hata.aglaBaglanilamadi}
-        </p>
-      )}
+      {personel.isPending && <Yukleniyor />}
+      {personel.isError && <Hata metin={tr.hata.aglaBaglanilamadi} />}
 
       {personel.data && personel.data.length === 0 && (
-        <p style={{ color: 'var(--renk-sessiz)' }}>{tr.personel.bos}</p>
+        <p className="bos-durum">{tr.personel.bos}</p>
       )}
 
       {personel.data && personel.data.length > 0 && (
-        <table className="tablo">
-          <thead>
-            <tr
-              style={{ textAlign: 'left', color: 'var(--renk-sessiz)', fontSize: 'var(--etiket)' }}
-            >
-              <th style={{ padding: '6px 0' }}>{tr.personel.ad}</th>
-              <th>{tr.personel.rolKapsam}</th>
-              <th>{tr.personel.telefon}</th>
-              <th style={{ textAlign: 'right' }}>{tr.personel.islem}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {personel.data.map((kisi) => (
-              <PersonelSatiri key={kisi.id} kisi={kisi} kapsamAdi={kapsamAdiCozucu(kapsamAdlari)} />
-            ))}
-          </tbody>
-        </table>
+        <div className="tablo-kaydirma">
+          <table className="tablo">
+            <thead>
+              <tr>
+                <th>{tr.personel.ad}</th>
+                <th>{tr.personel.rolKapsam}</th>
+                <th>{tr.personel.telefon}</th>
+                <th className="eylem">{tr.personel.islem}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {personel.data.map((kisi) => (
+                <PersonelSatiri
+                  key={kisi.id}
+                  kisi={kisi}
+                  kapsamAdi={kapsamAdiCozucu(kapsamAdlari)}
+                />
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
 
       {yonetici && <DavetFormu subeler={duzSubeler} />}
@@ -171,8 +167,8 @@ function PersonelSatiri({
   const maskele = useMutation({ mutationFn: () => personelMaskele(kisi.id), onSuccess: tazele });
 
   return (
-    <tr style={{ borderTop: '1px solid var(--renk-cizgi)' }}>
-      <td style={{ padding: '10px 0' }}>
+    <tr>
+      <th scope="row">
         {kisi.full_name}
         {kisi.status === 'inactive' && (
           <>
@@ -186,51 +182,56 @@ function PersonelSatiri({
             <Cip renk="pasif" ikon="•" metin={tr.personel.maskeli} />
           </>
         )}
-      </td>
+      </th>
       <td>
         {kisi.assignments.length === 0 ? (
-          <span style={{ color: 'var(--renk-sessiz)' }}>—</span>
+          <span className="durum-metni">—</span>
         ) : (
           kisi.assignments.map((atama, sira) => (
-            <div key={`${atama.role}-${sira}`} style={{ fontSize: 'var(--etiket)' }}>
+            <div key={`${atama.role}-${sira}`} className="atama-satiri">
               {atama.role_label}
               {atama.scope_type !== 'tenant' && (
-                <span style={{ color: 'var(--renk-sessiz)' }}> · {kapsamAdi(atama.scope_id)}</span>
+                <span className="durum-metni"> · {kapsamAdi(atama.scope_id)}</span>
               )}
             </div>
           ))
         )}
       </td>
-      <td style={{ fontVariantNumeric: 'tabular-nums', color: 'var(--renk-murekkep2)' }}>
-        {kisi.phone ?? '—'}
-      </td>
-      <td style={{ textAlign: 'right' }}>
-        {kisi.status === 'active' && (
-          <Dugme gorunum="ikincil" boyut="kucuk" type="button" onClick={() => pasiflestir.mutate()}>
-            {tr.personel.pasiflestir}
-          </Dugme>
-        )}
-        {kisi.status !== 'masked' &&
-          (maskeOnayi ? (
+      <td className="sayisal">{kisi.phone ?? '—'}</td>
+      <td className="eylem">
+        <div className="satir-eylem">
+          {kisi.status === 'active' && (
             <Dugme
               gorunum="ikincil"
               boyut="kucuk"
               type="button"
-              onClick={() => maskele.mutate()}
-              style={{ color: 'var(--renk-kritik)' }}
+              onClick={() => pasiflestir.mutate()}
             >
-              {tr.personel.maskeleOnay}
+              {tr.personel.pasiflestir}
             </Dugme>
-          ) : (
-            <Dugme
-              gorunum="ikincil"
-              boyut="kucuk"
-              type="button"
-              onClick={() => setMaskeOnayi(true)}
-            >
-              {tr.personel.maskele}
-            </Dugme>
-          ))}
+          )}
+          {kisi.status !== 'masked' &&
+            (maskeOnayi ? (
+              <Dugme
+                gorunum="ikincil"
+                boyut="kucuk"
+                type="button"
+                className="dugme--tehlike"
+                onClick={() => maskele.mutate()}
+              >
+                {tr.personel.maskeleOnay}
+              </Dugme>
+            ) : (
+              <Dugme
+                gorunum="ikincil"
+                boyut="kucuk"
+                type="button"
+                onClick={() => setMaskeOnayi(true)}
+              >
+                {tr.personel.maskele}
+              </Dugme>
+            ))}
+        </div>
       </td>
     </tr>
   );
@@ -269,78 +270,76 @@ function DavetFormu({ subeler }: { subeler: { id: string; name: string; code: st
         olay.preventDefault();
         davet.mutate();
       }}
-      style={{
-        display: 'flex',
-        gap: 'var(--bosluk-2)',
-        flexWrap: 'wrap',
-        alignItems: 'flex-end',
-        marginTop: 'var(--bosluk-6)',
-        paddingTop: 'var(--bosluk-4)',
-        borderTop: '1px solid var(--renk-cizgi)',
-      }}
     >
-      <label className="alan-etiket">
-        {tr.personel.ad}
-        <input
-          value={ad}
-          onChange={(o) => setAd(o.target.value)}
-          required
-          style={girdiBicimi(170)}
-        />
-      </label>
-      <label className="alan-etiket">
-        {tr.personel.telefon}
-        <input
-          value={telefon}
-          onChange={(o) => setTelefon(o.target.value)}
-          required
-          placeholder="0532 123 45 67"
-          style={girdiBicimi(150)}
-        />
-      </label>
-      <label className="alan-etiket">
-        {tr.personel.rol}
-        <select value={rol} onChange={(o) => setRol(o.target.value as Rol)} style={secimBicimi}>
-          {ROLLER.map((r) => (
-            <option key={r.deger} value={r.deger}>
-              {r.etiket}
-            </option>
-          ))}
-        </select>
-      </label>
-      {kapsamGerekli && (
-        <label className="alan-etiket">
-          {secili?.kapsam === 'bolge' ? tr.personel.bolge : tr.personel.sube}
-          <select
-            value={kapsam}
-            onChange={(o) => setKapsam(o.target.value)}
-            required
-            style={secimBicimi}
-          >
-            <option value="">{tr.personel.seciniz}</option>
-            {subeler.map((sube) => (
-              <option key={sube.id} value={sube.id}>
-                {sube.name} ({sube.code})
-              </option>
-            ))}
-          </select>
-        </label>
-      )}
-      <Dugme type="submit" disabled={davet.isPending}>
-        {tr.personel.davet}
-      </Dugme>
+      <fieldset className="alan-grubu alan-grubu--ayri">
+        <legend>{tr.personel.yeniDavet}</legend>
+        <div className="yigin yigin--dar">
+          <div className="alan-sirasi">
+            <label className="alan-etiket">
+              {tr.personel.ad}
+              <input
+                value={ad}
+                onChange={(o) => setAd(o.target.value)}
+                required
+                className="alan alan--orta"
+              />
+            </label>
+            <label className="alan-etiket">
+              {tr.personel.telefon}
+              <input
+                value={telefon}
+                onChange={(o) => setTelefon(o.target.value)}
+                required
+                placeholder="0532 123 45 67"
+                className="alan alan--orta"
+              />
+            </label>
+            <label className="alan-etiket">
+              {tr.personel.rol}
+              <select value={rol} onChange={(o) => setRol(o.target.value as Rol)} className="alan">
+                {ROLLER.map((r) => (
+                  <option key={r.deger} value={r.deger}>
+                    {r.etiket}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {kapsamGerekli && (
+              <label className="alan-etiket">
+                {secili?.kapsam === 'bolge' ? tr.personel.bolge : tr.personel.sube}
+                <select
+                  value={kapsam}
+                  onChange={(o) => setKapsam(o.target.value)}
+                  required
+                  className="alan"
+                >
+                  <option value="">{tr.personel.seciniz}</option>
+                  {subeler.map((sube) => (
+                    <option key={sube.id} value={sube.id}>
+                      {sube.name} ({sube.code})
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+            <Dugme type="submit" disabled={davet.isPending}>
+              {tr.personel.davet}
+            </Dugme>
+          </div>
 
-      {davet.isError && (
-        <p role="alert" style={{ width: '100%', margin: 0, color: 'var(--renk-kritik)' }}>
-          {problem ? problem.title : tr.hata.genel}
-          {problem?.errors?.length ? `: ${problem.errors[0].sebep}` : ''}
-        </p>
-      )}
-      {davet.isSuccess && (
-        <p role="status" style={{ width: '100%', margin: 0, color: 'var(--renk-murekkep2)' }}>
-          {tr.personel.davetKuyrukta}
-        </p>
-      )}
+          {davet.isError && (
+            <p role="alert" className="bildiri bildiri--hata">
+              {problem ? problem.title : tr.hata.genel}
+              {problem?.errors?.length ? `: ${problem.errors[0].sebep}` : ''}
+            </p>
+          )}
+          {davet.isSuccess && (
+            <p role="status" className="bildiri">
+              {tr.personel.davetKuyrukta}
+            </p>
+          )}
+        </div>
+      </fieldset>
     </form>
   );
 }
@@ -348,17 +347,4 @@ function DavetFormu({ subeler }: { subeler: { id: string; name: string; code: st
 function kapsamAdiCozucu(adlar: Map<string, string>) {
   return (id: string | null | undefined) =>
     id ? (adlar.get(id) ?? tr.personel.bilinmeyenKapsam) : '';
-}
-
-const secimBicimi = {
-  height: 36,
-  padding: '0 var(--bosluk-2)',
-  borderRadius: 'var(--kose-dugme)',
-  border: '1px solid var(--renk-cizgi)',
-  background: 'var(--renk-yuzey)',
-  color: 'var(--renk-murekkep)',
-} as const;
-
-function girdiBicimi(genislik: number) {
-  return { ...secimBicimi, width: genislik } as const;
 }
