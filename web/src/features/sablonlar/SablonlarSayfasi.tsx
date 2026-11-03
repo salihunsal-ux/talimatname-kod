@@ -78,7 +78,7 @@ export function SablonlarSayfasi() {
           {sablonlar.data?.map((sablon) => (
             <section key={sablon.id}>
               <h2 className="bolum-etiketi">{sablon.name}</h2>
-              <ul className="yigin yigin--dar" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+              <ul className="liste-yigin">
                 {sablon.versions.map((surum) => (
                   <li key={surum.id}>
                     <SurumDugmesi
@@ -120,7 +120,7 @@ function SurumDugmesi({
   const cip = DURUM_CIPI[surum.status];
   return (
     <Dugme gorunum="ikincil" tam type="button" onClick={onSec} aria-current={secili}>
-      <span style={{ flex: 1, textAlign: 'left' }}>
+      <span className="dugme-ad">
         {tr.sablon.surum} {surum.version_no}
       </span>
       <Cip renk={cip.renk} ikon={cip.ikon} metin={cip.metin} />
@@ -218,17 +218,10 @@ function SurumEditoru({
     <article className="kart">
       {/* Başlıkta şablonun adı, altında sayılar: sürüm numarası ve madde
           dökümü kartı tanıtmıyor, başlığın yanında gürültü yapıyordu. */}
-      <header
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 'var(--bosluk-3)',
-          flexWrap: 'wrap',
-        }}
-      >
-        <div>
+      <header className="kart-serit">
+        <div className="kart-serit-ad">
           <h2 className="baslik-bolum">{surum.template_name}</h2>
-          <p className="meta" style={{ margin: 'var(--bosluk-1) 0 0' }}>
+          <p className="meta">
             {tr.sablon.surum} {surum.version_no} · {surum.scored_item_count} {tr.sablon.puanlanan} ·{' '}
             {surum.critical_item_count} {tr.sablon.kritik} · {surum.photo_item_count}{' '}
             {tr.sablon.fotograf}
@@ -237,116 +230,105 @@ function SurumEditoru({
         <Cip {...DURUM_CIPI[surum.status]} />
       </header>
 
-      {!duzenlenebilir && (
-        <div className="bildiri eylemler">
-          <span style={{ flex: '1 1 240px' }}>{tr.sablon.yayinDegismez}</span>
-          {yonetici && (
-            <Dugme gorunum="ikincil" boyut="kucuk" type="button" onClick={() => turet.mutate()}>
-              {tr.sablon.yeniTaslak}
-            </Dugme>
-          )}
-        </div>
-      )}
+      <div className="yigin">
+        {!duzenlenebilir && (
+          <div className="bildiri kart-serit">
+            <span className="kart-serit-ad">{tr.sablon.yayinDegismez}</span>
+            {yonetici && (
+              <Dugme gorunum="ikincil" boyut="kucuk" type="button" onClick={() => turet.mutate()}>
+                {tr.sablon.yeniTaslak}
+              </Dugme>
+            )}
+          </div>
+        )}
 
-      {bolumler.length === 0 && duzenlenebilir && (
-        <p className="bos-durum" style={{ marginTop: 'var(--bosluk-4)' }}>
-          {tr.sablon.bolumYok}
-        </p>
-      )}
+        {bolumler.length === 0 && duzenlenebilir && (
+          <p className="bos-durum">{tr.sablon.bolumYok}</p>
+        )}
 
-      {bolumler.map((bolum, bolumSira) => (
-        <section key={bolum.id ?? bolumSira} style={{ marginTop: 'var(--bosluk-6)' }}>
-          <h3 className="bolum-etiketi">
-            {bolum.title}
-            <span style={{ fontWeight: 400 }}>
-              {' '}
-              · {tr.sablon.maddeler(bolum.items?.length ?? 0)}
-            </span>
-          </h3>
-          {(bolum.items ?? []).length === 0 && <p className="meta">{tr.sablon.maddeYok}</p>}
-          <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-            {(bolum.items ?? []).map((madde, maddeSira) => (
-              <MaddeSatiri
-                key={madde.id ?? `${bolumSira}-${maddeSira}`}
-                madde={madde}
-                duzenlenebilir={duzenlenebilir}
-                onDegis={(yeni) => {
+        {bolumler.map((bolum, bolumSira) => (
+          <section key={bolum.id ?? bolumSira} className="yigin yigin--dar">
+            <h3 className="bolum-etiketi">
+              {bolum.title}
+              <span className="baslik-eki"> · {tr.sablon.maddeler(bolum.items?.length ?? 0)}</span>
+            </h3>
+            {(bolum.items ?? []).length === 0 && <p className="meta">{tr.sablon.maddeYok}</p>}
+            <ul className="sade-liste">
+              {(bolum.items ?? []).map((madde, maddeSira) => (
+                <MaddeSatiri
+                  key={madde.id ?? `${bolumSira}-${maddeSira}`}
+                  madde={madde}
+                  duzenlenebilir={duzenlenebilir}
+                  onDegis={(yeni) => {
+                    const kopya = bolumler.map((b) => ({ ...b, items: [...(b.items ?? [])] }));
+                    kopya[bolumSira].items[maddeSira] = yeni;
+                    degistir(kopya);
+                  }}
+                  onSil={() => {
+                    const kopya = bolumler.map((b) => ({ ...b, items: [...(b.items ?? [])] }));
+                    kopya[bolumSira].items.splice(maddeSira, 1);
+                    degistir(kopya);
+                  }}
+                />
+              ))}
+            </ul>
+            {duzenlenebilir && (
+              <MaddeEkle
+                onEkle={(yeni) => {
                   const kopya = bolumler.map((b) => ({ ...b, items: [...(b.items ?? [])] }));
-                  kopya[bolumSira].items[maddeSira] = yeni;
-                  degistir(kopya);
-                }}
-                onSil={() => {
-                  const kopya = bolumler.map((b) => ({ ...b, items: [...(b.items ?? [])] }));
-                  kopya[bolumSira].items.splice(maddeSira, 1);
+                  kopya[bolumSira].items.push(yeni);
                   degistir(kopya);
                 }}
               />
-            ))}
-          </ul>
-          {duzenlenebilir && (
-            <MaddeEkle
-              onEkle={(yeni) => {
-                const kopya = bolumler.map((b) => ({ ...b, items: [...(b.items ?? [])] }));
-                kopya[bolumSira].items.push(yeni);
-                degistir(kopya);
-              }}
-            />
-          )}
-        </section>
-      ))}
+            )}
+          </section>
+        ))}
 
-      {duzenlenebilir && (
-        <BolumEkle onEkle={(baslik) => degistir([...bolumler, { title: baslik, items: [] }])} />
-      )}
+        {duzenlenebilir && (
+          <BolumEkle onEkle={(baslik) => degistir([...bolumler, { title: baslik, items: [] }])} />
+        )}
 
-      {surum.publish_issues.length > 0 && (
-        <div
-          role="status"
-          className="bildiri bildiri--uyari"
-          style={{ marginTop: 'var(--bosluk-4)' }}
-        >
-          <strong>{tr.sablon.yayinEngelleri}</strong>
-          <ul style={{ margin: 'var(--bosluk-2) 0 0', paddingLeft: 'var(--bosluk-4)' }}>
-            {surum.publish_issues.map((sorun, sira) => (
-              <li key={`${sorun.where}-${sira}`}>{sorun.message}</li>
-            ))}
-          </ul>
-        </div>
-      )}
+        {surum.publish_issues.length > 0 && (
+          <div role="status" className="bildiri bildiri--uyari">
+            <strong>{tr.sablon.yayinEngelleri}</strong>
+            <ul className="madde-listesi">
+              {surum.publish_issues.map((sorun, sira) => (
+                <li key={`${sorun.where}-${sira}`}>{sorun.message}</li>
+              ))}
+            </ul>
+          </div>
+        )}
 
-      {duzenlenebilir && (
-        <div className="eylemler">
-          <Dugme
-            type="button"
-            disabled={taslak === null || kaydet.isPending}
-            onClick={() => taslak && kaydet.mutate(taslak)}
-          >
-            {tr.sablon.kaydet}
-          </Dugme>
-          {/* Yayınla ikincil: geri alınamaz ama ekranın asıl işi değil.
+        {duzenlenebilir && (
+          <div className="eylemler">
+            <Dugme
+              type="button"
+              disabled={taslak === null || kaydet.isPending}
+              onClick={() => taslak && kaydet.mutate(taslak)}
+            >
+              {tr.sablon.kaydet}
+            </Dugme>
+            {/* Yayınla ikincil: geri alınamaz ama ekranın asıl işi değil.
               Birincil olan, yapılan çalışmayı kaybetmeyen kaydetme. */}
-          <Dugme
-            gorunum="ikincil"
-            type="button"
-            disabled={surum.publish_issues.length > 0 || taslak !== null || yayinla.isPending}
-            onClick={() => yayinla.mutate()}
-            title={taslak !== null ? tr.sablon.oncekaydet : undefined}
-          >
-            {tr.sablon.yayinla}
-          </Dugme>
-          {taslak !== null && (
-            <span style={{ color: 'var(--renk-uyari)', fontSize: 'var(--etiket)' }}>
-              {tr.sablon.kaydedilmemis}
-            </span>
-          )}
-        </div>
-      )}
+            <Dugme
+              gorunum="ikincil"
+              type="button"
+              disabled={surum.publish_issues.length > 0 || taslak !== null || yayinla.isPending}
+              onClick={() => yayinla.mutate()}
+              title={taslak !== null ? tr.sablon.oncekaydet : undefined}
+            >
+              {tr.sablon.yayinla}
+            </Dugme>
+            {taslak !== null && <span className="uyari-metni">{tr.sablon.kaydedilmemis}</span>}
+          </div>
+        )}
 
-      {yayinProblemi && (
-        <p role="alert" className="bildiri bildiri--hata" style={{ marginTop: 'var(--bosluk-3)' }}>
-          {yayinProblemi.title}
-        </p>
-      )}
+        {yayinProblemi && (
+          <p role="alert" className="bildiri bildiri--hata">
+            {yayinProblemi.title}
+          </p>
+        )}
+      </div>
     </article>
   );
 }
@@ -370,7 +352,7 @@ function MaddeSatiri({
       <span className="madde-satiri-ad">{madde.title}</span>
       <Cip renk="nötr" metin={tur} />
       {aralikli && (
-        <span className="meta" style={{ fontVariantNumeric: 'tabular-nums' }}>
+        <span className="meta sayisal">
           {madde.min_value ?? '?'}–{madde.max_value ?? '?'} {madde.unit ?? ''}
         </span>
       )}
@@ -437,9 +419,8 @@ function MaddeEkle({ onEkle }: { onEkle: (madde: MaddeGirdisi) => void }) {
         setBaslik('');
       }}
       className="alan-sirasi"
-      style={{ marginTop: 'var(--bosluk-3)' }}
     >
-      <label className="alan-etiket" style={{ flex: '1 1 200px' }}>
+      <label className="alan-etiket alan-etiket--genis">
         {tr.sablon.maddeBasligi}
         <input
           value={baslik}
@@ -480,10 +461,9 @@ function BolumEkle({ onEkle }: { onEkle: (baslik: string) => void }) {
         onEkle(baslik);
         setBaslik('');
       }}
-      className="alan-sirasi"
-      style={{ marginTop: 'var(--bosluk-6)' }}
+      className="alan-sirasi alan-grubu--ayri"
     >
-      <label className="alan-etiket" style={{ flex: '1 1 200px' }}>
+      <label className="alan-etiket alan-etiket--genis">
         {tr.sablon.bolumBasligi}
         <input
           value={baslik}
@@ -521,7 +501,7 @@ function SablonEkleFormu({ onOlusturuldu }: { onOlusturuldu: (detay: SurumDetay)
       <fieldset className="alan-grubu">
         <legend>{tr.sablon.yeniSablon}</legend>
         <div className="alan-sirasi">
-          <label className="alan-etiket" style={{ flex: '1 1 160px' }}>
+          <label className="alan-etiket alan-etiket--genis">
             {tr.sablon.sablonAdi}
             <input
               value={ad}

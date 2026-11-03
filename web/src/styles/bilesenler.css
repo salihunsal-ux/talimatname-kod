@@ -393,6 +393,14 @@ textarea.alan {
   color: var(--renk-koyu-sessiz);
 }
 
+/* Ad okunur, rol yanında soluk. Rol satır içinde `--renk-sessiz` ile
+   yazılmıştı: açık zemin için olan bu değer koyu bantta 3,22:1
+   veriyordu, NFR-11 metin için 4,5:1 istiyor. Rol artık kuşatan
+   `--renk-koyu-sessiz`i (6,45:1) miras alıyor, ad öne çıkıyor. */
+.kabuk-kisi-ad {
+  color: var(--renk-koyu-murekkep);
+}
+
 .kabuk-bant .meta {
   color: var(--renk-koyu-sessiz);
 }
@@ -550,24 +558,16 @@ textarea.alan {
   vertical-align: top;
 }
 
-.tablo td.sayisal,
-.tablo th.sayisal {
-  text-align: right;
+/* Rakam hizası tabloya özel değil: puan, ölçü, saat nerede olursa
+   olsun aynı genişlikte rakamla yazılır. Sağa yaslama yalnızca
+   sütunda anlamlı. */
+.sayisal {
   font-variant-numeric: tabular-nums;
 }
 
-/* --- araç çubuğu (başlık satırı + eylemler) ------------------------ */
-
-.arac-cubugu {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: end;
-  gap: var(--bosluk-3);
-  margin-bottom: var(--bosluk-4);
-}
-
-.arac-cubugu--sag {
-  margin-left: auto;
+.tablo td.sayisal,
+.tablo th.sayisal {
+  text-align: right;
 }
 
 /* --- sayısal kutu --------------------------------------------------- */
@@ -1207,6 +1207,7 @@ select.alan {
    içindeki ikinci satır, rol/kapsam, kapanış notu gibi yerler. */
 .ikincil-metin {
   font-size: var(--etiket);
+  color: var(--renk-murekkep2);
 }
 
 /* Listeden ya da tablodan sonra gelen ekleme formu: araya bir ölçü
@@ -1258,6 +1259,12 @@ select.alan {
 .hata-metni {
   font-size: var(--etiket);
   color: var(--renk-kritik);
+}
+
+/* Kaydedilmemiş değişiklik, tolerans, bekleyen: hata değil, dikkat. */
+.uyari-metni {
+  font-size: var(--etiket);
+  color: var(--renk-uyari);
 }
 
 /* Satır içi forma giren uzun alan: `.alan`ın tam genişliği düğmeleri
@@ -1405,17 +1412,6 @@ select.alan {
   color: var(--renk-murekkep2);
 }
 
-/* --- yığın sıfırlaması — dosyanın sonunda olmalı ----------------------
-   Dikey ritim `gap`ten geliyor: yığına giren çocuğun kendi blok kenar
-   boşlukları (paragrafın 1em'i, `.eylemler`in 16 px'i) üstüne
-   eklenmesin. Aynı özgüllükte sonra gelen tanım kazandığı için bu kural
-   bileşen tanımlarından **sonra** duruyor; yukarı taşınırsa sessizce
-   etkisizleşir (bir kez olmuştu: dar ekran çip kuralı). */
-
-.yigin > * {
-  margin-block: 0;
-}
-
 /* --- müjde şeridi -----------------------------------------------------
    "Her şey yolunda" bir hata değil bir sonuç: `.bildiri` ölçüsünde
    değil, panoda kendine yer açan bir satır. */
@@ -1463,4 +1459,56 @@ select.alan {
   font-size: var(--etiket);
   font-weight: 400;
   color: var(--renk-sessiz);
+}
+
+/* --- satırda büyüyen alan ---------------------------------------------
+   Ad / başlık kutusu `.alan-sirasi` içinde kalan yeri alsın; yanındaki
+   tür seçicisi ve düğme içerikleri kadar kalsın. */
+
+.alan-etiket--genis {
+  flex: 1 1 200px;
+}
+
+.alan-etiket--genis .alan {
+  width: 100%;
+}
+
+/* Düğme içinde sola yaslı ad (sürüm listesi): düğmenin ortalaması
+   adla çipi birbirine yapıştırıyordu. */
+
+.dugme-ad {
+  flex: 1;
+  text-align: left;
+}
+
+/* --- çıplak alan kümesi -----------------------------------------------
+   `fieldset` yalnızca gruplama için (ekran okuyucu legend'i duyursun);
+   çerçeveyi `.alan-grubu` çiziyor, bu kutusuz kardeşi. */
+
+.alan-kumesi {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+/* İçeriği kadar alan: tarih kutusu satırı boydan boya kaplıyordu. */
+.alan--otomatik {
+  width: auto;
+}
+
+/* Sütunun ikincil olduğu: satırın kimliği değil, niteliği. */
+.tablo td.ikincil {
+  color: var(--renk-murekkep2);
+}
+
+/* --- yığın sıfırlaması — dosyanın sonunda olmalı ----------------------
+   Dikey ritim `gap`ten geliyor: yığına giren çocuğun kendi blok kenar
+   boşlukları (paragrafın 1em'i, `.eylemler`in 16 px'i) üstüne
+   eklenmesin. Aynı özgüllükte sonra gelen tanım kazandığı için bu kural
+   bileşen tanımlarından **sonra** duruyor; yukarı taşınırsa sessizce
+   etkisizleşir (bir kez olmuştu: dar ekran çip kuralı).
+   Sıra bir test kapısıyla korunuyor: bilesenler.test.ts. */
+
+.yigin > * {
+  margin-block: 0;
 }

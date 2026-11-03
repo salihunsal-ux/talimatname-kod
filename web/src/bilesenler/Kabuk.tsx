@@ -53,8 +53,7 @@ export function Kabuk({
         {kullanici && (
           <div className="kabuk-kisi">
             <span>
-              {kullanici.ad}
-              <span style={{ color: 'var(--renk-sessiz)' }}> · {kullanici.rol}</span>
+              <span className="kabuk-kisi-ad">{kullanici.ad}</span> · {kullanici.rol}
             </span>
             <Dugme gorunum="ikincil" type="button" onClick={onCikis}>
               {tr.giris.cikis}

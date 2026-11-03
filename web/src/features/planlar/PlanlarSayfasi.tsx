@@ -101,7 +101,7 @@ export function PlanlarSayfasi() {
                     {plan.name}{' '}
                     {!plan.active && <Cip renk="pasif" ikon="–" metin={tr.plan.durduruldu} />}
                   </th>
-                  <td style={{ color: 'var(--renk-murekkep2)' }}>{plan.template_name}</td>
+                  <td className="ikincil">{plan.template_name}</td>
                   {/* Çiğ RFC 5545 kuralı yerine okunur hâli (bkz. tekrar.ts). */}
                   <td>{tekrarMetni(plan.recurrence)}</td>
                   <td className="sayisal">
@@ -134,30 +134,18 @@ export function PlanlarSayfasi() {
         </div>
       )}
 
-      <section style={{ marginTop: 'var(--bosluk-8)' }}>
-        <h2 className="baslik-bolum" style={{ marginBottom: 'var(--bosluk-3)' }}>
-          {tr.plan.bugun}
-        </h2>
+      <section className="yigin yigin--dar alan-grubu--ayri">
+        <h2 className="baslik-bolum">{tr.plan.bugun}</h2>
         {bugun.data?.length === 0 && <p className="bos-durum">{tr.plan.bugunBos}</p>}
-        <ul
-          style={{
-            listStyle: 'none',
-            margin: 0,
-            padding: 0,
-            display: 'grid',
-            gap: 'var(--bosluk-2)',
-          }}
-        >
+        <ul className="liste-yigin">
           {bugun.data?.map((run) => {
             const cip = DURUM_CIPI[run.status] ?? DURUM_CIPI.scheduled;
             return (
               /* Tıklanmayan satır, tıklananla aynı ritimde: ölçüler
                  `.liste-satiri`den geliyor, yalnızca hâlleri kapalı. */
               <li key={run.id} className="liste-satiri liste-satiri--durgun">
-                <strong style={{ flex: '1 1 140px' }}>{run.branch_name}</strong>
-                <span
-                  style={{ fontVariantNumeric: 'tabular-nums', color: 'var(--renk-murekkep2)' }}
-                >
+                <strong className="liste-satiri-ad">{run.branch_name}</strong>
+                <span className="sayisal ikincil-metin">
                   {saat(run.window_start)} – {saat(run.window_end)}
                 </span>
                 <Cip
@@ -256,10 +244,8 @@ function PlanFormu() {
   const gunIciAcik = baslangicTuru === 'fixed' && tekrar !== 'once';
 
   return (
-    <section style={{ marginTop: 'var(--bosluk-8)' }}>
-      <h2 className="baslik-bolum" style={{ marginBottom: 'var(--bosluk-3)' }}>
-        {tr.plan.yeniPlan}
-      </h2>
+    <section className="yigin yigin--dar alan-grubu--ayri">
+      <h2 className="baslik-bolum">{tr.plan.yeniPlan}</h2>
 
       {/* Alanlar dört gruba ayrıldı. Hepsi tek bir `flex-wrap` satırında
           dururken koşullu alanlar her seçimde sırayı yeniden akıtıyor,
@@ -269,12 +255,12 @@ function PlanFormu() {
         <fieldset className="alan-grubu">
           <legend>{tr.plan.grupNe}</legend>
           <div className="alan-sirasi">
-            <label className="alan-etiket" style={{ flex: '1 1 200px' }}>
+            <label className="alan-etiket alan-etiket--genis">
               {tr.plan.ad}
               <input value={ad} onChange={(o) => setAd(o.target.value)} className="alan" />
             </label>
 
-            <label className="alan-etiket" style={{ flex: '1 1 240px' }}>
+            <label className="alan-etiket alan-etiket--genis">
               {tr.plan.sablon}
               <select value={surumId} onChange={(o) => setSurumId(o.target.value)} className="alan">
                 <option value="">{tr.personel.seciniz}</option>
@@ -306,9 +292,9 @@ function PlanFormu() {
             </label>
 
             {tekrar === 'weekly' && (
-              <fieldset style={{ border: 'none', padding: 0, margin: 0 }}>
+              <fieldset className="alan-kumesi">
                 <legend className="alan-etiket">{tr.plan.gunler}</legend>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--bosluk-1)' }}>
+                <div className="cip-listesi">
                   {GUNLER.map((g, i) => (
                     <label key={g} className="secim-cipi">
                       <input
@@ -407,11 +393,11 @@ function PlanFormu() {
             )}
 
             {gunIciAcik && gunIci === 'liste' && (
-              <fieldset style={{ border: 'none', padding: 0, margin: 0 }}>
+              <fieldset className="alan-kumesi">
                 <legend className="alan-etiket">{tr.plan.saatListesi}</legend>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--bosluk-2)' }}>
+                <div className="cip-listesi">
                   {saatler.map((saat, i) => (
-                    <span key={i} style={{ display: 'flex', gap: 'var(--bosluk-1)' }}>
+                    <span key={i} className="kart-serit">
                       <input
                         type="time"
                         value={saat}
@@ -476,8 +462,7 @@ function PlanFormu() {
                   type="date"
                   value={bitisTarihi}
                   onChange={(o) => setBitisTarihi(o.target.value)}
-                  className="alan"
-                  style={{ width: 'auto' }}
+                  className="alan alan--otomatik"
                 />
               </label>
             )}
@@ -560,7 +545,7 @@ function PlanFormu() {
 
         <fieldset className="alan-grubu">
           <legend>{tr.plan.kapsam}</legend>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--bosluk-2)' }}>
+          <div className="cip-listesi">
             {duzSubeler.map((sube) => (
               <label key={sube.id} className="secim-cipi">
                 <input
@@ -602,32 +587,24 @@ function PlanFormu() {
       </div>
 
       {problem && (
-        <p role="alert" className="bildiri bildiri--hata" style={{ marginTop: 'var(--bosluk-3)' }}>
+        <p role="alert" className="bildiri bildiri--hata">
           {problem.title}
           {problem.errors?.length ? `: ${problem.errors[0].sebep}` : ''}
         </p>
       )}
 
       {onizleme.data && (
-        <div role="status" className="kart" style={{ marginTop: 'var(--bosluk-3)' }}>
+        <div role="status" className="kart yigin yigin--dar">
           <strong>
             {tr.plan.onizlemeBasligi} ({onizleme.data.days} {tr.plan.gun}):{' '}
             {onizleme.data.run_count} {tr.plan.calistirma}
           </strong>
           {onizleme.data.run_count === 0 && (
-            <p className="bildiri bildiri--uyari" style={{ marginTop: 'var(--bosluk-2)' }}>
-              {tr.plan.onizlemeBos}
-            </p>
+            <p className="bildiri bildiri--uyari">{tr.plan.onizlemeBos}</p>
           )}
-          <ul
-            style={{
-              margin: 'var(--bosluk-2) 0 0',
-              paddingLeft: 'var(--bosluk-4)',
-              fontSize: 'var(--etiket)',
-            }}
-          >
+          <ul className="madde-listesi ikincil-metin">
             {onizleme.data.runs.slice(0, 12).map((run) => (
-              <li key={run.id} style={{ fontVariantNumeric: 'tabular-nums' }}>
+              <li key={run.id} className="sayisal">
                 {gunAdi(run.business_day)} · {run.branch_name} · {saat(run.window_start)}–
                 {saat(run.window_end)}
               </li>
