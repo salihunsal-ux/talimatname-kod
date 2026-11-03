@@ -679,9 +679,62 @@ textarea.alan {
   background: var(--renk-marka-acik);
 }
 
+/* --- durum renkleri ---------------------------------------------------
+   Çip ve pano ızgarası aynı beş çifti kullanıyor. Çift burada bir kez
+   yazılı: biri değişip öteki kalmasın — `Cip.tsx` ve panonun `HUCRE`
+   haritası iki ayrı kopya tutuyordu. Her çift 4,5:1, ölçüm
+   `kontrast.test.ts` dosyasında. Renk tek başına anlam taşımıyor:
+   taşıyıcılar ikon + metin veriyor (NFR-11). */
+
+.durum--marka {
+  background: var(--renk-marka-acik);
+  color: var(--renk-marka);
+}
+
+.durum--kritik {
+  background: var(--renk-kritik-acik);
+  color: var(--renk-kritik);
+}
+
+.durum--uyari {
+  background: var(--renk-uyari-acik);
+  color: var(--renk-uyari);
+}
+
+.durum--pasif {
+  background: var(--renk-yuzey2);
+  color: var(--renk-sessiz);
+}
+
+.durum--notr {
+  background: var(--renk-yuzey2);
+  color: var(--renk-murekkep2);
+}
+
+/* Kapsam dışı hücre: zemini yok, yalnızca sessiz bir metin. */
+.durum--bos {
+  background: transparent;
+  color: var(--renk-sessiz);
+}
+
+/* --- durum çipi -------------------------------------------------------
+   Biçim burada, renk `.durum--*`ta. Çip ölçüleri satır içinde
+   yazılıydı: bileşen katmanının dışında kalan son kuraldı. */
+
+.cip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--bosluk-1);
+  padding: 2px var(--bosluk-3);
+  border-radius: var(--kose-cip);
+  font-size: var(--etiket);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
 /* --- ızgara hücresi (pano) ------------------------------------------
-   Renkleri satır içinde kalıyor: duruma göre hesaplanıyor ve durum
-   paleti tek kaynaktan (Cip) geliyor. */
+   Biçim burada, renk `.durum--*`ta: çiple aynı palet, farklı kalıp
+   (hap değil kutu, en az 112 px). */
 
 .izgara-hucre {
   display: inline-flex;

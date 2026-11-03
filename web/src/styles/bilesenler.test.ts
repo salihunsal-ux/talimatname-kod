@@ -35,6 +35,8 @@ const URETILEN = new Set([
   'kart--yuzen',
   'ozet-kutu--uyari',
   'ozet-kutu--kritik',
+  // Yalnızca pano ızgarasında, `durum--${g.durum}` ile.
+  'durum--bos',
 ]);
 
 describe('bileşen katmanı', () => {

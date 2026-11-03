@@ -9,13 +9,17 @@
   --renk-yuzey2: #efece4;
   --renk-murekkep: #1c2128;
   --renk-murekkep2: #4b5560;
-  --renk-sessiz: #636e79;
+  /* Durum renkleri kendi açık zeminlerinin üstünde okunmalı; çip ve
+     pano ızgarası aynı çifti kullanıyor. Eski değerler 3,07–4,41:1
+     veriyordu, NFR-11 metin için 4,5:1 istiyor. Ölçüm kontrast.test.ts
+     dosyasında. */
+  --renk-sessiz: #5b6670;
   --renk-cizgi: #d6d9d2;
   --renk-marka: #1f6f5b;
   --renk-marka-acik: #dcebe5;
-  --renk-kritik: #b8452f;
+  --renk-kritik: #a63d29;
   --renk-kritik-acik: #f3ddd8;
-  --renk-uyari: #b7791f;
+  --renk-uyari: #8c5d16;
   --renk-uyari-acik: #f6ebd2;
   --renk-pasif: #c9ced6;
 
@@ -60,9 +64,9 @@
   --renk-yuzey2: #262c31;
   --renk-murekkep: #f1eee6;
   --renk-murekkep2: #b5bcc4;
-  --renk-sessiz: #8a9299;
+  --renk-sessiz: #929aa1;
   --renk-cizgi: #2f373d;
-  --renk-marka: #3fa98c;
+  --renk-marka: #45b394;
   --renk-marka-acik: #173a31;
   --renk-kritik: #e46f5a;
   --renk-kritik-acik: #3a201b;
@@ -82,9 +86,9 @@
     --renk-yuzey2: #262c31;
     --renk-murekkep: #f1eee6;
     --renk-murekkep2: #b5bcc4;
-    --renk-sessiz: #8a9299;
+    --renk-sessiz: #929aa1;
     --renk-cizgi: #2f373d;
-    --renk-marka: #3fa98c;
+    --renk-marka: #45b394;
     --renk-marka-acik: #173a31;
     --renk-kritik: #e46f5a;
     --renk-kritik-acik: #3a201b;

@@ -8,50 +8,19 @@ import { Hata } from '../../bilesenler/Durum';
 import { Dugme } from '../../bilesenler/Dugme';
 
 /** Hücre görünümü: renk tek başına anlam taşımaz, ikon + başlık var (NFR-11). */
-const HUCRE: Record<string, { ikon: string; zemin: string; yazi: string; ad: string }> = {
-  submitted: {
-    ikon: '✓',
-    zemin: 'var(--renk-marka-acik)',
-    yazi: 'var(--renk-marka)',
-    ad: tr.plan.durumlar.submitted,
-  },
-  late: {
-    ikon: '⏱',
-    zemin: 'var(--renk-uyari-acik)',
-    yazi: 'var(--renk-uyari)',
-    ad: tr.pano.gecTamamlandi,
-  },
-  failed: {
-    ikon: '!',
-    zemin: 'var(--renk-kritik-acik)',
-    yazi: 'var(--renk-kritik)',
-    ad: tr.pano.basarisiz,
-  },
-  missed: {
-    ikon: '✕',
-    zemin: 'var(--renk-kritik-acik)',
-    yazi: 'var(--renk-kritik)',
-    ad: tr.plan.durumlar.missed,
-  },
-  in_progress: {
-    ikon: '◐',
-    zemin: 'var(--renk-uyari-acik)',
-    yazi: 'var(--renk-uyari)',
-    ad: tr.plan.durumlar.in_progress,
-  },
-  scheduled: {
-    ikon: '○',
-    zemin: 'var(--renk-yuzey2)',
-    yazi: 'var(--renk-sessiz)',
-    ad: tr.plan.durumlar.scheduled,
-  },
-  cancelled: {
-    ikon: '–',
-    zemin: 'var(--renk-yuzey2)',
-    yazi: 'var(--renk-sessiz)',
-    ad: tr.plan.durumlar.cancelled,
-  },
-  bos: { ikon: '', zemin: 'transparent', yazi: 'var(--renk-sessiz)', ad: tr.pano.kapsamDisi },
+/**
+ * Hücrenin durumu → ikon, renk sınıfı, ad. Renk çifti `.durum--*`
+ * sınıflarında ve çiple ortak: palet iki yerde yazılıydı.
+ */
+const HUCRE: Record<string, { ikon: string; durum: string; ad: string }> = {
+  submitted: { ikon: '✓', durum: 'marka', ad: tr.plan.durumlar.submitted },
+  late: { ikon: '⏱', durum: 'uyari', ad: tr.pano.gecTamamlandi },
+  failed: { ikon: '!', durum: 'kritik', ad: tr.pano.basarisiz },
+  missed: { ikon: '✕', durum: 'kritik', ad: tr.plan.durumlar.missed },
+  in_progress: { ikon: '◐', durum: 'uyari', ad: tr.plan.durumlar.in_progress },
+  scheduled: { ikon: '○', durum: 'pasif', ad: tr.plan.durumlar.scheduled },
+  cancelled: { ikon: '–', durum: 'pasif', ad: tr.plan.durumlar.cancelled },
+  bos: { ikon: '', durum: 'bos', ad: tr.pano.kapsamDisi },
 };
 
 function hucreTuru(hucre: Hucre): keyof typeof HUCRE {
@@ -219,8 +188,7 @@ export function PanoSayfasi() {
                                 ? ` · ${pencere(veri.business_day, hucre.window_start, hucre.window_end)}`
                                 : ''
                             }`}
-                            className="izgara-hucre"
-                            style={{ background: g.zemin, color: g.yazi }}
+                            className={`izgara-hucre durum--${g.durum}`}
                           >
                             <span aria-hidden="true">{g.ikon}</span>
                             {g.ad}

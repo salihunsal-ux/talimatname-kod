@@ -107,11 +107,16 @@ AY_ADLARI = (
 #: fotokopide ve siyah-beyaz çıktıda renk kayboluyor, kelime kalıyor.
 ARALIK_DISI = "aralık dışı"
 
-RENK_BASLIK = colors.HexColor("#1f2937")
-RENK_SATIR = colors.HexColor("#f3f4f6")
-RENK_CIZGI = colors.HexColor("#d1d5db")
-RENK_UYARI = colors.HexColor("#b91c1c")
-RENK_SOLUK = colors.HexColor("#6b7280")
+#: Kâğıdın paleti, panelinkiyle aynı: web/src/styles/tokens.css.
+#: Burada kendi değerleri vardı (soğuk griler) — ürünün parşömen/mürekkep
+#: ailesine ait değildi ve şeritli satırda soluk metin 4,39:1 veriyordu.
+#: Değer elle kopyalanıyor çünkü PDF Python tarafında üretiliyor; token
+#: dosyası tek kaynak, buradaki satırlar onun yansıması.
+RENK_BASLIK = colors.HexColor("#1c2128")  # --renk-murekkep
+RENK_SATIR = colors.HexColor("#efece4")  # --renk-yuzey2
+RENK_CIZGI = colors.HexColor("#d6d9d2")  # --renk-cizgi
+RENK_UYARI = colors.HexColor("#a63d29")  # --renk-kritik
+RENK_SOLUK = colors.HexColor("#5b6670")  # --renk-sessiz
 
 
 @dataclass(frozen=True, slots=True)
