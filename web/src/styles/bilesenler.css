@@ -1615,6 +1615,74 @@ select.alan {
   margin-top: var(--bosluk-3);
 }
 
+/* --- iskelet yükleme --------------------------------------------------
+   Şekli bilinen yerde (tablo, liste, kutu ızgarası) boş kutular gerçek
+   yerleşimin ölçüsünde duruyor: veri gelince sayfa zıplamıyor. Şekli
+   bilinmeyen yerde sessiz satır (`.durum-metni`) kalıyor.
+
+   Gecikmeli görünüyor (Iskelet.tsx): kısa bir istek için gri kutuların
+   bir an parlayıp kaybolması, hiç göstermemekten kötü.
+
+   Renk `renk.cizgi`: hem beyaz kartta hem ikincil zeminde seçiliyor. */
+
+.iskelet {
+  display: block;
+  border-radius: var(--kose-cip);
+  background: var(--renk-cizgi);
+  animation: iskelet-nabiz 1.4s ease-in-out infinite;
+}
+
+.iskelet--metin {
+  height: 12px;
+}
+
+.iskelet--satir {
+  height: 44px;
+  border-radius: var(--kose-dugme);
+}
+
+.iskelet--kutu {
+  height: 76px;
+  border-radius: var(--kose-kart);
+}
+
+.iskelet--manset {
+  min-width: 190px;
+  height: 104px;
+  border-radius: var(--kose-kart);
+}
+
+/* Özet şeridinde kutular gerçeğiyle aynı esneklikte: iskelet dar
+   kalıp veri gelince şerit yeniden dizilmesin. */
+.ozet-kutular > .iskelet {
+  flex: 1 1 110px;
+}
+
+/* Gerçek metin kenarı düz değil: her satır aynı boyda olunca liste
+   "yükleniyor" değil "bozuk" görünüyor. */
+.iskelet--dar {
+  width: 45%;
+}
+
+@keyframes iskelet-nabiz {
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.55;
+  }
+}
+
+/* Bu blok `.iskelet`ten SONRA: aynı özgüllükte sonra gelen kazanıyor,
+   yukarı taşınırsa nabız azaltılmış harekette de çalışmaya devam eder. */
+@media (prefers-reduced-motion: reduce) {
+  .iskelet {
+    animation: none;
+  }
+}
+
 /* --- yığın sıfırlaması — dosyanın sonunda olmalı ----------------------
    Dikey ritim `gap`ten geliyor: yığına giren çocuğun kendi blok kenar
    boşlukları (paragrafın 1em'i, `.eylemler`in 16 px'i) üstüne

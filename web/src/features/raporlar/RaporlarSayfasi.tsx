@@ -24,6 +24,7 @@ import { Cip } from '../../bilesenler/Cip';
 import { tr } from '../../i18n/tr';
 import { Dugme } from '../../bilesenler/Dugme';
 import { Hata, Yukleniyor } from '../../bilesenler/Durum';
+import { IskeletKutular } from '../../bilesenler/Iskelet';
 
 type Sekme = 'ozet' | 'olcum' | 'galeri';
 
@@ -264,7 +265,7 @@ function AylikOzetBolumu({
       </div>
       <p className="alan-ipucu">{tr.rapor.pdfAciklama}</p>
 
-      {ozet.isPending && <Yukleniyor />}
+      {ozet.isPending && <IskeletKutular adet={8} />}
       {ozet.isError && <Hata metin={tr.hata.aglaBaglanilamadi} />}
       {ozet.data && <OzetKartlari ozet={ozet.data} />}
       {ozet.data && ozet.data.branches.length > 0 && <SubeTablosu ozet={ozet.data} />}

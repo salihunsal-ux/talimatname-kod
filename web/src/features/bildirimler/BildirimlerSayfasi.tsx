@@ -5,7 +5,8 @@ import { bildirimListesi, bildirimSayaclari, type BildirimDurumu } from '../../a
 import { Cip } from '../../bilesenler/Cip';
 import { tr } from '../../i18n/tr';
 import { Dugme } from '../../bilesenler/Dugme';
-import { Hata, Yukleniyor } from '../../bilesenler/Durum';
+import { Hata } from '../../bilesenler/Durum';
+import { IskeletTablo } from '../../bilesenler/Iskelet';
 
 const SUZGECLER: { anahtar: BildirimDurumu; ad: string }[] = [
   { anahtar: 'all', ad: tr.bildirim.hepsi },
@@ -99,7 +100,7 @@ export function BildirimlerSayfasi() {
           ))}
         </div>
 
-        {liste.isPending && <Yukleniyor />}
+        {liste.isPending && <IskeletTablo sutunlar={4} satirlar={6} />}
         {liste.isError && <Hata metin={tr.hata.aglaBaglanilamadi} />}
         {liste.data?.length === 0 && <p className="bos-durum">{tr.bildirim.bos}</p>}
 

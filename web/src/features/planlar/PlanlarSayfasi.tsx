@@ -18,6 +18,7 @@ import { useYonetici } from '../../api/yetki';
 import { tr } from '../../i18n/tr';
 import { Dugme } from '../../bilesenler/Dugme';
 import { tekrarMetni } from './tekrar';
+import { IskeletTablo } from '../../bilesenler/Iskelet';
 
 const GUNLER = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
 
@@ -72,7 +73,7 @@ export function PlanlarSayfasi() {
         </div>
       </header>
 
-      {planlar.isPending && <p className="meta">{tr.genel.yukleniyor}</p>}
+      {planlar.isPending && <IskeletTablo sutunlar={5} />}
       {planlar.isError && (
         <p role="alert" className="bildiri bildiri--hata">
           {tr.hata.aglaBaglanilamadi}

@@ -14,7 +14,8 @@ import { subeAgaci } from '../../api/subeler';
 import { Cip } from '../../bilesenler/Cip';
 import { tr } from '../../i18n/tr';
 import { Dugme } from '../../bilesenler/Dugme';
-import { Hata, Yukleniyor } from '../../bilesenler/Durum';
+import { Hata } from '../../bilesenler/Durum';
+import { IskeletListe } from '../../bilesenler/Iskelet';
 
 const ONCELIKLER: { deger: Oncelik; etiket: string; renk: 'kritik' | 'uyari' | 'nötr' }[] = [
   { deger: 'critical', etiket: 'Kritik', renk: 'kritik' },
@@ -94,7 +95,7 @@ export function AksiyonlarSayfasi() {
         </label>
       </div>
 
-      {aksiyonlar.isPending && <Yukleniyor />}
+      {aksiyonlar.isPending && <IskeletListe satirlar={3} />}
       {aksiyonlar.isError && <Hata metin={tr.hata.aglaBaglanilamadi} />}
       {aksiyonlar.data?.length === 0 && <p className="bos-durum">{tr.aksiyon.bos}</p>}
 

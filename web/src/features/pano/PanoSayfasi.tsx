@@ -5,6 +5,7 @@ import { panoGetir, type Hucre } from '../../api/pano';
 import { CalistirmaDetayi } from '../calistirma/CalistirmaDetayi';
 import { tr } from '../../i18n/tr';
 import { Hata } from '../../bilesenler/Durum';
+import { IskeletOzet, IskeletTablo } from '../../bilesenler/Iskelet';
 import { Dugme } from '../../bilesenler/Dugme';
 
 /** Hücre görünümü: renk tek başına anlam taşımaz, ikon + başlık var (NFR-11). */
@@ -130,6 +131,15 @@ export function PanoSayfasi() {
 
       <div className="yigin">
         {pano.isError && <Hata metin={tr.hata.aglaBaglanilamadi} />}
+
+        {/* Panonun hiç yükleme hâli yoktu: veri gelene kadar sayfa
+            başlıktan ibaret kalıyordu. En çok beklenen ekran bu. */}
+        {pano.isPending && (
+          <>
+            <IskeletOzet />
+            <IskeletTablo sutunlar={3} satirlar={5} />
+          </>
+        )}
 
         {veri && <Gostergeler veri={veri} />}
 

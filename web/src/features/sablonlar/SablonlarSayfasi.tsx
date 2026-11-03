@@ -19,6 +19,7 @@ import { Cip } from '../../bilesenler/Cip';
 import { useYonetici } from '../../api/yetki';
 import { tr } from '../../i18n/tr';
 import { Dugme } from '../../bilesenler/Dugme';
+import { IskeletListe } from '../../bilesenler/Iskelet';
 
 const TURLER: { deger: MaddeTuru; etiket: string }[] = [
   { deger: 'confirm', etiket: 'Onay' },
@@ -64,7 +65,7 @@ export function SablonlarSayfasi() {
         </div>
       </header>
 
-      {sablonlar.isPending && <p className="meta">{tr.genel.yukleniyor}</p>}
+      {sablonlar.isPending && <IskeletListe satirlar={4} />}
       {sablonlar.isError && (
         <p role="alert" className="bildiri bildiri--hata">
           {tr.hata.aglaBaglanilamadi}

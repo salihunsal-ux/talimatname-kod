@@ -8,6 +8,7 @@ import { tr } from '../../i18n/tr';
 import { Cip } from '../../bilesenler/Cip';
 import { Dugme } from '../../bilesenler/Dugme';
 import { Hata, Yukleniyor } from '../../bilesenler/Durum';
+import { IskeletListe } from '../../bilesenler/Iskelet';
 
 /**
  * SCR-W-02 · Şubeler: solda bölge → şube ağacı, sağda şube detayı.
@@ -47,7 +48,7 @@ export function SubelerSayfasi() {
 
       <div className="liste-detay">
         <div className="liste-detay-kenar">
-          {agac.isPending && <Yukleniyor />}
+          {agac.isPending && <IskeletListe satirlar={6} />}
           {agac.isError && <Hata metin={tr.hata.aglaBaglanilamadi} />}
           {bos && <p className="bos-durum">{tr.subeler.subeYok}</p>}
 

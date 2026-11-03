@@ -15,7 +15,8 @@ import { Cip } from '../../bilesenler/Cip';
 import { useYonetici } from '../../api/yetki';
 import { tr } from '../../i18n/tr';
 import { Dugme } from '../../bilesenler/Dugme';
-import { Hata, Yukleniyor } from '../../bilesenler/Durum';
+import { Hata } from '../../bilesenler/Durum';
+import { IskeletTablo } from '../../bilesenler/Iskelet';
 
 const ROLLER: { deger: Rol; etiket: string; kapsam: 'yok' | 'bolge' | 'sube' }[] = [
   { deger: 'admin', etiket: 'Yönetici', kapsam: 'yok' },
@@ -111,7 +112,7 @@ export function PersonelSayfasi() {
         </label>
       </div>
 
-      {personel.isPending && <Yukleniyor />}
+      {personel.isPending && <IskeletTablo sutunlar={4} />}
       {personel.isError && <Hata metin={tr.hata.aglaBaglanilamadi} />}
 
       {personel.data && personel.data.length === 0 && (
