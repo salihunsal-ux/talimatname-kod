@@ -4167,6 +4167,21 @@
             "format": "uuid",
             "title": "Branch Id"
           },
+          "branch_name": {
+            "type": "string",
+            "title": "Branch Name"
+          },
+          "region_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Region Name"
+          },
           "business_day": {
             "type": "string",
             "title": "Business Day"
@@ -4259,6 +4274,7 @@
         "required": [
           "run_id",
           "branch_id",
+          "branch_name",
           "business_day",
           "status",
           "window_start",

@@ -79,6 +79,26 @@ describe('Pano', () => {
     expect(getir).toHaveBeenCalledTimes(1); // süzgeç istemcide
   });
 
+  it('hiçbir şey seçili değilken detay yuvası ne yapılacağını söyler', async () => {
+    // Izgaranın altındaki boşluk "sayfa bitti" gibi okunuyordu.
+    kur();
+    await screen.findByText(/Üsküdar/);
+
+    expect(screen.getByText(/maddeleri, cevapları ve kanıtları burada açılır/)).toBeInTheDocument();
+  });
+
+  it('tıklanan hücre seçili işaretlenir', async () => {
+    // Satır vurgusu da bu ARIA durumundan türüyor (bilesenler.css);
+    // ikinci bir bayrak tutulsaydı ikisi ayrışabilirdi.
+    kur();
+    const hucre = await screen.findByRole('button', { name: /Başarısız/ });
+    expect(hucre).toHaveAttribute('aria-pressed', 'false');
+
+    await userEvent.click(hucre);
+
+    expect(hucre).toHaveAttribute('aria-pressed', 'true');
+  });
+
   it('göstergeler sayılarla gelir', async () => {
     kur();
     expect(await screen.findByText('%100')).toBeInTheDocument();

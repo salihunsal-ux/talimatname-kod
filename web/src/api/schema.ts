@@ -1765,6 +1765,10 @@ export interface components {
              * Format: uuid
              */
             branch_id: string;
+            /** Branch Name */
+            branch_name: string;
+            /** Region Name */
+            region_name?: string | null;
             /** Business Day */
             business_day: string;
             /** Status */

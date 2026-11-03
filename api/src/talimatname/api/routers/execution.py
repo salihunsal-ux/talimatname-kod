@@ -103,6 +103,11 @@ class Eksik(BaseModel):
 class CalistirmaGorunumu(BaseModel):
     run_id: UUID
     branch_id: UUID
+    # Kimlik değil ad: detay kartı panoda ızgaranın altında açılıyor ve
+    # "bu hangi şube" sorusunun cevabı yalnızca tıklanan satırda kalıyordu.
+    # Kart tek başına okunabilmeli — PDF'te olduğu gibi.
+    branch_name: str
+    region_name: str | None = None
     business_day: str
     status: str
     result: str | None = None
@@ -146,11 +151,16 @@ def _cevap(gorunum: RunView, item_id: UUID) -> CevapCiktisi | None:
     )
 
 
-def _gorunum(gorunum: RunView, template_name: str) -> CalistirmaGorunumu:
+def _gorunum(
+    gorunum: RunView, template_name: str, org: OrganizationService
+) -> CalistirmaGorunumu:
     run = gorunum.run
+    sube = org.get(run.branch_id)
     return CalistirmaGorunumu(
         run_id=run.id,
         branch_id=run.branch_id,
+        branch_name=sube.name,
+        region_name=org.region_name(sube.region_id),
         business_day=run.business_day.isoformat(),
         status=run.status,
         result=run.result,
@@ -198,7 +208,7 @@ def calistirma_gorunumu(
 ) -> CalistirmaGorunumu:
     gorunum = servis.view(run_id)
     sube_erisimi_zorunlu(kullanici, gorunum.run.branch_id, org)
-    return _gorunum(gorunum, sablonlar.get(gorunum.version.template_id).name)
+    return _gorunum(gorunum, sablonlar.get(gorunum.version.template_id).name, org)
 
 
 @router.put("/runs/{run_id}/answers/{answer_id}", summary="Cevap yaz (idempotent)")
@@ -264,7 +274,7 @@ def calistirma_gonder(
     sube_erisimi_zorunlu(kullanici, servis.view(run_id).run.branch_id, org)
     servis.submit(run_id, user_id=kullanici.id)
     gorunum = servis.view(run_id)
-    return _gorunum(gorunum, sablonlar.get(gorunum.version.template_id).name)
+    return _gorunum(gorunum, sablonlar.get(gorunum.version.template_id).name, org)
 
 
 class IptalGirdisi(BaseModel):
@@ -289,7 +299,7 @@ def calistirma_iptal(
     sube_erisimi_zorunlu(kullanici, servis.view(run_id).run.branch_id, org)
     servis.cancel(run_id, reason=girdi.reason, user_id=kullanici.id)
     gorunum = servis.view(run_id)
-    return _gorunum(gorunum, sablonlar.get(gorunum.version.template_id).name)
+    return _gorunum(gorunum, sablonlar.get(gorunum.version.template_id).name, org)
 
 
 @router.get(

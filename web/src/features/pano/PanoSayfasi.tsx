@@ -118,34 +118,47 @@ export function PanoSayfasi() {
   const veri = pano.data;
   const satirlar = veri ? (tumu ? veri.rows : veri.rows.filter((r) => r.exception)) : [];
 
+  const satirSayisi = veri ? veri.rows.length : 0;
+
   return (
     <div>
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 'var(--bosluk-3)',
-          flexWrap: 'wrap',
-          marginBottom: 'var(--bosluk-3)',
-        }}
-      >
-        <h1 style={{ fontSize: 'var(--baslik-ekran)', margin: 0 }}>{tr.pano.baslik}</h1>
-        <label style={{ display: 'flex', gap: 'var(--bosluk-2)', fontSize: 'var(--etiket)' }}>
-          {tr.pano.isGunu}
-          <input
-            type="date"
-            value={gun}
-            onChange={(o) => setGun(o.target.value)}
-            aria-label={tr.pano.isGunu}
-            className="alan"
-          />
-        </label>
-        {pano.isFetching && (
-          <span style={{ color: 'var(--renk-sessiz)', fontSize: 'var(--meta)' }}>
-            {tr.pano.yenileniyor}
-          </span>
-        )}
-      </div>
+      <header className="sayfa-basligi">
+        <div>
+          <h1>{tr.pano.baslik}</h1>
+          <p className="sayfa-basligi-alt">
+            {tr.pano.altBaslik}
+            {pano.isFetching && (
+              <span style={{ color: 'var(--renk-sessiz)' }}> · {tr.pano.yenileniyor}</span>
+            )}
+          </p>
+        </div>
+
+        <div className="sayfa-basligi-denetimler">
+          {veri && satirSayisi > 0 && (
+            <Dugme
+              gorunum="ikincil"
+              boyut="kucuk"
+              type="button"
+              aria-pressed={tumu}
+              onClick={() => setTumu(!tumu)}
+            >
+              {tumu
+                ? tr.pano.yalnizcaSorunlu
+                : `${tr.pano.tumunuGoster} (${veri.rows.length - veri.exception_row_count} ${tr.pano.sorunsuz})`}
+            </Dugme>
+          )}
+          <label className="sayfa-basligi-denetim">
+            <span className="alan-etiket">{tr.pano.isGunu}</span>
+            <input
+              type="date"
+              value={gun}
+              onChange={(o) => setGun(o.target.value)}
+              aria-label={tr.pano.isGunu}
+              className="alan"
+            />
+          </label>
+        </div>
+      </header>
 
       {pano.isError && (
         <p role="alert" style={{ color: 'var(--renk-kritik)' }}>
@@ -187,79 +200,74 @@ export function PanoSayfasi() {
       )}
 
       {satirlar.length > 0 && veri && (
-        <table className="tablo">
-          <thead>
-            <tr style={{ fontSize: 'var(--etiket)', color: 'var(--renk-sessiz)' }}>
-              <th style={{ textAlign: 'left', padding: '4px 10px 4px 0' }}>{tr.pano.sube}</th>
-              {veri.plans.map((plan) => (
-                <th key={plan.id} style={{ textAlign: 'left', padding: '4px 10px' }}>
-                  {plan.name}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {satirlar.map((satir) => (
-              <tr key={satir.branch_id} style={{ borderTop: '1px solid var(--renk-cizgi)' }}>
-                <th
-                  scope="row"
-                  style={{ textAlign: 'left', padding: '8px 10px 8px 0', fontWeight: 400 }}
-                >
-                  {satir.branch_name}
-                  {satir.region_name && (
-                    <span style={{ color: 'var(--renk-sessiz)', fontSize: 'var(--meta)' }}>
-                      {' '}
-                      · {satir.region_name}
-                    </span>
-                  )}
-                </th>
-                {satir.cells.map((hucre) => {
-                  const tur = hucreTuru(hucre);
-                  const g = HUCRE[tur];
-                  return (
-                    <td key={`${satir.branch_id}-${hucre.plan_id}`} style={{ padding: '6px 10px' }}>
-                      <button
-                        type="button"
-                        disabled={!hucre.run_id}
-                        onClick={() => hucre.run_id && setAcikCalistirma(hucre.run_id)}
-                        title={`${g.ad}${
-                          hucre.window_start
-                            ? ` · ${pencere(veri.business_day, hucre.window_start, hucre.window_end)}`
-                            : ''
-                        }`}
-                        className="izgara-hucre"
-                        style={{ background: g.zemin, color: g.yazi }}
-                      >
-                        <span aria-hidden="true">{g.ikon}</span>
-                        {g.ad}
-                      </button>
-                    </td>
-                  );
-                })}
+        <div className="tablo-kaydirma">
+          <table className="tablo tablo--izgara">
+            <thead>
+              <tr>
+                <th>{tr.pano.sube}</th>
+                {veri.plans.map((plan) => (
+                  <th key={plan.id}>{plan.name}</th>
+                ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-
-      {acikCalistirma && (
-        <div style={{ marginTop: 'var(--bosluk-4)' }}>
-          <CalistirmaDetayi runId={acikCalistirma} onKapat={() => setAcikCalistirma(null)} />
+            </thead>
+            <tbody>
+              {satirlar.map((satir) => (
+                <tr key={satir.branch_id}>
+                  <th scope="row">
+                    {satir.branch_name}
+                    {satir.region_name && (
+                      <span style={{ color: 'var(--renk-sessiz)', fontSize: 'var(--meta)' }}>
+                        {' '}
+                        · {satir.region_name}
+                      </span>
+                    )}
+                  </th>
+                  {satir.cells.map((hucre) => {
+                    const tur = hucreTuru(hucre);
+                    const g = HUCRE[tur];
+                    return (
+                      <td key={`${satir.branch_id}-${hucre.plan_id}`}>
+                        {/* Seçili hâlin tek kaynağı `aria-pressed`:
+                            satır vurgusu da bundan türüyor. */}
+                        <button
+                          type="button"
+                          disabled={!hucre.run_id}
+                          onClick={() => hucre.run_id && setAcikCalistirma(hucre.run_id)}
+                          aria-pressed={hucre.run_id ? acikCalistirma === hucre.run_id : undefined}
+                          title={`${g.ad}${
+                            hucre.window_start
+                              ? ` · ${pencere(veri.business_day, hucre.window_start, hucre.window_end)}`
+                              : ''
+                          }`}
+                          className="izgara-hucre"
+                          style={{ background: g.zemin, color: g.yazi }}
+                        >
+                          <span aria-hidden="true">{g.ikon}</span>
+                          {g.ad}
+                        </button>
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
 
-      {veri && veri.rows.length > 0 && (
-        <Dugme
-          gorunum="ikincil"
-          boyut="kucuk"
-          type="button"
-          onClick={() => setTumu(!tumu)}
-          style={{ marginTop: 'var(--bosluk-3)' }}
-        >
-          {tumu
-            ? tr.pano.yalnizcaSorunlu
-            : `${tr.pano.tumunuGoster} (${veri.rows.length - veri.exception_row_count} ${tr.pano.sorunsuz})`}
-        </Dugme>
+      {/* Detay yuvası boş bırakılmıyor: ızgaranın altındaki boşluk
+          "sayfa bitti" gibi okunuyordu, oysa asıl içerik bir tık
+          uzakta. */}
+      {acikCalistirma ? (
+        <div style={{ marginTop: 'var(--bosluk-4)' }}>
+          <CalistirmaDetayi runId={acikCalistirma} onKapat={() => setAcikCalistirma(null)} />
+        </div>
+      ) : (
+        satirlar.length > 0 && (
+          <p className="bos-durum" style={{ marginTop: 'var(--bosluk-4)' }}>
+            {tr.pano.detayIpucu}
+          </p>
+        )
       )}
     </div>
   );

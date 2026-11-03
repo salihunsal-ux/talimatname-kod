@@ -768,3 +768,90 @@ textarea.alan {
 .ozet-kutu--kritik .ozet-kutu-deger {
   color: var(--renk-kritik);
 }
+
+/* --- sayfa başlığı ---------------------------------------------------
+   Başlık + alt başlık solda, sayfanın kendi denetimleri sağda ve
+   etiketleri üstünde. Pano'da h1 ile tarih kutusu yan yana duruyor,
+   "İş günü" etiketi ikisinin arasında iki satıra sarıyordu: başlık
+   satırı gibi değil, forma yapışmış bir alan gibi okunuyordu. */
+
+.sayfa-basligi {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: var(--bosluk-4);
+  margin-bottom: var(--bosluk-6);
+  padding-bottom: var(--bosluk-4);
+  border-bottom: 1px solid var(--renk-cizgi);
+}
+
+.sayfa-basligi h1 {
+  margin: 0;
+  font-size: var(--baslik-ekran);
+  letter-spacing: -0.01em;
+}
+
+.sayfa-basligi-alt {
+  margin: var(--bosluk-1) 0 0;
+  max-width: 60ch;
+  font-size: var(--etiket);
+  color: var(--renk-murekkep2);
+}
+
+.sayfa-basligi-denetimler {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--bosluk-3);
+}
+
+.sayfa-basligi-denetim {
+  display: grid;
+  gap: var(--bosluk-1);
+}
+
+/* Tarih kutusu içeriği kadar: `.alan` varsayılanı tam genişlik ve
+   başlık satırında sayfayı boydan boya kaplıyordu. */
+.sayfa-basligi-denetim .alan {
+  width: auto;
+}
+
+/* --- yatay kaydırılan tablo ------------------------------------------ */
+
+.tablo-kaydirma {
+  overflow-x: auto;
+}
+
+/* Pano ızgarası: iki sütunlu tablo tam genişliğe yayılınca şube adıyla
+   durumu sayfanın iki ucuna düşürüyor, aradaki bağı koparıyordu.
+   Sütunlar içeriği kadar; plan sayısı artarsa tablo kaydırmaya geçer. */
+.tablo--izgara {
+  width: auto;
+  min-width: min(100%, 460px);
+}
+
+.tablo--izgara th[scope='row'] {
+  min-width: 200px;
+  font-weight: 400;
+  color: var(--renk-murekkep);
+}
+
+/* Seçili hücre: zemin **durumu** anlatıyor (yeşil = tamamlandı), bu
+   yüzden seçim renkten değil çerçeveden okunuyor. */
+.izgara-hucre[aria-pressed='true'] {
+  border-color: var(--renk-koyu);
+  box-shadow: 0 0 0 1px var(--renk-koyu);
+}
+
+/* Açık detayın hangi satıra ait olduğu: satırın tamamı işaretleniyor.
+   Hücrenin ARIA durumundan `:has()` ile türüyor — ayrı bir bayrak
+   tutulsaydı ikisi sessizce ayrışabilirdi. */
+.tablo tbody tr:has(.izgara-hucre[aria-pressed='true']) {
+  background: var(--renk-yuzey2);
+}
+
+.tablo tbody tr:has(.izgara-hucre[aria-pressed='true']) th[scope='row'] {
+  box-shadow: inset 3px 0 0 var(--renk-koyu);
+  font-weight: 600;
+}

@@ -47,6 +47,8 @@ const MADDE = {
 const GORUNUM: CalistirmaGorunumu = {
   run_id: 'r-1',
   branch_id: 'b-1',
+  branch_name: 'Kadıköy',
+  region_name: 'Anadolu',
   business_day: '2026-11-02',
   status: 'submitted',
   result: 'failed',
@@ -158,14 +160,26 @@ beforeEach(() => {
 describe('Çalıştırma detayı', () => {
   it('puan ve sonuç başlıkta gösterilir', async () => {
     kur();
-    expect(await screen.findByText('Kapanış (kafe)')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: /Kadıköy/ })).toBeInTheDocument();
     expect(screen.getByText('%71')).toBeInTheDocument();
     expect(screen.getByText('Başarısız')).toBeInTheDocument();
   });
 
+  it('başlık hangi şubeye ait olduğunu söyler', async () => {
+    // Kart panoda ızgaranın altında açılıyor: şube adı yoksa üç şubenin
+    // kartı birbirinin aynısı görünüyor.
+    kur();
+
+    const baslik = await screen.findByRole('heading', { name: /Kadıköy/ });
+
+    expect(baslik).toHaveTextContent('Kadıköy');
+    expect(baslik).toHaveTextContent('Anadolu');
+    expect(screen.getByText(/Kapanış \(kafe\)/)).toHaveTextContent('2 Kasım 2026');
+  });
+
   it('cevap durumları, kanıt sayısı ve not gösterilir', async () => {
     kur();
-    await screen.findByText('Kapanış (kafe)');
+    await screen.findByRole('heading', { name: /Kadıköy/ });
 
     expect(screen.getAllByText('Geçti')).toHaveLength(1);
     expect(screen.getByText('Geçmedi')).toBeInTheDocument();
@@ -175,7 +189,7 @@ describe('Çalıştırma detayı', () => {
 
   it('talimat satırı cevap beklemez', async () => {
     kur();
-    await screen.findByText('Kapanış (kafe)');
+    await screen.findByRole('heading', { name: /Kadıköy/ });
     const satir = screen.getByText('Kapanış sırası').closest('li');
     expect(satir).toHaveTextContent('Talimat');
     expect(satir).not.toHaveTextContent('Cevapsız');
@@ -183,7 +197,7 @@ describe('Çalıştırma detayı', () => {
 
   it('cihaz saati sapması işaretlenir', async () => {
     kur();
-    await screen.findByText('Kapanış (kafe)');
+    await screen.findByRole('heading', { name: /Kadıköy/ });
     expect(screen.getByText('cihaz saati')).toBeInTheDocument();
   });
 
@@ -195,7 +209,7 @@ describe('Çalıştırma detayı', () => {
 
   it('kapat düğmesi geri çağırır', async () => {
     const onKapat = kur();
-    await screen.findByText('Kapanış (kafe)');
+    await screen.findByRole('heading', { name: /Kadıköy/ });
     await userEvent.click(screen.getByRole('button', { name: 'Kapat' }));
     expect(onKapat).toHaveBeenCalled();
   });
@@ -233,7 +247,7 @@ describe('Çalıştırma detayı', () => {
 
     kur();
 
-    await screen.findByText('Kapanış (kafe)');
+    await screen.findByRole('heading', { name: /Kadıköy/ });
     expect(screen.queryByAltText('Kanıt fotoğrafı')).not.toBeInTheDocument();
   });
 
@@ -269,7 +283,7 @@ describe('Çalıştırma detayı', () => {
     pdfGetir.mockResolvedValue(new Blob([new Uint8Array([37, 80, 68, 70])]));
 
     kur();
-    await screen.findByText(GORUNUM.template_name);
+    await screen.findByRole('heading', { name: /Kadıköy/ });
     await userEvent.click(screen.getByRole('button', { name: 'PDF indir' }));
 
     expect(pdfGetir).toHaveBeenCalledWith('r-1');
@@ -280,7 +294,7 @@ describe('Çalıştırma detayı', () => {
     pdfGetir.mockRejectedValue(new Error('500'));
 
     kur();
-    await screen.findByText(GORUNUM.template_name);
+    await screen.findByRole('heading', { name: /Kadıköy/ });
     await userEvent.click(screen.getByRole('button', { name: 'PDF indir' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent('PDF üretilemedi');

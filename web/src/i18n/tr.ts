@@ -341,6 +341,9 @@ export const tr = {
   },
   pano: {
     baslik: 'Pano',
+    altBaslik: 'Şubelerin bu iş günündeki listeleri. Bir duruma tıklayın, detayı altta açılır.',
+    detayIpucu:
+      'Yukarıdan bir duruma tıklayın: o listenin maddeleri, cevapları ve kanıtları burada açılır.',
     isGunu: 'İş günü',
     yenileniyor: 'yenileniyor…',
     gunBos: 'Bu iş gününde çalıştırma yok.',

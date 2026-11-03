@@ -109,6 +109,16 @@ class OrganizationService:
             raise BranchNotFound(f"Şube id: {branch_id}")
         return branch
 
+    def region_name(self, region_id: UUID | None) -> str | None:
+        """Bölge adı; bölgesiz şubede None.
+
+        Ağacı kurmadan tek ad lazım olan yerler için: çalıştırma
+        görünümü "hangi şube" diye soruyor, bütün bölge ağacını değil.
+        """
+        if region_id is None:
+            return None
+        return next((b.name for b in self._repo.regions() if b.id == region_id), None)
+
     def stations(self, branch_id: UUID) -> list[Station]:
         self.get(branch_id)
         return sorted(self._repo.stations(branch_id), key=lambda s: s.name.casefold())

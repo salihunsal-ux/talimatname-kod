@@ -279,6 +279,22 @@ def test_uc_nokta_gorunum_maddeleri_ve_eksikleri_doner(istemci: TestClient) -> N
     assert talimat["type_label"] == "Talimat"
 
 
+def test_gorunum_sube_adini_doner(istemci: TestClient) -> None:
+    """Kart kendi başına "hangi şube" sorusuna cevap verebilmeli.
+
+    Panoda detay ızgaranın altında açılıyor; yanıtta yalnızca
+    `branch_id` varken ekranda şubeyi gösterecek hiçbir şey yoktu ve
+    üç şubenin kartı birbirinin aynısı görünüyordu.
+    """
+    run = istemci.get("/api/v1/runs").json()[0]
+
+    govde = istemci.get(f"/api/v1/runs/{run['id']}").json()
+
+    sube = istemci.get(f"/api/v1/branches/{govde['branch_id']}").json()
+    assert govde["branch_name"] == sube["name"]
+    assert govde["branch_name"]
+
+
 def test_uc_nokta_cevap_ve_gonderim(istemci: TestClient) -> None:
     """Gönderim kanıtı **sayar**, cihazın beyanına bakmaz (FR-0607).
 

@@ -31,6 +31,14 @@ function saat(iso: string | null | undefined): string {
     : '';
 }
 
+function tarih(isoGun: string): string {
+  return new Date(`${isoGun}T00:00:00`).toLocaleDateString('tr-TR', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+}
+
 /**
  * SCR-W-08 · Çalıştırma detayı: maddeler, cevaplar, puan, eksikler ve
  * **kanıt görselleri** (FR-0606). Görseller imzalı ve 15 dakikalık
@@ -169,18 +177,33 @@ export function CalistirmaDetayi({ runId, onKapat }: { runId: string; onKapat: (
         padding: 'var(--bosluk-4)',
       }}
     >
+      {/* Başlıkta şube adı önde: kart panoda ızgaranın altında açılıyor
+          ve hangi satıra ait olduğu yalnızca tıklama anında belliydi.
+          Liste adı, gün ve pencere altına iniyor — kartı ayıran şey
+          "hangi şube", "hangi liste" değil. */}
       <header
         style={{
           display: 'flex',
-          alignItems: 'baseline',
+          alignItems: 'center',
           gap: 'var(--bosluk-3)',
           flexWrap: 'wrap',
         }}
       >
-        <h2 style={{ fontSize: 'var(--baslik-bolum)', margin: 0 }}>{veri.template_name}</h2>
-        <span style={{ color: 'var(--renk-sessiz)', fontSize: 'var(--etiket)' }}>
-          {veri.business_day} · {saat(veri.window_start)}–{saat(veri.window_end)}
-        </span>
+        <div>
+          <h2 style={{ fontSize: 'var(--baslik-bolum)', margin: 0 }}>
+            {veri.branch_name}
+            {veri.region_name && (
+              <span style={{ color: 'var(--renk-sessiz)', fontWeight: 400 }}>
+                {' '}
+                · {veri.region_name}
+              </span>
+            )}
+          </h2>
+          <p className="meta" style={{ margin: 'var(--bosluk-1) 0 0' }}>
+            {veri.template_name} · {tarih(veri.business_day)} · {saat(veri.window_start)}–
+            {saat(veri.window_end)}
+          </p>
+        </div>
         {veri.result && (
           <Cip
             renk={veri.result === 'passed' ? 'marka' : 'kritik'}
