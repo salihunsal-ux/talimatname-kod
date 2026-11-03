@@ -151,9 +151,7 @@ def _cevap(gorunum: RunView, item_id: UUID) -> CevapCiktisi | None:
     )
 
 
-def _gorunum(
-    gorunum: RunView, template_name: str, org: OrganizationService
-) -> CalistirmaGorunumu:
+def _gorunum(gorunum: RunView, template_name: str, org: OrganizationService) -> CalistirmaGorunumu:
     run = gorunum.run
     sube = org.get(run.branch_id)
     return CalistirmaGorunumu(
