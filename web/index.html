@@ -5,6 +5,21 @@
     <meta name="color-scheme" content="light dark" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Talimatname · Yönetim paneli</title>
+    <script>
+      /* Tema ilk boyamadan ÖNCE uygulanır. React'in mount olmasını
+         beklersek kullanıcı, seçtiği temanın tersini bir an görür.
+         Anahtar adı src/tema.ts ile aynı; tema.test.ts ikisinin
+         ayrışmadığını kontrol ediyor. */
+      try {
+        var tema = localStorage.getItem('talimatname.tema');
+        if (tema === 'acik' || tema === 'koyu') {
+          document.documentElement.setAttribute('data-tema', tema);
+          document.documentElement.style.colorScheme = tema === 'koyu' ? 'dark' : 'light';
+        }
+      } catch (hata) {
+        /* depolama kapalı: sistem tercihi geçerli */
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

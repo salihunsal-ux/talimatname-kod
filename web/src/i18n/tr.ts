@@ -454,6 +454,12 @@ export const tr = {
     kacirildi: 'Kaçırıldı',
     yapilmayacak: 'Yapılmayacak',
   },
+  tema: {
+    etiket: 'Tema',
+    sistem: 'Sistem',
+    acik: 'Açık',
+    koyu: 'Koyu',
+  },
   bildirim: {
     baslik: 'Bildirimler',
     altBaslik:

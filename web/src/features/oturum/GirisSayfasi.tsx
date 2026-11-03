@@ -6,6 +6,7 @@ import { Alan } from '../../bilesenler/Alan';
 import { Dugme } from '../../bilesenler/Dugme';
 import { Marka } from '../../bilesenler/Marka';
 import { tr } from '../../i18n/tr';
+import { TemaSecici } from '../../bilesenler/Tema';
 
 /**
  * Giriş: telefon → kod → oturum (ST-004; FR-0201, FR-0203).
@@ -180,6 +181,9 @@ export function GirisSayfasi({ onGiris }: { onGiris: () => void }) {
           <div className="giris-alt">
             <span className="meta">{tr.giris.belgeniz} </span>
             <a href="/dogrula">{tr.giris.belgeDogrula}</a>
+            {/* Tema seçici burada da duruyor: koyu cihazla aydınlık
+                mutfakta çalışan kişi, giremeden önce de değiştirebilsin. */}
+            <TemaSecici />
           </div>
         </div>
       </section>

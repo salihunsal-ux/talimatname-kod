@@ -5,6 +5,7 @@ import { rolVar, useBen } from '../api/yetki';
 import { tr } from '../i18n/tr';
 import { Dugme } from './Dugme';
 import { Marka } from './Marka';
+import { TemaSecici } from './Tema';
 
 /**
  * Yönetim paneli kabuğu: üst bant + gezinme + içerik.
@@ -50,8 +51,12 @@ export function Kabuk({
         </span>
         <span className="meta">{tr.uygulama.aciklama}</span>
 
+        <div className="kabuk-kisi">
+          <TemaSecici />
+        </div>
+
         {kullanici && (
-          <div className="kabuk-kisi">
+          <div className="kabuk-kisi kabuk-kisi--bitisik">
             <span>
               <span className="kabuk-kisi-ad">{kullanici.ad}</span> · {kullanici.rol}
             </span>

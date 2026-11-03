@@ -1574,6 +1574,38 @@ select.alan {
   color: var(--renk-murekkep2);
 }
 
+/* --- tema seçici ------------------------------------------------------
+   Bir eylem değil bir ayar: açılır liste. Üst bantta koyu zemine göre
+   yeniden renkleniyor — banttaki ikincil düğmeyle aynı kalıp. */
+
+.tema-secici {
+  min-height: 36px;
+  font-size: var(--meta);
+}
+
+.kabuk-bant .tema-secici {
+  border-color: color-mix(in srgb, var(--renk-koyu-murekkep) 34%, transparent);
+  background: transparent;
+  color: var(--renk-koyu-murekkep);
+}
+
+/* Açılır listenin kendi penceresi tarayıcıdan geliyor: seçenek metni
+   koyu bandın şeffaf zeminini değil, sistemin yüzeyini alır. */
+.kabuk-bant .tema-secici option {
+  color: var(--renk-murekkep);
+  background: var(--renk-yuzey);
+}
+
+/* Kullanıcı bloğu seçiciden sonra geliyor: ikisi de sağa yaslanırsa
+   araya sayfa kadar boşluk giriyordu. */
+.kabuk-kisi--bitisik {
+  margin-left: 0;
+}
+
+.giris-alt .tema-secici {
+  margin-top: var(--bosluk-3);
+}
+
 /* --- yığın sıfırlaması — dosyanın sonunda olmalı ----------------------
    Dikey ritim `gap`ten geliyor: yığına giren çocuğun kendi blok kenar
    boşlukları (paragrafın 1em'i, `.eylemler`in 16 px'i) üstüne
