@@ -75,7 +75,7 @@ export function DogrulamaSayfasi({ kod: ilkKod }: { kod: string }) {
         {sonuc.data !== undefined && !sonuc.isError && <Kayit kayit={sonuc.data} />}
 
         <p className="dipnot">{tr.dogrulama.sinir}</p>
-        <a href="/" className="meta">
+        <a href="/" className="bag-kucuk">
           {tr.dogrulama.panele}
         </a>
       </Kart>

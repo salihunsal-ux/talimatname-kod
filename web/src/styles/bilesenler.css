@@ -26,6 +26,13 @@
   color: var(--renk-sessiz);
 }
 
+/* Küçük bağlantı: ölçüsü `.meta` kadar ama rengi bağlantı rengi.
+   `.meta`yı bağlantıya vermek rengi eziyordu (sınıf 0-1-0, `a`
+   seçicisi 0-0-1) ve bağlantı gri çıkıyordu. */
+.bag-kucuk {
+  font-size: var(--meta);
+}
+
 /* --- kart --------------------------------------------------------- */
 
 .kart {
