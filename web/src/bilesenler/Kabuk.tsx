@@ -47,7 +47,7 @@ export function Kabuk({
       <header className="kabuk-bant">
         <span className="kabuk-marka">
           <Marka koyu boyut={22} />
-          {tr.uygulama.ad}
+          <span className="kabuk-marka-ad">{tr.uygulama.ad}</span>
         </span>
         <span className="meta">{tr.uygulama.aciklama}</span>
 
@@ -57,8 +57,9 @@ export function Kabuk({
 
         {kullanici && (
           <div className="kabuk-kisi kabuk-kisi--bitisik">
-            <span>
-              <span className="kabuk-kisi-ad">{kullanici.ad}</span> · {kullanici.rol}
+            <span className="kabuk-kisi-kim">
+              <span className="kabuk-kisi-ad">{kullanici.ad}</span>
+              <span className="kabuk-kisi-rol"> · {kullanici.rol}</span>
             </span>
             <Dugme gorunum="ikincil" type="button" onClick={onCikis}>
               {tr.giris.cikis}

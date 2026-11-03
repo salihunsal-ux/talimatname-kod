@@ -499,9 +499,18 @@ textarea.alan {
   }
 
   /* Telefonda marka + kişi + çıkış zaten dar; alt başlık iki satıra
-     sarıp bandı şişiriyordu. */
-  .kabuk-bant > .meta {
+     sarıp bandı şişiriyordu. Tema seçici eklenince bir eleme daha
+     gerekti: ürün adı (işaret kalıyor) ve kullanıcının rolü düşüyor.
+     Ad kalıyor — şubede cihaz paylaşılıyor, "kim olarak girdim"
+     sorusunun cevabı ekranda durmalı. */
+  .kabuk-bant > .meta,
+  .kabuk-marka-ad,
+  .kabuk-kisi-rol {
     display: none;
+  }
+
+  .kabuk-kisi-kim {
+    white-space: nowrap;
   }
 
   .kabuk-govde {
