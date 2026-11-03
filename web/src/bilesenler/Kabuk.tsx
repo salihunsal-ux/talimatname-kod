@@ -4,6 +4,7 @@ import type { Bolum } from '../App';
 import { rolVar, useBen } from '../api/yetki';
 import { tr } from '../i18n/tr';
 import { Dugme } from './Dugme';
+import { Marka } from './Marka';
 
 /**
  * Yönetim paneli kabuğu: üst bant + gezinme + içerik.
@@ -43,7 +44,10 @@ export function Kabuk({
   return (
     <div className="kabuk">
       <header className="kabuk-bant">
-        <span className="kabuk-marka">{tr.uygulama.ad}</span>
+        <span className="kabuk-marka">
+          <Marka koyu boyut={22} />
+          {tr.uygulama.ad}
+        </span>
         <span className="meta">{tr.uygulama.aciklama}</span>
 
         {kullanici && (

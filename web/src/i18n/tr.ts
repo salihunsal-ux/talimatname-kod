@@ -178,6 +178,17 @@ export const tr = {
     panelMudurlerAciklama:
       'Listeler telefon uygulamasından doldurulur. Panelde görülecek bir ekranınız yok.',
     belgeDogrula: 'Belge doğrula',
+    ustbaslik: 'Kanıtlı görev listesi',
+    vaat: "WhatsApp'ta kaybolan talimat, burada kayıt olur.",
+    vaatAciklama:
+      'Her madde fotoğrafla ya da ölçümle kapanır; her kapanış kim ve ne zaman olduğuyla birlikte değiştirilemez bir günlüğe yazılır.',
+    ozellikler: [
+      'Fotoğraf ve ölçümle kapanan maddeler',
+      'Geciken iş kendiliğinden yukarı çıkar',
+      'Her rapor kendi doğrulama koduyla basılır',
+    ],
+    kodGelmedi: 'Kodu almıyor musunuz? Şube müdürünüz numaranızı panelden güncelleyebilir.',
+    belgeniz: 'Elinizde kâğıt bir rapor mu var?',
   },
   dogrulama: {
     baslik: 'Belge doğrulama',

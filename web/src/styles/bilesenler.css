@@ -71,15 +71,19 @@
   font-size: var(--etiket);
 }
 
+/* Birincil eylem mürekkep renginde, marka yeşili değil.
+   Yeşil **vurgu** olarak kalıyor: bağlantı, seçili bölüm, "tamamlandı"
+   durumu. İkisini aynı renge bağlamak, sayfadaki her yeşili eyleme
+   benzetiyordu. */
 .dugme--birincil {
-  border-color: var(--renk-marka);
-  background: var(--renk-marka);
-  color: #fff;
+  border-color: var(--renk-koyu);
+  background: var(--renk-koyu);
+  color: var(--renk-koyu-murekkep);
 }
 
 .dugme--birincil:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--renk-marka) 86%, #000);
-  border-color: color-mix(in srgb, var(--renk-marka) 86%, #000);
+  background: color-mix(in srgb, var(--renk-koyu) 82%, #fff);
+  border-color: color-mix(in srgb, var(--renk-koyu) 82%, #fff);
 }
 
 .dugme--ikincil {
@@ -229,29 +233,123 @@ textarea.alan {
   gap: var(--bosluk-3);
 }
 
-/* --- giriş sayfası ------------------------------------------------- */
+/* --- giriş sayfası (yön C) -----------------------------------------
+   Solda koyu panel ürünün ne yaptığını söylüyor, sağda form. Dar
+   ekranda panel üste geçiyor ve kısalıyor: telefonda ilk görülmesi
+   gereken şey form. */
 
 .giris {
-  display: grid;
-  grid-template-rows: 1fr auto;
+  display: flex;
+  flex-wrap: wrap;
   min-height: 100dvh;
-  padding: var(--bosluk-4);
 }
 
-.giris-kart {
-  place-self: center;
-  width: 100%;
-  max-width: 380px;
+.giris-panel {
+  flex: 1 1 420px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--bosluk-8);
+  padding: var(--bosluk-8) var(--bosluk-8) var(--bosluk-6);
+  background: var(--renk-koyu);
+  color: var(--renk-koyu-murekkep);
 }
 
 .giris-marka {
-  margin: 0 0 var(--bosluk-6);
-  text-align: center;
+  display: flex;
+  align-items: center;
+  gap: var(--bosluk-2);
+  font-size: var(--baslik-bolum);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.giris-ustbaslik {
+  margin: 0 0 var(--bosluk-3);
+  font-size: var(--meta);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--renk-koyu-marka);
+}
+
+.giris-vaat {
+  margin: 0 0 var(--bosluk-4);
+  max-width: 460px;
+  font-size: 34px;
+  line-height: 1.18;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+
+.giris-aciklama {
+  margin: 0;
+  max-width: 460px;
+  font-size: var(--baslik-bolum);
+  line-height: 1.6;
+  color: var(--renk-koyu-sessiz);
+}
+
+.giris-sayilar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--bosluk-8);
+  margin: 0;
+}
+
+.giris-sayilar dt {
+  font-size: var(--meta);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--renk-koyu-sessiz);
+}
+
+.giris-sayilar dd {
+  margin: var(--bosluk-1) 0 0;
+  font-size: var(--baslik-ekran);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.giris-form {
+  flex: 1 1 520px;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--bosluk-8) var(--bosluk-6);
+}
+
+.giris-form > * {
+  width: 100%;
+  max-width: 400px;
 }
 
 .giris-alt {
+  margin-top: var(--bosluk-6);
   padding-top: var(--bosluk-4);
-  text-align: center;
+  border-top: 1px solid var(--renk-cizgi);
+}
+
+@media (max-width: 860px) {
+  .giris-panel {
+    gap: var(--bosluk-4);
+    padding: var(--bosluk-6) var(--bosluk-4) var(--bosluk-4);
+  }
+
+  .giris-vaat {
+    font-size: var(--baslik-ekran);
+  }
+
+  .giris-aciklama,
+  .giris-sayilar {
+    display: none;
+  }
+
+  .giris-form {
+    padding: var(--bosluk-6) var(--bosluk-4);
+  }
 }
 
 /* --- kabuk --------------------------------------------------------- */
@@ -262,6 +360,8 @@ textarea.alan {
   min-height: 100dvh;
 }
 
+/* Üst bant sayfanın ağırlık merkezi: koyu yüzey, altındaki her şey
+   açık. Panelin "operasyon aracı" olduğunu söyleyen tek hamle bu. */
 .kabuk-bant {
   position: sticky;
   top: 0;
@@ -270,11 +370,14 @@ textarea.alan {
   align-items: center;
   gap: var(--bosluk-3);
   padding: var(--bosluk-3) var(--bosluk-6);
-  border-bottom: 1px solid var(--renk-cizgi);
-  background: var(--renk-yuzey);
+  background: var(--renk-koyu);
+  color: var(--renk-koyu-murekkep);
 }
 
 .kabuk-marka {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--bosluk-2);
   font-size: var(--baslik-bolum);
   font-weight: 700;
   letter-spacing: -0.01em;
@@ -286,7 +389,23 @@ textarea.alan {
   align-items: center;
   gap: var(--bosluk-3);
   font-size: var(--meta);
-  color: var(--renk-murekkep2);
+  color: var(--renk-koyu-sessiz);
+}
+
+.kabuk-bant .meta {
+  color: var(--renk-koyu-sessiz);
+}
+
+/* Banttaki ikincil düğme koyu zemine göre: açık tema sınırı burada
+   kayboluyordu. */
+.kabuk-bant .dugme--ikincil {
+  border-color: color-mix(in srgb, var(--renk-koyu-murekkep) 34%, transparent);
+  background: transparent;
+  color: var(--renk-koyu-murekkep);
+}
+
+.kabuk-bant .dugme--ikincil:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--renk-koyu-murekkep) 12%, transparent);
 }
 
 .kabuk-govde {
@@ -565,4 +684,87 @@ textarea.alan {
 
 .izgara-hucre:enabled:hover {
   border-color: var(--renk-murekkep2);
+}
+
+/* --- pano özeti ------------------------------------------------------
+   Altı özdeş kutu, "Tamamlanma %0" ile "Kaçırıldı 0"ı aynı boya
+   koyuyordu. Biri manşet, diğerleri dipnot: manşet koyu yüzeyde ve
+   büyük, kalanlar yan yana küçük sayılar. */
+
+.ozet-serit {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: var(--bosluk-3);
+  margin-bottom: var(--bosluk-6);
+}
+
+.ozet-manset {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 190px;
+  padding: var(--bosluk-4) var(--bosluk-6);
+  border-radius: var(--kose-kart);
+  background: var(--renk-koyu);
+  color: var(--renk-koyu-murekkep);
+}
+
+.ozet-manset-ad {
+  font-size: var(--meta);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--renk-koyu-sessiz);
+}
+
+.ozet-manset-deger {
+  margin-top: var(--bosluk-1);
+  font-size: 44px;
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.ozet-kutular {
+  flex: 1 1 420px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--bosluk-3);
+  align-content: center;
+}
+
+.ozet-kutu {
+  flex: 1 1 110px;
+  min-width: 104px;
+  padding: var(--bosluk-3);
+  border: 1px solid var(--renk-cizgi);
+  border-radius: var(--kose-kart);
+  background: var(--renk-yuzey);
+}
+
+.ozet-kutu-ad {
+  font-size: var(--meta);
+  color: var(--renk-murekkep2);
+}
+
+.ozet-kutu-deger {
+  margin-top: var(--bosluk-1);
+  font-size: var(--baslik-ekran);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.ozet-kutu--uyari {
+  border-color: var(--renk-uyari);
+  background: var(--renk-uyari-acik);
+}
+
+.ozet-kutu--kritik {
+  border-color: var(--renk-kritik);
+  background: var(--renk-kritik-acik);
+}
+
+.ozet-kutu--kritik .ozet-kutu-deger {
+  color: var(--renk-kritik);
 }

@@ -112,6 +112,6 @@ describe('GirisSayfasi', () => {
 
     await telefonAdimi();
 
-    expect(screen.getByRole('heading', { name: 'Talimatname' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Giriş yap' })).toBeInTheDocument();
   });
 });

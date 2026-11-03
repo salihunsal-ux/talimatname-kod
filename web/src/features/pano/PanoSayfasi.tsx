@@ -281,57 +281,38 @@ function Gostergeler({
 }) {
   const { kpi } = veri;
   return (
-    <div
-      style={{
-        display: 'flex',
-        gap: 'var(--bosluk-3)',
-        flexWrap: 'wrap',
-        marginBottom: 'var(--bosluk-4)',
-      }}
-    >
-      <Gosterge
-        ad={tr.pano.tamamlanma}
-        deger={kpi.completion_percent === null ? '—' : `%${kpi.completion_percent}`}
-      />
-      <Gosterge ad={tr.pano.calistirma} deger={String(kpi.total)} />
-      <Gosterge ad={tr.plan.durumlar.submitted} deger={String(kpi.submitted)} />
-      <Gosterge
-        ad={tr.pano.gec}
-        deger={String(kpi.late)}
-        vurgu={kpi.late > 0 ? 'uyari' : undefined}
-      />
-      <Gosterge
-        ad={tr.plan.durumlar.missed}
-        deger={String(kpi.missed)}
-        vurgu={kpi.missed > 0 ? 'kritik' : undefined}
-      />
-      <Gosterge ad={tr.pano.bekleyenKisa} deger={String(kpi.open_now)} />
+    <div className="ozet-serit">
+      <div className="ozet-manset">
+        <span className="ozet-manset-ad">{tr.pano.tamamlanma}</span>
+        <span className="ozet-manset-deger">
+          {kpi.completion_percent === null ? '—' : `%${kpi.completion_percent}`}
+        </span>
+      </div>
+
+      <div className="ozet-kutular">
+        <Gosterge ad={tr.pano.calistirma} deger={String(kpi.total)} />
+        <Gosterge ad={tr.plan.durumlar.submitted} deger={String(kpi.submitted)} />
+        <Gosterge
+          ad={tr.pano.gec}
+          deger={String(kpi.late)}
+          vurgu={kpi.late > 0 ? 'uyari' : undefined}
+        />
+        <Gosterge
+          ad={tr.plan.durumlar.missed}
+          deger={String(kpi.missed)}
+          vurgu={kpi.missed > 0 ? 'kritik' : undefined}
+        />
+        <Gosterge ad={tr.pano.bekleyenKisa} deger={String(kpi.open_now)} />
+      </div>
     </div>
   );
 }
 
 function Gosterge({ ad, deger, vurgu }: { ad: string; deger: string; vurgu?: 'uyari' | 'kritik' }) {
   return (
-    <div
-      style={{
-        minWidth: 110,
-        padding: 'var(--bosluk-3)',
-        borderRadius: 'var(--kose-kart)',
-        border: '1px solid var(--renk-cizgi)',
-        background: 'var(--renk-yuzey)',
-      }}
-    >
-      <div style={{ fontSize: 'var(--meta)', color: 'var(--renk-sessiz)' }}>{ad}</div>
-      <div
-        style={{
-          fontSize: 28,
-          fontWeight: 700,
-          fontVariantNumeric: 'tabular-nums',
-          color: vurgu ? `var(--renk-${vurgu})` : 'var(--renk-murekkep)',
-        }}
-      >
-        {deger}
-      </div>
+    <div className={vurgu ? `ozet-kutu ozet-kutu--${vurgu}` : 'ozet-kutu'}>
+      <div className="ozet-kutu-ad">{ad}</div>
+      <div className="ozet-kutu-deger">{deger}</div>
     </div>
   );
 }

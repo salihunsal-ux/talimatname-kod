@@ -4,11 +4,19 @@ import { problemCoz } from '../../api/client';
 import { kodDogrula, kodIste, type KodYaniti } from '../../api/oturum';
 import { Alan } from '../../bilesenler/Alan';
 import { Dugme } from '../../bilesenler/Dugme';
-import { Kart } from '../../bilesenler/Kart';
+import { Marka } from '../../bilesenler/Marka';
 import { tr } from '../../i18n/tr';
 
 /**
  * Giriş: telefon → kod → oturum (ST-004; FR-0201, FR-0203).
+ *
+ * Yerleşim iki bölümlü: solda koyu panel ürünün ne yaptığını söylüyor,
+ * sağda form. Telefonda panel kısalıyor ve forma yer açıyor — şube
+ * müdürü paneli de telefondan açıyor.
+ *
+ * Paneldeki üç madde **sayı değil cümle**: giriş ekranında uydurma
+ * ölçü göstermek, ürünün tek iddiası "kanıt" olan bir üründe tuhaf
+ * olurdu.
  *
  * SMS sağlayıcısı bağlı olmadığı için "kod gönderildi" **yazmıyoruz**;
  * sunucu `delivered: false` döndürüyor, ekran da bunu olduğu gibi
@@ -38,113 +46,162 @@ export function GirisSayfasi({ onGiris }: { onGiris: () => void }) {
 
   return (
     <main className="giris">
-      <Kart yuzen className="giris-kart" aria-labelledby="giris-baslik">
-        {/* Marka bloğu kartın içinde: işaret dosyası henüz yok, bu
-            yüzden yazıyla duruyor (tasarım sistemi · İkonografi). */}
+      <section className="giris-panel">
         <div className="giris-marka">
-          <h1 id="giris-baslik" className="baslik-ekran">
-            {tr.uygulama.ad}
-          </h1>
-          <p className="meta" style={{ margin: 'var(--bosluk-1) 0 0' }}>
-            {tr.giris.aciklama}
-          </p>
+          <Marka boyut={30} koyu />
+          {tr.uygulama.ad}
         </div>
 
-        {adim === 'telefon' ? (
-          <form
-            className="yigin"
-            onSubmit={(olay) => {
-              olay.preventDefault();
-              void calistir(async () => {
-                const yanit = await kodIste(telefon);
-                setBilgi(yanit);
-                setAdim('kod');
-              });
-            }}
-          >
-            <Alan
-              id="giris-telefon"
-              etiket={tr.giris.telefon}
-              type="tel"
-              autoComplete="tel"
-              inputMode="tel"
-              required
-              value={telefon}
-              onChange={(olay) => setTelefon(olay.target.value)}
-              placeholder={tr.giris.telefonOrnek}
-            />
-            <Dugme type="submit" tam disabled={calisiyor}>
-              {calisiyor ? tr.genel.yukleniyor : tr.giris.kodIste}
-            </Dugme>
-          </form>
-        ) : (
-          <form
-            className="yigin"
-            onSubmit={(olay) => {
-              olay.preventDefault();
-              void calistir(async () => {
-                await kodDogrula(telefon, kod);
-                onGiris();
-              });
-            }}
-          >
-            {bilgi != null && !bilgi.delivered && (
-              <p role="status" className="bildiri" style={{ margin: 0 }}>
-                {tr.giris.gonderilmedi}
-                {bilgi.dev_code !== null && bilgi.dev_code !== undefined && (
-                  <>
-                    {' '}
-                    <strong>{tr.giris.ekrandakiKod(bilgi.dev_code)}</strong>
-                  </>
-                )}
-              </p>
-            )}
+        <div>
+          <p className="giris-ustbaslik">{tr.giris.ustbaslik}</p>
+          <h1 id="giris-baslik" className="giris-vaat">
+            {tr.giris.vaat}
+          </h1>
+          <p className="giris-aciklama">{tr.giris.vaatAciklama}</p>
+        </div>
 
-            <Alan
-              id="giris-kod"
-              etiket={tr.giris.kod}
-              className="alan--kod"
-              type="text"
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              required
-              value={kod}
-              onChange={(olay) => setKod(olay.target.value)}
-            />
-            <div className="yigin--dar" style={{ display: 'grid' }}>
-              <Dugme type="submit" tam disabled={calisiyor}>
-                {calisiyor ? tr.genel.yukleniyor : tr.giris.gir}
-              </Dugme>
-              <Dugme
-                type="button"
-                gorunum="sessiz"
-                tam
-                onClick={() => {
-                  setAdim('telefon');
-                  setKod('');
-                  setHata(null);
-                }}
-              >
-                {tr.giris.numarayiDegistir}
-              </Dugme>
-            </div>
-          </form>
-        )}
+        <ul className="giris-sayilar" style={{ display: 'grid', gap: 'var(--bosluk-3)' }}>
+          {tr.giris.ozellikler.map((madde) => (
+            <li
+              key={madde}
+              style={{
+                display: 'flex',
+                gap: 'var(--bosluk-2)',
+                alignItems: 'center',
+                listStyle: 'none',
+                fontSize: 'var(--govde)',
+              }}
+            >
+              <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true" focusable="false">
+                <circle cx="9" cy="9" r="8" fill="none" stroke="var(--renk-koyu-marka)" />
+                <path
+                  d="M5.6 9.2l2.2 2.2 4.5-4.9"
+                  fill="none"
+                  stroke="var(--renk-koyu-marka)"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+              {madde}
+            </li>
+          ))}
+        </ul>
+      </section>
 
-        {hata !== null && (
-          <p role="alert" className="bildiri bildiri--hata" style={{ marginBottom: 0 }}>
-            {hata}
+      <section className="giris-form" aria-labelledby="giris-form-baslik">
+        <div>
+          <h2 id="giris-form-baslik" className="baslik-ekran">
+            {tr.giris.gir}
+          </h2>
+          <p className="meta" style={{ margin: 'var(--bosluk-2) 0 var(--bosluk-6)' }}>
+            {tr.giris.aciklama}
           </p>
-        )}
-      </Kart>
 
-      {/* Belge doğrulama oturum istemiyor (FR-1218); kâğıdı eline alan
-          buraya da gelebilsin diye giriş ekranında duruyor. */}
-      <div className="giris-alt">
-        <a href="/dogrula" className="meta" style={{ color: 'var(--renk-marka)' }}>
-          {tr.giris.belgeDogrula}
-        </a>
-      </div>
+          {adim === 'telefon' ? (
+            <form
+              className="yigin"
+              onSubmit={(olay) => {
+                olay.preventDefault();
+                void calistir(async () => {
+                  const yanit = await kodIste(telefon);
+                  setBilgi(yanit);
+                  setAdim('kod');
+                });
+              }}
+            >
+              <Alan
+                id="giris-telefon"
+                etiket={tr.giris.telefon}
+                type="tel"
+                autoComplete="tel"
+                inputMode="tel"
+                required
+                value={telefon}
+                onChange={(olay) => setTelefon(olay.target.value)}
+                placeholder={tr.giris.telefonOrnek}
+              />
+              <Dugme type="submit" tam disabled={calisiyor}>
+                {calisiyor ? tr.genel.yukleniyor : tr.giris.kodIste}
+              </Dugme>
+              <p className="meta" style={{ margin: 0 }}>
+                {tr.giris.kodGelmedi}
+              </p>
+            </form>
+          ) : (
+            <form
+              className="yigin"
+              onSubmit={(olay) => {
+                olay.preventDefault();
+                void calistir(async () => {
+                  await kodDogrula(telefon, kod);
+                  onGiris();
+                });
+              }}
+            >
+              {bilgi != null && !bilgi.delivered && (
+                <p role="status" className="bildiri" style={{ margin: 0 }}>
+                  {tr.giris.gonderilmedi}
+                  {bilgi.dev_code !== null && bilgi.dev_code !== undefined && (
+                    <>
+                      {' '}
+                      <strong>{tr.giris.ekrandakiKod(bilgi.dev_code)}</strong>
+                    </>
+                  )}
+                </p>
+              )}
+
+              <Alan
+                id="giris-kod"
+                etiket={tr.giris.kod}
+                className="alan--kod"
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                required
+                value={kod}
+                onChange={(olay) => setKod(olay.target.value)}
+              />
+              <div className="yigin--dar" style={{ display: 'grid' }}>
+                <Dugme type="submit" tam disabled={calisiyor}>
+                  {calisiyor ? tr.genel.yukleniyor : tr.giris.gir}
+                </Dugme>
+                <Dugme
+                  type="button"
+                  gorunum="sessiz"
+                  tam
+                  onClick={() => {
+                    setAdim('telefon');
+                    setKod('');
+                    setHata(null);
+                  }}
+                >
+                  {tr.giris.numarayiDegistir}
+                </Dugme>
+              </div>
+            </form>
+          )}
+
+          {hata !== null && (
+            <p
+              role="alert"
+              className="bildiri bildiri--hata"
+              style={{ marginTop: 'var(--bosluk-4)', marginBottom: 0 }}
+            >
+              {hata}
+            </p>
+          )}
+
+          {/* Belge doğrulama oturum istemiyor (FR-1218); kâğıdı eline
+              alan buraya da gelebilsin diye giriş ekranında duruyor. */}
+          <div className="giris-alt">
+            <span className="meta">{tr.giris.belgeniz} </span>
+            <a href="/dogrula" style={{ fontSize: 'var(--meta)', fontWeight: 600 }}>
+              {tr.giris.belgeDogrula}
+            </a>
+          </div>
+        </div>
+      </section>
     </main>
   );
 }

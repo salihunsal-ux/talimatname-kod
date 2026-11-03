@@ -9,7 +9,7 @@
   --renk-yuzey2: #efece4;
   --renk-murekkep: #1c2128;
   --renk-murekkep2: #4b5560;
-  --renk-sessiz: #7b8590;
+  --renk-sessiz: #636e79;
   --renk-cizgi: #d6d9d2;
   --renk-marka: #1f6f5b;
   --renk-marka-acik: #dcebe5;
@@ -18,6 +18,15 @@
   --renk-uyari: #b7791f;
   --renk-uyari-acik: #f6ebd2;
   --renk-pasif: #c9ced6;
+
+  /* Koyu çapa yüzeyi: üst bant, giriş paneli, kahraman alanlar.
+     Zeminin kendisi değil; sayfanın **ağırlık merkezi**. Üstündeki
+     metin ve vurgu ayrı token, çünkü açık tema renkleri burada
+     okunmuyor. */
+  --renk-koyu: #16201d;
+  --renk-koyu-murekkep: #f1eee6;
+  --renk-koyu-sessiz: #9aa2a8;
+  --renk-koyu-marka: #3fa98c;
 
   /* boşluk ölçeği */
   --bosluk-1: 4px;
@@ -60,6 +69,10 @@
   --renk-uyari: #e0a640;
   --renk-uyari-acik: #33290f;
   --renk-pasif: #3a424a;
+  --renk-koyu: #0f1416;
+  --renk-koyu-murekkep: #f1eee6;
+  --renk-koyu-sessiz: #9aa2a8;
+  --renk-koyu-marka: #3fa98c;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -78,6 +91,10 @@
     --renk-uyari: #e0a640;
     --renk-uyari-acik: #33290f;
     --renk-pasif: #3a424a;
+    --renk-koyu: #0f1416;
+    --renk-koyu-murekkep: #f1eee6;
+    --renk-koyu-sessiz: #9aa2a8;
+    --renk-koyu-marka: #3fa98c;
   }
 }
 
