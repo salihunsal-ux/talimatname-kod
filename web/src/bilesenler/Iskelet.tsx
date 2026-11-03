@@ -15,13 +15,14 @@ import { tr } from '../i18n/tr';
  * `aria-busy` ve içinde aynı "Yükleniyor…" cümlesi var; gri kutular
  * `aria-hidden`.
  */
-type Bicim = 'metin' | 'satir' | 'kutu' | 'manset';
+type Bicim = 'metin' | 'satir' | 'kutu' | 'ozet-kutu' | 'manset';
 
 /** Sınıf adları düz metin: üretilmiş ad, ölü sınıf kapısından kaçar. */
 const BICIM: Record<Bicim, string> = {
   metin: 'iskelet--metin',
   satir: 'iskelet--satir',
   kutu: 'iskelet--kutu',
+  'ozet-kutu': 'iskelet--ozet-kutu',
   manset: 'iskelet--manset',
 };
 
@@ -97,7 +98,7 @@ export function IskeletOzet() {
         <Iskelet bicim="manset" />
         <div className="ozet-kutular">
           {Array.from({ length: 5 }, (_, kutu) => (
-            <Iskelet key={kutu} bicim="kutu" />
+            <Iskelet key={kutu} bicim="ozet-kutu" />
           ))}
         </div>
       </div>

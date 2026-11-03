@@ -1641,14 +1641,23 @@ select.alan {
   border-radius: var(--kose-dugme);
 }
 
+/* Ölçüler canlıda ölçüldü: iskelet gerçeğinden kısa ya da uzun
+   olursa veri gelince sayfa tam da önlemeye çalıştığı kadar zıplar.
+   Rapor kutusu 100 px (etiketi iki satıra sarıyor), pano özet kutusu
+   79 px, manşet 99 px. */
 .iskelet--kutu {
-  height: 76px;
+  height: 100px;
+  border-radius: var(--kose-kart);
+}
+
+.iskelet--ozet-kutu {
+  height: 79px;
   border-radius: var(--kose-kart);
 }
 
 .iskelet--manset {
   min-width: 190px;
-  height: 104px;
+  height: 99px;
   border-radius: var(--kose-kart);
 }
 
