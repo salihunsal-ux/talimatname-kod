@@ -147,6 +147,14 @@ describe('Şablonlar sayfası', () => {
     expect(yayinla).not.toHaveBeenCalled();
   });
 
+  it('şablon yokken ne yapılacağını söyler', async () => {
+    // Boş sayfa "bir şey yüklenmedi" gibi okunuyordu.
+    liste.mockResolvedValue([]);
+    kur();
+
+    expect(await screen.findByText(/Henüz şablon yok/)).toBeInTheDocument();
+  });
+
   it('yayınlanmış sürüm düzenlenemez, yeni taslak önerilir', async () => {
     detay.mockResolvedValue({
       ...TASLAK,

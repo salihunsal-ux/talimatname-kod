@@ -115,6 +115,26 @@ describe('Planlar sayfası', () => {
     expect(await screen.findByText('Kaçırıldı')).toBeInTheDocument();
   });
 
+  it('tekrar kuralı çiğ RFC metni olarak değil okunur hâlde yazılır', async () => {
+    // Şube müdürü "FREQ=DAILY" okuyordu.
+    kur();
+    expect(await screen.findByText('Her gün')).toBeInTheDocument();
+    expect(screen.queryByText(/FREQ=/)).not.toBeInTheDocument();
+  });
+
+  it('plan formu alan gruplarına ayrılmıştır', async () => {
+    // Yirmiden çok alan tek bir sarmalanan satırdaydı: koşullu alanlar
+    // göründükçe sıra yeniden akıyordu. Grup aynı zamanda ekran
+    // okuyucuda duyurulan bir sınır.
+    kur();
+    await screen.findByText('Günlük kapanış');
+
+    expect(screen.getByRole('group', { name: 'Ne yapılacak' })).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: 'Ne zaman' })).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: 'Pencere ve tolerans' })).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: 'Kapsam (şubeler)' })).toBeInTheDocument();
+  });
+
   it('eksik alanla önizleme yapılamaz', async () => {
     kur();
     await screen.findByText('Günlük kapanış');

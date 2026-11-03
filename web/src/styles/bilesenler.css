@@ -539,6 +539,16 @@ textarea.alan {
   vertical-align: top;
 }
 
+/* Satır başlığı tablo başlığı gibi değil, hücre gibi okunmalı: anlamı
+   `th` (satırın kimliği), ölçüsü `td`. 13 px'te kalınca plan adı
+   kendi satırındaki hücrelerden küçük görünüyordu. */
+.tablo th[scope='row'] {
+  font-size: var(--govde);
+  font-weight: 400;
+  color: var(--renk-murekkep);
+  vertical-align: top;
+}
+
 .tablo td.sayisal,
 .tablo th.sayisal {
   text-align: right;
@@ -854,4 +864,173 @@ textarea.alan {
 .tablo tbody tr:has(.izgara-hucre[aria-pressed='true']) th[scope='row'] {
   box-shadow: inset 3px 0 0 var(--renk-koyu);
   font-weight: 600;
+}
+
+/* --- liste–detay düzeni ---------------------------------------------
+   Kenarda seçilecekler, gövdede seçilen. Şablon editörü bunu satır
+   içi `flex` ile kuruyordu; dar ekranda editör 320 px'e sıkışıp
+   madde satırları üst üste biniyordu. */
+
+.liste-detay {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  gap: var(--bosluk-6);
+  align-items: start;
+}
+
+.liste-detay-kenar {
+  display: grid;
+  gap: var(--bosluk-4);
+  align-content: start;
+}
+
+@media (max-width: 860px) {
+  .liste-detay {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--bosluk-4);
+  }
+}
+
+/* --- alan grubu -----------------------------------------------------
+   Plan formu 20'den çok alanı tek bir `flex-wrap` satırına diziyordu:
+   alanlar koşullu göründüğü için sıra her seçimde yeniden akıyor,
+   "Saat" ile "Çıpa" sayfanın iki ucuna düşebiliyordu. Grup hem gözle
+   hem ekran okuyucuyla okunan sınır çiziyor (`fieldset` + `legend`). */
+
+.alan-grubu {
+  margin: 0;
+  padding: var(--bosluk-4);
+  border: 1px solid var(--renk-cizgi);
+  border-radius: var(--kose-kart);
+  background: var(--renk-yuzey);
+}
+
+.alan-grubu > legend {
+  padding: 0 var(--bosluk-2);
+  font-size: var(--meta);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--renk-sessiz);
+}
+
+/* Alanlar alt kenarlarından hizalanıyor: etiketler farklı uzunlukta
+   ve üst hizada kutular zıplıyor. */
+.alan-sirasi {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--bosluk-3);
+}
+
+/* Sayı ve saat kutuları içeriği kadar: `.alan` varsayılanı tam
+   genişlik, "Tolerans (dk)" alanı 400 px uzuyordu. */
+.alan--sayi {
+  width: 9ch;
+}
+
+.alan--saat {
+  width: 13ch;
+}
+
+/* --- seçim çipi ------------------------------------------------------
+   Çoktan seçmeli etiket (gün, şube). Kutu küçük, tıklanabilir alan
+   büyük (NFR-11). */
+
+.secim-cipi {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--bosluk-2);
+  min-height: 36px;
+  padding: 0 var(--bosluk-3);
+  border: 1px solid var(--renk-cizgi);
+  border-radius: var(--kose-cip);
+  background: var(--renk-yuzey);
+  color: var(--renk-murekkep2);
+  font-size: var(--etiket);
+  cursor: pointer;
+}
+
+.secim-cipi:hover {
+  border-color: var(--renk-murekkep2);
+}
+
+/* Seçili hâl kutunun kendi `:checked` hâlinden türüyor — düğmelerde
+   `aria-pressed`ten türediği gibi. Önce JS'te ayrıca tutulan bir
+   bayraktan hesaplanıyordu: aynı ayrışma kapısı. */
+.secim-cipi:has(input:checked) {
+  border-color: var(--renk-marka);
+  background: var(--renk-marka-acik);
+  color: var(--renk-marka);
+  font-weight: 600;
+}
+
+.secim-cipi input {
+  margin: 0;
+}
+
+/* --- bölüm etiketi --------------------------------------------------
+   Küçük, aralıklı, büyük harf: içerik değil, içeriğin adı. */
+
+.bolum-etiketi {
+  margin: 0 0 var(--bosluk-2);
+  font-size: var(--etiket);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--renk-sessiz);
+}
+
+/* --- madde satırı (şablon editörü) ---------------------------------- */
+
+.madde-satiri {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--bosluk-2);
+  padding: var(--bosluk-2) 0;
+  border-top: 1px solid var(--renk-cizgi);
+}
+
+.madde-satiri-ad {
+  flex: 1 1 220px;
+}
+
+/* Satırın düzenleme kısmı sağa toplanıyor: çipler bilgi, bunlar
+   eylem — araya karışınca satırda ikisi ayırt edilemiyordu. */
+.madde-satiri-eylem {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--bosluk-2);
+}
+
+/* --- eylem şeridi ---------------------------------------------------- */
+
+.eylemler {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--bosluk-2);
+  margin-top: var(--bosluk-4);
+}
+
+/* --- durgun liste satırı ---------------------------------------------
+   `.liste-satiri` ölçüleri, tıklanmayan satırda: aynı ritmi ikinci kez
+   yazmamak için. */
+
+.liste-satiri--durgun {
+  cursor: default;
+}
+
+.liste-satiri--durgun:hover {
+  background: var(--renk-yuzey);
+}
+
+/* --- tablo: eylem sütunu --------------------------------------------- */
+
+.tablo td.eylem,
+.tablo th.eylem {
+  text-align: right;
+  white-space: nowrap;
 }

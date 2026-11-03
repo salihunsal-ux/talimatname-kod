@@ -259,6 +259,8 @@ export const tr = {
   },
   sablon: {
     baslik: 'Şablonlar',
+    altBaslik:
+      'Şubede ne sorulacağı burada yazılır. Yayınlanan sürüm bir daha değişmez: değişiklik yeni bir taslak açar.',
     surum: 'Sürüm',
     yayinda: 'Yayında',
     taslak: 'Taslak',
@@ -282,14 +284,36 @@ export const tr = {
     sablonAdi: 'Yeni şablon adı',
     sablonEkle: 'Oluştur',
     sil: 'Sil',
+    yeniSablon: 'Yeni şablon',
+    sablonYok: 'Henüz şablon yok. Soldan ilk şablonu açın.',
+    secimYok: 'Soldan bir sürüm seçin: maddeleri ve ayarları burada düzenlenir.',
+    maddeYok: 'Bu bölümde henüz madde yok.',
+    bolumYok: 'Şablonda henüz bölüm yok. Aşağıdan ilk bölümü ekleyin.',
+    maddeler: (sayi: number) => `${sayi} madde`,
   },
   plan: {
     baslik: 'Planlar',
+    altBaslik:
+      'Hangi liste hangi şubede, hangi saat aralığında açılacak. Kaydetmeden önce 7 günü önizleyebilirsiniz.',
     ad: 'Plan adı',
     sablon: 'Şablon',
     tekrar: 'Tekrar',
     kapsam: 'Kapsam (şubeler)',
+    pencere: 'Pencere',
     sube: 'şube',
+    planYok: 'Henüz plan yok. Aşağıdan ilk planı kurun.',
+    grupNe: 'Ne yapılacak',
+    grupNeZaman: 'Ne zaman',
+    grupPencere: 'Pencere ve tolerans',
+    // Tekrar dizgesi RFC 5545 (FR-0503); ekranda okunur hâli yazılır.
+    // Tanınmayan dizge olduğu gibi gösterilir: uydurmaktan iyidir.
+    gunAdlari: ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'],
+    ayinGununde: (gun: number) => `Ayın ${gun}. günü`,
+    ayinNincisi: (ninci: string, gun: string) =>
+      `Ayın ${ninci.toLocaleLowerCase('tr')} ${gun} günü`,
+    kadar: (tarih: string) => `${tarih} sonuna kadar`,
+    dakika: (dk: number) => `${dk} dk`,
+    toleransli: (dk: number) => `+${dk} dk tolerans`,
     durdur: 'Durdur',
     baslat: 'Yeniden başlat',
     durduruldu: 'Durduruldu',

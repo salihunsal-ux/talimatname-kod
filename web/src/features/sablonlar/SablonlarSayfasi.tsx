@@ -53,46 +53,56 @@ export function SablonlarSayfasi() {
     if (ilk) setSeciliSurum(ilk.id);
   }, [sablonlar.data, seciliSurum]);
 
+  const bos = sablonlar.data?.length === 0;
+
   return (
-    <div style={{ display: 'flex', gap: 'var(--bosluk-6)', flexWrap: 'wrap' }}>
-      <div style={{ flex: '0 1 320px', minWidth: 260 }}>
-        <h1 style={{ fontSize: 'var(--baslik-ekran)', margin: '0 0 var(--bosluk-3)' }}>
-          {tr.sablon.baslik}
-        </h1>
+    <div>
+      <header className="sayfa-basligi">
+        <div>
+          <h1>{tr.sablon.baslik}</h1>
+          <p className="sayfa-basligi-alt">{tr.sablon.altBaslik}</p>
+        </div>
+      </header>
 
-        {sablonlar.isPending && (
-          <p style={{ color: 'var(--renk-sessiz)' }}>{tr.genel.yukleniyor}</p>
-        )}
-        {sablonlar.isError && (
-          <p role="alert" style={{ color: 'var(--renk-kritik)' }}>
-            {tr.hata.aglaBaglanilamadi}
-          </p>
-        )}
+      {sablonlar.isPending && <p className="meta">{tr.genel.yukleniyor}</p>}
+      {sablonlar.isError && (
+        <p role="alert" className="bildiri bildiri--hata">
+          {tr.hata.aglaBaglanilamadi}
+        </p>
+      )}
 
-        {sablonlar.data?.map((sablon) => (
-          <section key={sablon.id} style={{ marginBottom: 'var(--bosluk-4)' }}>
-            <h2 style={{ fontSize: 'var(--govde)', margin: '0 0 var(--bosluk-2)' }}>
-              {sablon.name}
-            </h2>
-            <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-              {sablon.versions.map((surum) => (
-                <li key={surum.id}>
-                  <SurumDugmesi
-                    surum={surum}
-                    secili={seciliSurum === surum.id}
-                    onSec={() => setSeciliSurum(surum.id)}
-                  />
-                </li>
-              ))}
-            </ul>
-          </section>
-        ))}
+      <div className="liste-detay">
+        <div className="liste-detay-kenar">
+          {bos && <p className="bos-durum">{tr.sablon.sablonYok}</p>}
 
-        {yonetici && <SablonEkleFormu onOlusturuldu={(detay) => setSeciliSurum(detay.id)} />}
-      </div>
+          {sablonlar.data?.map((sablon) => (
+            <section key={sablon.id}>
+              <h2 className="bolum-etiketi">{sablon.name}</h2>
+              <ul className="yigin yigin--dar" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+                {sablon.versions.map((surum) => (
+                  <li key={surum.id}>
+                    <SurumDugmesi
+                      surum={surum}
+                      secili={seciliSurum === surum.id}
+                      onSec={() => setSeciliSurum(surum.id)}
+                    />
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))}
 
-      <div style={{ flex: '1 1 420px', minWidth: 320 }}>
-        {seciliSurum ? <SurumEditoru id={seciliSurum} onSurumDegisti={setSeciliSurum} /> : null}
+          {yonetici && <SablonEkleFormu onOlusturuldu={(detay) => setSeciliSurum(detay.id)} />}
+        </div>
+
+        <div>
+          {seciliSurum ? (
+            <SurumEditoru id={seciliSurum} onSurumDegisti={setSeciliSurum} />
+          ) : (
+            /* Sağ sütun boş bırakılmıyor: ne yapılacağını söylüyor. */
+            !bos && <p className="bos-durum">{tr.sablon.secimYok}</p>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -109,15 +119,8 @@ function SurumDugmesi({
 }) {
   const cip = DURUM_CIPI[surum.status];
   return (
-    <Dugme
-      gorunum="ikincil"
-      tam
-      type="button"
-      onClick={onSec}
-      aria-current={secili}
-      style={{ marginBottom: 'var(--bosluk-1)' }}
-    >
-      <span style={{ flex: 1 }}>
+    <Dugme gorunum="ikincil" tam type="button" onClick={onSec} aria-current={secili}>
+      <span style={{ flex: 1, textAlign: 'left' }}>
         {tr.sablon.surum} {surum.version_no}
       </span>
       <Cip renk={cip.renk} ikon={cip.ikon} metin={cip.metin} />
@@ -163,10 +166,10 @@ function SurumEditoru({
     },
   });
 
-  if (detay.isPending) return <p style={{ color: 'var(--renk-sessiz)' }}>{tr.genel.yukleniyor}</p>;
+  if (detay.isPending) return <p className="meta">{tr.genel.yukleniyor}</p>;
   if (detay.isError || !detay.data)
     return (
-      <p role="alert" style={{ color: 'var(--renk-kritik)' }}>
+      <p role="alert" className="bildiri bildiri--hata">
         {tr.hata.genel}
       </p>
     );
@@ -212,62 +215,55 @@ function SurumEditoru({
   const yayinProblemi = problemCoz(yayinla.error);
 
   return (
-    <article
-      style={{
-        background: 'var(--renk-yuzey)',
-        border: '1px solid var(--renk-cizgi)',
-        borderRadius: 'var(--kose-kart)',
-        padding: 'var(--bosluk-4)',
-      }}
-    >
+    <article className="kart">
+      {/* Başlıkta şablonun adı, altında sayılar: sürüm numarası ve madde
+          dökümü kartı tanıtmıyor, başlığın yanında gürültü yapıyordu. */}
       <header
         style={{
           display: 'flex',
-          alignItems: 'baseline',
+          alignItems: 'center',
           gap: 'var(--bosluk-3)',
           flexWrap: 'wrap',
         }}
       >
-        <h2 style={{ fontSize: 'var(--baslik-bolum)', margin: 0 }}>{surum.template_name}</h2>
+        <div>
+          <h2 className="baslik-bolum">{surum.template_name}</h2>
+          <p className="meta" style={{ margin: 'var(--bosluk-1) 0 0' }}>
+            {tr.sablon.surum} {surum.version_no} · {surum.scored_item_count} {tr.sablon.puanlanan} ·{' '}
+            {surum.critical_item_count} {tr.sablon.kritik} · {surum.photo_item_count}{' '}
+            {tr.sablon.fotograf}
+          </p>
+        </div>
         <Cip {...DURUM_CIPI[surum.status]} />
-        <span style={{ color: 'var(--renk-sessiz)', fontSize: 'var(--meta)' }}>
-          {tr.sablon.surum} {surum.version_no} · {surum.scored_item_count} {tr.sablon.puanlanan} ·{' '}
-          {surum.critical_item_count} {tr.sablon.kritik} · {surum.photo_item_count}{' '}
-          {tr.sablon.fotograf}
-        </span>
       </header>
 
       {!duzenlenebilir && (
-        <p
-          style={{
-            background: 'var(--renk-yuzey2)',
-            borderRadius: 'var(--kose-dugme)',
-            padding: 'var(--bosluk-2) var(--bosluk-3)',
-            color: 'var(--renk-murekkep2)',
-            fontSize: 'var(--etiket)',
-          }}
-        >
-          {tr.sablon.yayinDegismez}{' '}
+        <div className="bildiri eylemler">
+          <span style={{ flex: '1 1 240px' }}>{tr.sablon.yayinDegismez}</span>
           {yonetici && (
             <Dugme gorunum="ikincil" boyut="kucuk" type="button" onClick={() => turet.mutate()}>
               {tr.sablon.yeniTaslak}
             </Dugme>
           )}
+        </div>
+      )}
+
+      {bolumler.length === 0 && duzenlenebilir && (
+        <p className="bos-durum" style={{ marginTop: 'var(--bosluk-4)' }}>
+          {tr.sablon.bolumYok}
         </p>
       )}
 
       {bolumler.map((bolum, bolumSira) => (
-        <section key={bolum.id ?? bolumSira} style={{ marginTop: 'var(--bosluk-4)' }}>
-          <h3
-            style={{
-              fontSize: 'var(--etiket)',
-              textTransform: 'uppercase',
-              letterSpacing: '0.06em',
-              color: 'var(--renk-sessiz)',
-            }}
-          >
+        <section key={bolum.id ?? bolumSira} style={{ marginTop: 'var(--bosluk-6)' }}>
+          <h3 className="bolum-etiketi">
             {bolum.title}
+            <span style={{ fontWeight: 400 }}>
+              {' '}
+              · {tr.sablon.maddeler(bolum.items?.length ?? 0)}
+            </span>
           </h3>
+          {(bolum.items ?? []).length === 0 && <p className="meta">{tr.sablon.maddeYok}</p>}
           <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
             {(bolum.items ?? []).map((madde, maddeSira) => (
               <MaddeSatiri
@@ -306,14 +302,8 @@ function SurumEditoru({
       {surum.publish_issues.length > 0 && (
         <div
           role="status"
-          style={{
-            marginTop: 'var(--bosluk-4)',
-            background: 'var(--renk-uyari-acik)',
-            color: 'var(--renk-murekkep)',
-            borderRadius: 'var(--kose-dugme)',
-            padding: 'var(--bosluk-3)',
-            fontSize: 'var(--etiket)',
-          }}
+          className="bildiri bildiri--uyari"
+          style={{ marginTop: 'var(--bosluk-4)' }}
         >
           <strong>{tr.sablon.yayinEngelleri}</strong>
           <ul style={{ margin: 'var(--bosluk-2) 0 0', paddingLeft: 'var(--bosluk-4)' }}>
@@ -325,41 +315,27 @@ function SurumEditoru({
       )}
 
       {duzenlenebilir && (
-        <div
-          style={{
-            display: 'flex',
-            gap: 'var(--bosluk-2)',
-            marginTop: 'var(--bosluk-4)',
-            flexWrap: 'wrap',
-          }}
-        >
+        <div className="eylemler">
           <Dugme
             type="button"
             disabled={taslak === null || kaydet.isPending}
             onClick={() => taslak && kaydet.mutate(taslak)}
-            style={{ opacity: taslak === null ? 0.5 : 1 }}
           >
             {tr.sablon.kaydet}
           </Dugme>
+          {/* Yayınla ikincil: geri alınamaz ama ekranın asıl işi değil.
+              Birincil olan, yapılan çalışmayı kaybetmeyen kaydetme. */}
           <Dugme
+            gorunum="ikincil"
             type="button"
             disabled={surum.publish_issues.length > 0 || taslak !== null || yayinla.isPending}
             onClick={() => yayinla.mutate()}
             title={taslak !== null ? tr.sablon.oncekaydet : undefined}
-            style={{
-              ...anaDugme,
-              background: 'var(--renk-yuzey2)',
-              color: 'var(--renk-murekkep)',
-              borderColor: 'var(--renk-cizgi)',
-              opacity: surum.publish_issues.length > 0 || taslak !== null ? 0.5 : 1,
-            }}
           >
             {tr.sablon.yayinla}
           </Dugme>
           {taslak !== null && (
-            <span
-              style={{ alignSelf: 'center', color: 'var(--renk-uyari)', fontSize: 'var(--etiket)' }}
-            >
+            <span style={{ color: 'var(--renk-uyari)', fontSize: 'var(--etiket)' }}>
               {tr.sablon.kaydedilmemis}
             </span>
           )}
@@ -367,7 +343,7 @@ function SurumEditoru({
       )}
 
       {yayinProblemi && (
-        <p role="alert" style={{ color: 'var(--renk-kritik)' }}>
+        <p role="alert" className="bildiri bildiri--hata" style={{ marginTop: 'var(--bosluk-3)' }}>
           {yayinProblemi.title}
         </p>
       )}
@@ -390,34 +366,22 @@ function MaddeSatiri({
   const aralikli = madde.type === 'temperature' || madde.type === 'number';
 
   return (
-    <li
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 'var(--bosluk-2)',
-        flexWrap: 'wrap',
-        padding: 'var(--bosluk-2) 0',
-        borderTop: '1px solid var(--renk-cizgi)',
-      }}
-    >
-      <span style={{ flex: '1 1 220px' }}>{madde.title}</span>
+    <li className="madde-satiri">
+      <span className="madde-satiri-ad">{madde.title}</span>
       <Cip renk="nötr" metin={tur} />
       {aralikli && (
-        <span
-          style={{
-            color: 'var(--renk-sessiz)',
-            fontSize: 'var(--meta)',
-            fontVariantNumeric: 'tabular-nums',
-          }}
-        >
+        <span className="meta" style={{ fontVariantNumeric: 'tabular-nums' }}>
           {madde.min_value ?? '?'}–{madde.max_value ?? '?'} {madde.unit ?? ''}
         </span>
       )}
       {madde.photo_required && <Cip renk="nötr" ikon="📷" metin={tr.sablon.fotografZorunlu} />}
       {madde.critical && <Cip renk="kritik" ikon="!" metin={tr.sablon.kritik} />}
       {duzenlenebilir && (
-        <>
-          <label style={{ fontSize: 'var(--meta)', display: 'flex', gap: 4, alignItems: 'center' }}>
+        /* Eylemler sağa toplanıyor: soldakiler maddeyi anlatıyor,
+           bunlar maddeyi değiştiriyor; araya karışınca satırda ikisi
+           ayırt edilemiyordu. */
+        <span className="madde-satiri-eylem">
+          <label className="secim-cipi">
             <input
               type="checkbox"
               checked={madde.critical ?? false}
@@ -435,13 +399,13 @@ function MaddeSatiri({
           <Dugme
             type="button"
             onClick={onSil}
-            gorunum="ikincil"
+            gorunum="sessiz"
             boyut="kucuk"
             aria-label={`${madde.title} ${tr.sablon.sil}`}
           >
             {tr.sablon.sil}
           </Dugme>
-        </>
+        </span>
       )}
     </li>
   );
@@ -472,34 +436,34 @@ function MaddeEkle({ onEkle }: { onEkle: (madde: MaddeGirdisi) => void }) {
         );
         setBaslik('');
       }}
-      style={{
-        display: 'flex',
-        gap: 'var(--bosluk-2)',
-        flexWrap: 'wrap',
-        marginTop: 'var(--bosluk-2)',
-      }}
+      className="alan-sirasi"
+      style={{ marginTop: 'var(--bosluk-3)' }}
     >
-      <input
-        value={baslik}
-        onChange={(o) => setBaslik(o.target.value)}
-        placeholder={tr.sablon.maddeBasligi}
-        aria-label={tr.sablon.maddeBasligi}
-        className="alan"
-        style={{ flex: '1 1 200px' }}
-      />
-      <select
-        value={tur}
-        onChange={(o) => setTur(o.target.value as MaddeTuru)}
-        aria-label={tr.sablon.maddeTuru}
-        className="alan"
-      >
-        {TURLER.map((t) => (
-          <option key={t.deger} value={t.deger}>
-            {t.etiket}
-          </option>
-        ))}
-      </select>
-      <Dugme type="submit" gorunum="ikincil" boyut="kucuk">
+      <label className="alan-etiket" style={{ flex: '1 1 200px' }}>
+        {tr.sablon.maddeBasligi}
+        <input
+          value={baslik}
+          onChange={(o) => setBaslik(o.target.value)}
+          aria-label={tr.sablon.maddeBasligi}
+          className="alan"
+        />
+      </label>
+      <label className="alan-etiket">
+        {tr.sablon.maddeTuru}
+        <select
+          value={tur}
+          onChange={(o) => setTur(o.target.value as MaddeTuru)}
+          aria-label={tr.sablon.maddeTuru}
+          className="alan"
+        >
+          {TURLER.map((t) => (
+            <option key={t.deger} value={t.deger}>
+              {t.etiket}
+            </option>
+          ))}
+        </select>
+      </label>
+      <Dugme type="submit" gorunum="ikincil">
         {tr.sablon.maddeEkle}
       </Dugme>
     </form>
@@ -516,17 +480,19 @@ function BolumEkle({ onEkle }: { onEkle: (baslik: string) => void }) {
         onEkle(baslik);
         setBaslik('');
       }}
-      style={{ display: 'flex', gap: 'var(--bosluk-2)', marginTop: 'var(--bosluk-4)' }}
+      className="alan-sirasi"
+      style={{ marginTop: 'var(--bosluk-6)' }}
     >
-      <input
-        value={baslik}
-        onChange={(o) => setBaslik(o.target.value)}
-        placeholder={tr.sablon.bolumBasligi}
-        aria-label={tr.sablon.bolumBasligi}
-        className="alan"
-        style={{ flex: '1 1 200px' }}
-      />
-      <Dugme type="submit" gorunum="ikincil" boyut="kucuk">
+      <label className="alan-etiket" style={{ flex: '1 1 200px' }}>
+        {tr.sablon.bolumBasligi}
+        <input
+          value={baslik}
+          onChange={(o) => setBaslik(o.target.value)}
+          aria-label={tr.sablon.bolumBasligi}
+          className="alan"
+        />
+      </label>
+      <Dugme type="submit" gorunum="ikincil">
         {tr.sablon.bolumEkle}
       </Dugme>
     </form>
@@ -551,33 +517,23 @@ function SablonEkleFormu({ onOlusturuldu }: { onOlusturuldu: (detay: SurumDetay)
         olay.preventDefault();
         olustur.mutate();
       }}
-      style={{
-        display: 'flex',
-        gap: 'var(--bosluk-2)',
-        marginTop: 'var(--bosluk-4)',
-        paddingTop: 'var(--bosluk-4)',
-        borderTop: '1px solid var(--renk-cizgi)',
-      }}
     >
-      <input
-        value={ad}
-        onChange={(o) => setAd(o.target.value)}
-        required
-        placeholder={tr.sablon.sablonAdi}
-        aria-label={tr.sablon.sablonAdi}
-        className="alan"
-        style={{ flex: 1 }}
-      />
-      <Dugme type="submit">{tr.sablon.sablonEkle}</Dugme>
+      <fieldset className="alan-grubu">
+        <legend>{tr.sablon.yeniSablon}</legend>
+        <div className="alan-sirasi">
+          <label className="alan-etiket" style={{ flex: '1 1 160px' }}>
+            {tr.sablon.sablonAdi}
+            <input
+              value={ad}
+              onChange={(o) => setAd(o.target.value)}
+              required
+              aria-label={tr.sablon.sablonAdi}
+              className="alan"
+            />
+          </label>
+          <Dugme type="submit">{tr.sablon.sablonEkle}</Dugme>
+        </div>
+      </fieldset>
     </form>
   );
 }
-
-const anaDugme = {
-  padding: '0 var(--bosluk-4)',
-  borderRadius: 'var(--kose-dugme)',
-  border: '1px solid var(--renk-marka)',
-  background: 'var(--renk-marka)',
-  color: '#fff',
-  cursor: 'pointer',
-} as const;
