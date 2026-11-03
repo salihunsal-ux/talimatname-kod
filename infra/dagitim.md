@@ -114,6 +114,28 @@ Deneme sürümünde:
 - Erişimi dar tutmak isterseniz güvenlik duvarında kaynak IP sınırı en
   ucuz çözüm; panelde ayrı bir "demo kapısı" yok.
 
+### Deneme sürümünü sınadıktan sonra toparlama
+
+Denemede açılan şeyler kalıcıdır: `tohum` yalnızca bölge, şube,
+istasyon, kullanıcı, şablon ve plan yazar — çalıştırma, aksiyon ve
+bildirimleri **zamanlayıcı** üretir, onlara dokunmaz. Yani elle açılan
+bir plan ya da "yapılmayacak" işaretlenen bir çalıştırma tohumu yeniden
+koşturmakla geri gelmez.
+
+Toparlarken iki kural:
+
+1. **`audit_event`'e dokunulmaz.** Kayıt zinciri ürünün vaadi; silinen
+   bir satır zinciri kırar. İz, geri alınan bir denemeyi de gösterir —
+   doğrusu da budur, o deneme gerçekten yapıldı.
+2. **SQL ile düzeltilen iş kaydı ize yazılmaz.** Uygulamanın kendi
+   yolu yoksa (örneğin "yapılmayacak"ı geri alma eylemi yok) SQL tek
+   çare; o zaman izle veritabanı arasında bilerek bir fark bırakılmış
+   olur ve bu yazıya geçer.
+
+Uygulamanın kendi kendini onardığı yerleri zorlamayın: çalıştırmayı
+`missed`'e döndürmek yeter, eksik aksiyonu zamanlayıcı bir sonraki
+turda açar (`sync_from_runs`, kimlik çalıştırmadan türüyor).
+
 ## Sürüm geçişi
 
 ```bash
