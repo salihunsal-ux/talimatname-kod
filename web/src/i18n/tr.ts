@@ -461,6 +461,8 @@ export const tr = {
     pencere: 'Pencere',
     kalan: (dk: number) => (dk > 0 ? `${dk} dk kaldı` : `${Math.abs(dk)} dk geçti`),
     ac: 'Listeyi aç',
+    gor: 'Listeyi gör',
+    kacirildi: 'Pencere ve tolerans geçti: bu liste kapandı, cevap yazılamaz.',
     geri: 'Listeye dön',
     ilerleme: (yapilan: number, toplam: number) => `${yapilan}/${toplam} madde`,
     yapildi: 'Yapıldı',

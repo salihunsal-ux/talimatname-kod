@@ -84,8 +84,15 @@ function BugunListesi({ onAc }: { onAc: (runId: string) => void }) {
                   {tr.saha.kalan(kalan)}
                 </p>
                 <div className="eylemler">
-                  <Dugme type="button" onClick={() => onAc(run.id)}>
-                    {tr.saha.ac}
+                  {/* Kapanmış liste de açılıyor ama **okumak** için:
+                      personel neyin sorulduğunu görebilmeli. Düğmenin
+                      yazısı hangisi olduğunu söylüyor. */}
+                  <Dugme
+                    gorunum={acilabilir ? 'birincil' : 'ikincil'}
+                    type="button"
+                    onClick={() => onAc(run.id)}
+                  >
+                    {acilabilir ? tr.saha.ac : tr.saha.gor}
                   </Dugme>
                 </div>
               </div>
@@ -128,8 +135,11 @@ function ListeCalistirma({ runId, onKapat }: { runId: string; onKapat: () => voi
   const veri = gorunum.data;
   const maddeler = veri.sections.flatMap((b) => b.items);
   const cevaplanan = maddeler.filter((m) => m.type === 'instruction' || m.answer !== null).length;
-  const kapali = veri.status === 'submitted' || veri.status === 'cancelled';
-  const gecikti = new Date(veri.window_end).getTime() < Date.now();
+  // Tolerans geçtiyse cevap yazılamaz: sunucu da reddeder, ekranın
+  // denemeye davet etmesi anlamsız.
+  const kacirildi = veri.status === 'missed';
+  const kapali = veri.status === 'submitted' || veri.status === 'cancelled' || kacirildi;
+  const gecikti = !kapali && new Date(veri.window_end).getTime() < Date.now();
   const problem = problemCoz(gonder.error);
 
   /** Seçenek etiketleri: sürüm detayından madde kimliğine göre. */
@@ -159,8 +169,9 @@ function ListeCalistirma({ runId, onKapat }: { runId: string; onKapat: () => voi
         </div>
       </header>
 
-      {kapali && <p className="bildiri bildiri--saglam">{tr.saha.kapandi}</p>}
-      {!kapali && gecikti && <p className="bildiri bildiri--uyari">{tr.saha.pencereKapali}</p>}
+      {kacirildi && <p className="bildiri bildiri--uyari">{tr.saha.kacirildi}</p>}
+      {kapali && !kacirildi && <p className="bildiri bildiri--saglam">{tr.saha.kapandi}</p>}
+      {gecikti && <p className="bildiri bildiri--uyari">{tr.saha.pencereKapali}</p>}
 
       {veri.sections.map((bolum) => (
         <section key={bolum.id} className="yigin yigin--dar">
