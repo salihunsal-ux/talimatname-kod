@@ -114,6 +114,30 @@ Deneme sürümünde:
 - Erişimi dar tutmak isterseniz güvenlik duvarında kaynak IP sınırı en
   ucuz çözüm; panelde ayrı bir "demo kapısı" yok.
 
+### Saha istemcisini ayrı alan adında açmak
+
+Merkez paneli ile saha istemcisi aynı pakette. Aynı kökende iki sekme
+açarsanız **tek oturumu paylaşırlar**: tarayıcı deposu kaynağa bağlı,
+yani aynı anda hem müdür hem personel olamazsınız ve uçtan uca akışı
+denemek sürekli çıkış-giriş ister.
+
+Çözüm ayrı paket değil **ayrı kaynak**: ikinci bir alan adı, aynı kap,
+aynı `/srv`, aynı `/api`.
+
+1. DNS: `saha.<alan>` için A kaydı, panelle aynı sunucuyu göstersin.
+   Caddy sertifikayı ancak kayıt yayıldıktan sonra alabilir.
+2. `.env`: `SAHA_ADRESI=saha.<alan>`
+3. `docker compose up -d web`
+
+Açılınca `saha.<alan>` doğrudan saha istemcisini veriyor — rol ne
+olursa olsun; müdür de oradan girip personelin gördüğü ekranı görür.
+Panel tarafı değişmiyor.
+
+`SAHA_ADRESI` boşsa Caddy bu bloğu kap içinde yayımlanmamış bir porta
+bağlar: dışarıdan erişilemez, sertifika istenmez, hiçbir şey değişmez.
+Yerelde denemek için `saha.localhost:5173` yeter; tarayıcılar
+`*.localhost` adlarını kendileri çözüyor, hosts dosyası gerekmiyor.
+
 ### Deneme sürümünü sınadıktan sonra toparlama
 
 Denemede açılan şeyler kalıcıdır: `tohum` yalnızca bölge, şube,
