@@ -1713,6 +1713,31 @@ label.dugme:has(input:disabled) {
   cursor: progress;
 }
 
+/* --- eksikler katlanır bölümü ----------------------------------------
+   Saha istemcisinin neyi yapmadığı ekranın içinde yazılı. Kapalı
+   başlıyor: ilk bakışta yolu tıkamasın, ama bir tık uzakta dursun. */
+
+.eksikler {
+  padding: var(--bosluk-4);
+  border: 1px solid var(--renk-cizgi);
+  border-radius: var(--kose-kart);
+  background: var(--renk-yuzey);
+}
+
+.eksikler > summary {
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.eksikler[open] > summary {
+  margin-bottom: var(--bosluk-4);
+}
+
+.eksikler .madde-satiri-ad {
+  font-size: var(--etiket);
+  color: var(--renk-murekkep2);
+}
+
 /* --- yığın sıfırlaması — dosyanın sonunda olmalı ----------------------
    Dikey ritim `gap`ten geliyor: yığına giren çocuğun kendi blok kenar
    boşlukları (paragrafın 1em'i, `.eylemler`in 16 px'i) üstüne

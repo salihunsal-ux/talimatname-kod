@@ -488,6 +488,60 @@ export const tr = {
     gonderildi: 'Liste gönderildi. Merkez panosunda görünüyor.',
     gonderimEngeli: 'Gönderime engel var:',
     kapandi: 'Bu liste kapandı.',
+    kritikAtlanamaz: 'Kritik madde atlanamaz (FR-0804).',
+    eksikler: {
+      baslik: 'Bu istemcide olmayanlar',
+      aciklama:
+        'Saha istemcisi demo panosunu doldurmak ve API sözleşmesini sınamak için yazıldı. ' +
+        'v1 kapsamındaki şu davranışlar burada yok — hangisinin neden olmadığı ayrı yazılı.',
+      yapilamaz: 'Tarayıcı yapamıyor — mobil uygulama gerekiyor',
+      yazilmadi: 'Tarayıcı yapabilirdi, bu demoda yazılmadı',
+      // (gereksinim, ne eksik) — kaynak: 04-gereksinimler/01-fonksiyonel-gereksinimler.md
+      tarayiciYapamaz: [
+        [
+          'FR-0604',
+          'Kamera doğrudan açılır, şablon “yalnızca kamera” ise galeri kapalıdır. Web’de `capture` bir ipucu, garanti değil: her fotoğraf galeri bayrağıyla yazılıyor.',
+        ],
+        [
+          'FR-0701…0703, 0706',
+          'Çevrimdışı önbellek, şifreli yerel kuyruk (500 kanıt / 72 saat) ve arka planda senk. Tarayıcıda güvenilir biçimde kurulamaz — Spike A’nın konusu.',
+        ],
+        [
+          'FR-0603',
+          'Uygulama kapansa da kaldığı yerden devam; cevaplar önce yerelde saklanır. Burada her cevap doğrudan sunucuya yazılıyor; bağlantı yoksa kayıt yok.',
+        ],
+        [
+          'FR-0207…0210',
+          'Kiosk: QR ile cihaz kaydı, 4 haneli PIN, 2 dk hareketsizlik kilidi, hatalı PIN bloğu. Sunucu uç noktaları da henüz yok.',
+        ],
+        [
+          'FR-1001, FR-1006',
+          'Push bildirimi ve cihaz token yönetimi (FCM/APNs). Liste açıldı ve pencere kapanıyor hatırlatmaları bu yüzden gelmiyor.',
+        ],
+      ],
+      yazilmadiListe: [
+        [
+          'FR-0605',
+          'Fotoğrafı cihazda ~300 KB’a sıkıştırma ve EXIF’ten çekim zamanı/konum okuma. Dosya olduğu gibi yükleniyor.',
+        ],
+        [
+          'FR-0615',
+          'Konum bayrakları (şube dışında > 500 m, konum yok). Konum hiç istenmiyor: her kanıt “konum yok” ile kaydediliyor.',
+        ],
+        [
+          'FR-0801, FR-0803',
+          '“Yapılamadı”da not ve fotoğraf; “Diğer” seçilince notun zorunlu olması. Burada yalnızca sebep seçiliyor.',
+        ],
+        ['FR-0613', 'Açılış listesinin başındaki “dün gece” bloğu: önceki kapanışın eksikleri.'],
+        ['FR-0806', 'Liste dışı sorun bildirimi (kategori, fotoğraf, not → şube müdürüne).'],
+        [
+          'FR-0521',
+          'Çalıştırma kilidi ekranda görünmüyor. Kilit sunucuda alınıyor ama “X yapıyor” uyarısı yok.',
+        ],
+        ['SCR-M-08', 'Aksiyonlarım: personelin kendi aksiyon listesi.'],
+        ['SCR-M-11', 'Senk ve profil: bekleyen kayıt, son senk, PIN değiştir.'],
+      ],
+    },
     pencereKapali: 'Pencere kapandı — geç gönderim olarak işaretlenir.',
   },
   tema: {

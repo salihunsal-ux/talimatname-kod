@@ -35,7 +35,47 @@ export function SahaSayfasi() {
       ) : (
         <ListeCalistirma runId={acik} onKapat={() => setAcik(null)} />
       )}
+      <Eksikler />
     </div>
+  );
+}
+
+/**
+ * Eksikler listesi ekranın içinde duruyor, belgede değil: bu istemciyi
+ * gören herkes neyin olmadığını da görsün. İki grup ayrı, çünkü
+ * "tarayıcı yapamıyor" ile "yazılmadı" farklı kararlar doğuruyor.
+ */
+function Eksikler() {
+  const { eksikler } = tr.saha;
+  const toplam = eksikler.tarayiciYapamaz.length + eksikler.yazilmadiListe.length;
+
+  return (
+    <details className="eksikler">
+      <summary>
+        {eksikler.baslik} ({toplam})
+      </summary>
+      <div className="yigin yigin--dar">
+        <p className="ikincil-metin">{eksikler.aciklama}</p>
+        {(
+          [
+            [eksikler.yapilamaz, eksikler.tarayiciYapamaz, 'kritik'],
+            [eksikler.yazilmadi, eksikler.yazilmadiListe, 'uyari'],
+          ] as const
+        ).map(([baslik, liste, renk]) => (
+          <section key={baslik}>
+            <h3 className="bolum-etiketi">{baslik}</h3>
+            <ul className="liste-yigin">
+              {liste.map(([gereksinim, metin]) => (
+                <li key={gereksinim} className="madde-satiri">
+                  <Cip renk={renk} metin={gereksinim} />
+                  <span className="madde-satiri-ad">{metin}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))}
+      </div>
+    </details>
   );
 }
 
@@ -446,7 +486,10 @@ function MaddeKarti({
           </div>
         )}
 
-        {!kilitli && (
+        {/* FR-0804: kritik madde atlanamaz, düğme hiç görünmez. */}
+        {!kilitli && madde.critical && <p className="alan-ipucu">{tr.saha.kritikAtlanamaz}</p>}
+
+        {!kilitli && !madde.critical && (
           <div className="kart-serit">
             {sebepAcik ? (
               <select
