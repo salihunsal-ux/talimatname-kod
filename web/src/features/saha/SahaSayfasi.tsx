@@ -133,7 +133,7 @@ function ListeCalistirma({ runId, onKapat }: { runId: string; onKapat: () => voi
   const problem = problemCoz(gonder.error);
 
   /** Seçenek etiketleri: sürüm detayından madde kimliğine göre. */
-  function secenekler(itemId: string): { label: string; passed: boolean }[] {
+  function secenekler(itemId: string): { label: string; passing?: boolean }[] {
     for (const bolum of surum.data?.sections ?? []) {
       for (const madde of bolum.items) {
         if (madde.id === itemId) return madde.options ?? [];
@@ -223,7 +223,7 @@ function MaddeKarti({
 }: {
   runId: string;
   madde: MaddeDurumu;
-  secenekler: { label: string; passed: boolean }[];
+  secenekler: { label: string; passing?: boolean }[];
   kilitli: boolean;
 }) {
   const kuyruk = useQueryClient();
@@ -335,7 +335,7 @@ function MaddeKarti({
                 onClick={() =>
                   yaz.mutate({
                     item_id: madde.item_id,
-                    state: secenek.passed ? 'passed' : 'failed',
+                    state: secenek.passing === false ? 'failed' : 'passed',
                     value: secenek.label,
                   })
                 }

@@ -44,7 +44,7 @@ export async function senkManifesti(): Promise<ManifestCiktisi> {
 }
 
 export async function surumDetayi(versionId: string): Promise<SurumDetay> {
-  const { data, error } = await api.GET('/api/v1/templates/versions/{version_id}', {
+  const { data, error } = await api.GET('/api/v1/template-versions/{version_id}', {
     params: { path: { version_id: versionId } },
   });
   if (error) throw error;
@@ -94,6 +94,8 @@ export async function kanitYukle(
   dosya: File,
 ): Promise<void> {
   const bayt = await dosya.arrayBuffer();
+  // Sunucu yalnızca bu iki türü kabul ediyor; tarayıcı HEIC de verebilir.
+  const tur = dosya.type === 'image/png' ? 'image/png' : 'image/jpeg';
 
   const { data: izin, error: izinHatasi } = await api.POST(
     '/api/v1/runs/{run_id}/answers/{answer_id}/evidence',
@@ -102,7 +104,7 @@ export async function kanitYukle(
       body: {
         item_id: itemId,
         sha256: await ozet(bayt),
-        content_type: dosya.type || 'image/jpeg',
+        content_type: tur,
         size_bytes: dosya.size,
         from_gallery: true,
         captured_at: new Date(dosya.lastModified).toISOString(),
@@ -117,7 +119,7 @@ export async function kanitYukle(
   // dosya ve uç nokta oturum istemiyor, yetki belirteç yolunda.
   const yanit = await fetch(izin.upload_url, {
     method: izin.upload_method ?? 'PUT',
-    headers: { 'content-type': dosya.type || 'image/jpeg' },
+    headers: { 'content-type': tur },
     body: bayt,
   });
   if (!yanit.ok) throw new Error(`Yükleme başarısız: ${yanit.status}`);
