@@ -1692,6 +1692,27 @@ select.alan {
   }
 }
 
+/* --- saha istemcisi ---------------------------------------------------
+   Personelin tek ekranı: yan menü yok, üst bant kalıyor (kim olarak
+   girdim, tema, çıkış). Telefonda açılması beklenen ekran bu. */
+
+.kabuk-govde--menusuz {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* Dosya seçici düğme gibi görünüyor: `.dugme` sınıfı bir `label`
+   üzerinde de çalışsın diye imleç ve seçim burada. Girdi `.sr-only`
+   ile gizli; etikete dokunmak onu açıyor. */
+label.dugme {
+  cursor: pointer;
+  user-select: none;
+}
+
+label.dugme:has(input:disabled) {
+  opacity: 0.6;
+  cursor: progress;
+}
+
 /* --- yığın sıfırlaması — dosyanın sonunda olmalı ----------------------
    Dikey ritim `gap`ten geliyor: yığına giren çocuğun kendi blok kenar
    boşlukları (paragrafın 1em'i, `.eylemler`in 16 px'i) üstüne

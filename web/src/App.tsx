@@ -4,8 +4,6 @@ import { useState } from 'react';
 import { belirtecAl, benGetir, cikisYap } from './api/oturum';
 import { sorguIstemcisi } from './api/sorguIstemcisi';
 import { mudurMu, OturumBaglami } from './api/yetki';
-import { Dugme } from './bilesenler/Dugme';
-import { Kart } from './bilesenler/Kart';
 import { Kabuk } from './bilesenler/Kabuk';
 import { SistemDurumu } from './features/sistem/SistemDurumu';
 import { DogrulamaSayfasi } from './features/dogrulama/DogrulamaSayfasi';
@@ -18,6 +16,7 @@ import { PlanlarSayfasi } from './features/planlar/PlanlarSayfasi';
 import { KurulumSayfasi } from './features/kurulum/KurulumSayfasi';
 import { RaporlarSayfasi } from './features/raporlar/RaporlarSayfasi';
 import { SablonlarSayfasi } from './features/sablonlar/SablonlarSayfasi';
+import { SahaSayfasi } from './features/saha/SahaSayfasi';
 import { SubelerSayfasi } from './features/subeler/SubelerSayfasi';
 import { tr } from './i18n/tr';
 
@@ -31,6 +30,7 @@ export type Bolum =
   | 'bildirimler'
   | 'kurulum'
   | 'raporlar'
+  | 'saha'
   | 'sistem';
 
 /** Oturumsuz sayfanın yolu. PDF dipnotundaki adres de burayı gösteriyor. */
@@ -97,22 +97,22 @@ function Kapi() {
     return <GirisSayfasi onGiris={giris} />;
   }
 
-  // Personelin panelde açabileceği ekran yok (rol matrisi); sunucu da
-  // aynı kapıyı tutuyor. Menüyü gösterip her tıklamada 403 vermek
-  // yerine durumu bir cümleyle söylüyoruz.
+  // Personelin panel ekranı yok (rol matrisi) ama işi var: saha
+  // istemcisi. Önce burada "panel müdürler için" yazan bir kart
+  // duruyordu; personel giriş yapıp hiçbir şey yapamıyordu.
   if (ben.data && !mudurMu(ben.data)) {
     return (
-      <main className="orta-sayfa">
-        <Kart yuzen style={{ width: '100%', maxWidth: 380, textAlign: 'center' }}>
-          <h1 className="baslik-ekran">{tr.giris.panelMudurler}</h1>
-          <p className="meta" style={{ margin: 'var(--bosluk-3) 0 var(--bosluk-6)' }}>
-            {tr.giris.panelMudurlerAciklama}
-          </p>
-          <Dugme gorunum="ikincil" tam type="button" onClick={cik}>
-            {tr.giris.cikis}
-          </Dugme>
-        </Kart>
-      </main>
+      <OturumBaglami value={ben.data}>
+        <Kabuk
+          menusuz
+          bolum="saha"
+          onBolum={() => undefined}
+          kullanici={{ ad: ben.data.full_name, rol: ben.data.roles[0]?.role_label ?? '' }}
+          onCikis={cik}
+        >
+          <SahaSayfasi />
+        </Kabuk>
+      </OturumBaglami>
     );
   }
 
@@ -138,6 +138,7 @@ function Kapi() {
             {bolum === 'aksiyonlar' && <AksiyonlarSayfasi />}
             {bolum === 'bildirimler' && <BildirimlerSayfasi />}
             {bolum === 'raporlar' && <RaporlarSayfasi />}
+            {bolum === 'saha' && <SahaSayfasi />}
             {bolum === 'kurulum' && <KurulumSayfasi />}
             {bolum === 'sistem' && <SistemDurumu />}
           </>

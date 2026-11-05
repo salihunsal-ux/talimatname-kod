@@ -22,6 +22,7 @@ const BOLUMLER: { anahtar: Bolum | null; ad: string; yonetim?: boolean }[] = [
   { anahtar: 'aksiyonlar', ad: tr.gezinme.aksiyonlar },
   { anahtar: 'bildirimler', ad: tr.gezinme.bildirimler, yonetim: true },
   { anahtar: 'raporlar', ad: tr.gezinme.raporlar },
+  { anahtar: 'saha', ad: tr.gezinme.saha },
   { anahtar: 'kurulum', ad: tr.gezinme.kurulum, yonetim: true },
   { anahtar: 'sistem', ad: tr.sistem.baslik },
 ];
@@ -32,12 +33,16 @@ export function Kabuk({
   onBolum,
   kullanici,
   onCikis,
+  menusuz = false,
 }: {
   children: ReactNode;
   bolum: Bolum;
   onBolum: (yeni: Bolum) => void;
   kullanici?: { ad: string; rol: string };
   onCikis?: () => void;
+  /** Saha istemcisi: üst bant kalır, yan menü yok — personelin
+      açabileceği tek ekran zaten bu. */
+  menusuz?: boolean;
 }) {
   // Açılamayacak bölüm menüde durmasın: 403 görmek bilgi değil, sürtünme.
   const yonetim = rolVar(useBen(), 'admin', 'region_manager');
@@ -68,25 +73,27 @@ export function Kabuk({
         )}
       </header>
 
-      <div className="kabuk-govde">
-        <nav aria-label={tr.gezinme.pano} className="kabuk-menu">
-          {BOLUMLER.filter((b) => !b.yonetim || yonetim).map(({ anahtar, ad }) => {
-            const etkin = anahtar !== null;
-            return (
-              <button
-                key={ad}
-                type="button"
-                className="dugme menu-dugme"
-                disabled={!etkin}
-                aria-current={anahtar === bolum}
-                onClick={() => anahtar && onBolum(anahtar)}
-                title={etkin ? undefined : tr.gezinme.henuzYok}
-              >
-                {ad}
-              </button>
-            );
-          })}
-        </nav>
+      <div className={menusuz ? 'kabuk-govde kabuk-govde--menusuz' : 'kabuk-govde'}>
+        {!menusuz && (
+          <nav aria-label={tr.gezinme.pano} className="kabuk-menu">
+            {BOLUMLER.filter((b) => !b.yonetim || yonetim).map(({ anahtar, ad }) => {
+              const etkin = anahtar !== null;
+              return (
+                <button
+                  key={ad}
+                  type="button"
+                  className="dugme menu-dugme"
+                  disabled={!etkin}
+                  aria-current={anahtar === bolum}
+                  onClick={() => anahtar && onBolum(anahtar)}
+                  title={etkin ? undefined : tr.gezinme.henuzYok}
+                >
+                  {ad}
+                </button>
+              );
+            })}
+          </nav>
+        )}
 
         <main className="kabuk-icerik">{children}</main>
       </div>
