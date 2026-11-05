@@ -36,6 +36,22 @@ export type Bolum =
 /** Oturumsuz sayfanın yolu. PDF dipnotundaki adres de burayı gösteriyor. */
 const DOGRULAMA_YOLU = '/dogrula';
 
+/**
+ * Saha istemcisi ayrı bir alan adında açılıyor (saha.ornek.com).
+ *
+ * Paket, kap ve dağıtım aynı; ayrı olan tek şey **kaynak**. Sebebi de
+ * tek: tarayıcı deposu kaynağa bağlı, yani merkez ve saha aynı
+ * bilgisayarda aynı anda farklı kişi olarak açılabiliyor. Aynı kökende
+ * iki sekme açılsa ikisi tek oturumu paylaşırdı ve uçtan uca akışı
+ * denemek için sürekli çıkış-giriş gerekirdi.
+ *
+ * Yerelde `saha.localhost:5173` çalışıyor: tarayıcılar `*.localhost`
+ * adlarını kendileri 127.0.0.1'e çözüyor, hosts dosyası gerekmiyor.
+ */
+function sahaKapisiMi(): boolean {
+  return window.location.hostname.startsWith('saha.');
+}
+
 export function App() {
   const belgeKodu = dogrulamaKodu();
   return (
@@ -95,6 +111,26 @@ function Kapi() {
   if (belirtec === null || ben.isError) {
     if (ben.isError) cikisYap();
     return <GirisSayfasi onGiris={giris} />;
+  }
+
+  // Ayrı alan adı: rol ne olursa olsun saha istemcisi. Müdür de
+  // buradan girip personelin gördüğü ekranı görebilir.
+  if (sahaKapisiMi()) {
+    return (
+      <OturumBaglami value={ben.data ?? null}>
+        <Kabuk
+          menusuz
+          bolum="saha"
+          onBolum={() => undefined}
+          kullanici={
+            ben.data && { ad: ben.data.full_name, rol: ben.data.roles[0]?.role_label ?? '' }
+          }
+          onCikis={cik}
+        >
+          <SahaSayfasi />
+        </Kabuk>
+      </OturumBaglami>
+    );
   }
 
   // Personelin panel ekranı yok (rol matrisi) ama işi var: saha

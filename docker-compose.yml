@@ -144,6 +144,9 @@ services:
       # sertifikayı kendi alır ve yeniler; o zaman WEB_PORT=80 ve
       # WEB_TLS_PORT=443 verilir ki doğrulama trafiği ulaşsın.
       SITE_ADRESI: ${SITE_ADRESI:-:80}
+      # Saha istemcisinin ayrı alan adı (örn. saha.ornek.com). Boşsa
+      # kap içinde yayımlanmamış bir porta bağlanır: kapalı demektir.
+      SAHA_ADRESI: ${SAHA_ADRESI::8081}
     ports:
       - "${WEB_PORT:-8080}:80"
       - "${WEB_TLS_PORT:-8443}:443"

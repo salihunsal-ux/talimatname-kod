@@ -1,4 +1,4 @@
-# Panelin ve API'nin tek giriş kapısı.
+# Panelin, saha istemcisinin ve API'nin giriş kapısı.
 #
 # `SITE_ADRESI` bir alan adıysa Caddy sertifikayı kendi alır ve yeniler
 # (Let's Encrypt). Yerelde `:8080` verilir, sertifika devreye girmez.
@@ -6,8 +6,15 @@
 # Panel ile API **aynı kaynakta**: `/api` buradan arkaya aktarılıyor.
 # Böylece tarayıcı açısından tek site var — CORS dağıtımda devreye
 # girmiyor ve imzalı kanıt bağlantıları (göreli adresler) çalışıyor.
+#
+# `SAHA_ADRESI` ikinci bir alan adı (örn. saha.ornek.com): aynı paket,
+# aynı kap, **ayrı kaynak**. Ayrı kaynak olmasının tek sebebi oturum:
+# tarayıcı deposu kaynağa bağlı olduğu için merkez ve saha aynı
+# bilgisayarda aynı anda farklı kişi olarak açılabiliyor. Boş
+# bırakılırsa kap içinde yayımlanmamış bir porta bağlanır ve dışarıdan
+# görünmez.
 
-{$SITE_ADRESI::8080} {
+(ortak) {
 	encode gzip
 
 	handle /api/* {
@@ -34,4 +41,12 @@
 		output stdout
 		format console
 	}
+}
+
+{$SITE_ADRESI::8080} {
+	import ortak
+}
+
+{$SAHA_ADRESI::8081} {
+	import ortak
 }
