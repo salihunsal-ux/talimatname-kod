@@ -1,7 +1,7 @@
 import { QueryClientProvider, useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
-import { belirtecAl, benGetir, cikisYap } from './api/oturum';
+import { belirtecAl, benGetir, cikisYap, oturumDinle } from './api/oturum';
 import { sorguIstemcisi } from './api/sorguIstemcisi';
 import { mudurMu, OturumBaglami } from './api/yetki';
 import { Kabuk } from './bilesenler/Kabuk';
@@ -89,6 +89,21 @@ function dogrulamaKodu(): string | null {
 function Kapi() {
   const [belirtec, setBelirtec] = useState<string | null>(() => belirtecAl());
   const [bolum, setBolum] = useState<Bolum>('pano');
+  const [suresiDoldu, setSuresiDoldu] = useState(false);
+
+  // Belirteç 30 dakika yaşıyor ve yenileme yok (ST-044). Süre dolunca
+  // sunucu her isteği reddediyor; kullanıcıyı ölü bir ekranda
+  // bırakmak yerine giriş ekranına dönüyoruz. Bırakma işini sorgu
+  // önbelleği yapıyor (api/sorguIstemcisi.ts), burada yalnızca ekran
+  // değişiyor.
+  useEffect(
+    () =>
+      oturumDinle(() => {
+        setBelirtec(null);
+        setSuresiDoldu(true);
+      }),
+    [],
+  );
 
   const ben = useQuery({
     queryKey: ['ben', belirtec],
@@ -99,18 +114,20 @@ function Kapi() {
 
   function giris() {
     setBelirtec(belirtecAl());
+    setSuresiDoldu(false);
   }
 
   function cik() {
     cikisYap();
     sorguIstemcisi.clear();
     setBelirtec(null);
+    setSuresiDoldu(false);
   }
 
   // Belirteç yok ya da sunucu kabul etmedi: giriş ekranı.
   if (belirtec === null || ben.isError) {
     if (ben.isError) cikisYap();
-    return <GirisSayfasi onGiris={giris} />;
+    return <GirisSayfasi onGiris={giris} suresiDoldu={suresiDoldu} />;
   }
 
   // Ayrı alan adı: rol ne olursa olsun saha istemcisi. Müdür de

@@ -24,7 +24,15 @@ import { TemaSecici } from '../../bilesenler/Tema';
  * söylüyor ve kodu görünür kılan ayar açıksa kodu gösteriyor. Sağlayıcı
  * bağlandığında (ST-067) bu uyarı kendiliğinden kaybolur.
  */
-export function GirisSayfasi({ onGiris }: { onGiris: () => void }) {
+export function GirisSayfasi({
+  onGiris,
+  suresiDoldu = false,
+}: {
+  onGiris: () => void;
+  /** Oturum kendiliğinden düştüyse sebebi yazılır: kullanıcı kendi
+      çıkmadığı hâlde giriş ekranında bulduğunda ne olduğunu bilsin. */
+  suresiDoldu?: boolean;
+}) {
   const [adim, setAdim] = useState<'telefon' | 'kod'>('telefon');
   const [telefon, setTelefon] = useState('');
   const [kod, setKod] = useState('');
@@ -87,6 +95,12 @@ export function GirisSayfasi({ onGiris }: { onGiris: () => void }) {
             {tr.giris.gir}
           </h2>
           <p className="sayfa-basligi-alt">{tr.giris.aciklama}</p>
+
+          {suresiDoldu && (
+            <p role="status" className="bildiri bildiri--uyari">
+              {tr.giris.suresiDoldu}
+            </p>
+          )}
 
           {adim === 'telefon' ? (
             <form

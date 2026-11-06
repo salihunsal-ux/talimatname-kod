@@ -167,6 +167,8 @@ export const tr = {
   },
   giris: {
     aciklama: 'Telefonunuza gelen kodla girin',
+    suresiDoldu:
+      'Oturum süresi doldu (30 dakika). Kaldığınız yerden devam etmek için yeniden girin.',
     telefon: 'Telefon numarası',
     telefonOrnek: '0532 000 00 00',
     kodIste: 'Kod iste',
@@ -581,7 +583,6 @@ export const tr = {
   hata: {
     genel: 'Bir şey ters gitti',
     aglaBaglanilamadi: 'Sunucuya bağlanılamadı',
-    yenidenGir: 'Yeniden giriş yap',
   },
 } as const;
 

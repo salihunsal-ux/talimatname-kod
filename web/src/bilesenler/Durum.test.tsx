@@ -23,14 +23,9 @@ describe('Hata', () => {
     expect(screen.queryByText('Sunucuya bağlanılamadı')).not.toBeInTheDocument();
   });
 
-  it('oturum düştüyse yeniden giriş yolu gösteriyor', () => {
-    // Sayfayı yenilemek kurtarmaz: belirteci bırakmak gerekiyor.
-    render(<Hata hata={problem('belirtec-gecersiz', 'Oturum geçersiz ya da süresi doldu')} />);
-
-    expect(screen.getByRole('button', { name: 'Yeniden giriş yap' })).toBeInTheDocument();
-  });
-
-  it('başka hatada yeniden giriş düğmesi yok', () => {
+  it('kutu yalnızca cümleyi gösteriyor, eylem taşımıyor', () => {
+    // Oturum düşüşünü sorgu önbelleği karşılıyor (api/oturum.test.ts):
+    // kutunun işi anlatmak, kurtarmak değil.
     render(<Hata hata={problem('gecersiz-istek', 'Bu şube kodu zaten var')} />);
 
     expect(screen.getByRole('alert')).toHaveTextContent('Bu şube kodu zaten var');

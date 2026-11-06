@@ -87,3 +87,29 @@ export async function benGetir(): Promise<Ben> {
 export function cikisYap(): void {
   belirtecYaz(null);
 }
+
+/**
+ * Oturum düşüşü: belirteç 30 dakika yaşıyor ve yenileme belirteci yok
+ * (ST-044). Süre dolduğunda kullanıcı panelin ortasında kalıyordu —
+ * her istek 403 veriyor ama ekran duruyordu. Artık sunucu oturumu
+ * reddettiği anda belirteç bırakılıyor ve uygulama giriş ekranına
+ * dönüyor.
+ *
+ * Abonelik React'in dışında: hatayı sorgu önbelleği yakalıyor, ekranı
+ * ise `App` değiştiriyor.
+ */
+type OturumDinleyici = () => void;
+const dinleyiciler = new Set<OturumDinleyici>();
+
+export function oturumDinle(dinleyici: OturumDinleyici): () => void {
+  dinleyiciler.add(dinleyici);
+  return () => dinleyiciler.delete(dinleyici);
+}
+
+export function oturumDustu(): void {
+  // Zaten düşmüşse ikinci kez duyurma: aynı turda birkaç sorgu
+  // birden 403 alıyor ve her biri burayı çağırıyor.
+  if (belirtecAl() === null) return;
+  belirtecYaz(null);
+  for (const dinleyici of dinleyiciler) dinleyici();
+}
