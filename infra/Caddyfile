@@ -23,10 +23,34 @@
 
 	handle {
 		root * /srv
-		# Tek sayfa uygulaması: bilinmeyen yol index.html'e düşer,
-		# yoksa tarayıcıdan yenilemede 404 alınır.
-		try_files {path} /index.html
-		file_server
+
+		# Sıra burada önemli: `route` yazıldığı sırayı koruyor. Yoksa
+		# Caddy yönergeleri kendi sırasına diziyor ve `try_files`
+		# `respond`tan önce koşup yolu index.html'e çeviriyor — o
+		# noktadan sonra "bu dosya yok mu" diye sormanın anlamı kalmaz.
+		route {
+			# Nokta ile başlayan yol parçası hiç servis edilmiyor:
+			# /.env, /.git/config, /.vscode/sftp.json. Sunucuda zaten
+			# yoklar (kökte index.html ve assets/ var), ama SPA kuralı
+			# hepsine 200 döndürüyordu ve tarayan bota "buldum" gibi
+			# görünüyordu.
+			@gizli path_regexp (^|/)\.
+			respond @gizli 404
+
+			# Dosya gibi görünen ama olmayan yol da 404: SPA kuralı
+			# yalnızca gezinme yollarına uygulanmalı.
+			@eksik_dosya {
+				not file
+				path_regexp \.[A-Za-z0-9]{1,10}$
+			}
+			respond @eksik_dosya 404
+
+			# Tek sayfa uygulaması: bilinmeyen **gezinme** yolu
+			# index.html'e düşer, yoksa tarayıcıdan yenilemede 404
+			# alınır (/dogrula/<kod> böyle çalışıyor).
+			try_files {path} /index.html
+			file_server
+		}
 	}
 
 	header {
