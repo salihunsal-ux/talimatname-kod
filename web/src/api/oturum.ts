@@ -4,7 +4,11 @@
  * Belirteç `localStorage`'ta tutuluyor: sekme kapanınca oturum düşmesin.
  * Bu, XSS karşısında httpOnly çerez kadar güvenli değil — v1'de panel
  * tek kaynaktan servis edileceği ve CSP kurulacağı için kabul edildi;
- * kalıcı oturum için yenileme belirteci ST-044'te ele alınacak.
+ * kalıcı oturum için yenileme belirteci henüz **hiçbir hikâyede
+ * yok** (bu satır ST-044'ü gösteriyordu, o bildirim servisi).
+ * FR-0203 web oturumunu 12 saat ve iptal edilebilir yenileme
+ * belirteciyle istiyor; açık iş ürün dosyasında:
+ * 04-gereksinimler/08-oturum-suresi-acigi.md.
  */
 import { api } from './client';
 import type { components } from './schema';
