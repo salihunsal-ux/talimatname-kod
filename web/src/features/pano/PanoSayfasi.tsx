@@ -130,7 +130,7 @@ export function PanoSayfasi() {
       </header>
 
       <div className="yigin">
-        {pano.isError && <Hata metin={tr.hata.aglaBaglanilamadi} />}
+        {pano.isError && <Hata hata={pano.error} metin={tr.hata.aglaBaglanilamadi} />}
 
         {/* Panonun hiç yükleme hâli yoktu: veri gelene kadar sayfa
             başlıktan ibaret kalıyordu. En çok beklenen ekran bu. */}

@@ -266,7 +266,7 @@ function AylikOzetBolumu({
       <p className="alan-ipucu">{tr.rapor.pdfAciklama}</p>
 
       {ozet.isPending && <IskeletKutular adet={8} />}
-      {ozet.isError && <Hata metin={tr.hata.aglaBaglanilamadi} />}
+      {ozet.isError && <Hata hata={ozet.error} metin={tr.hata.aglaBaglanilamadi} />}
       {ozet.data && <OzetKartlari ozet={ozet.data} />}
       {ozet.data && ozet.data.branches.length > 0 && <SubeTablosu ozet={ozet.data} />}
       {ozet.data && ozet.data.counters.total === 0 && (

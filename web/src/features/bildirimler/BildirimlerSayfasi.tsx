@@ -101,7 +101,7 @@ export function BildirimlerSayfasi() {
         </div>
 
         {liste.isPending && <IskeletTablo sutunlar={4} satirlar={6} />}
-        {liste.isError && <Hata metin={tr.hata.aglaBaglanilamadi} />}
+        {liste.isError && <Hata hata={liste.error} metin={tr.hata.aglaBaglanilamadi} />}
         {liste.data?.length === 0 && <p className="bos-durum">{tr.bildirim.bos}</p>}
 
         {liste.data && liste.data.length > 0 && (

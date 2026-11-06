@@ -158,7 +158,7 @@ export function CalistirmaDetayi({ runId, onKapat }: { runId: string; onKapat: (
   });
 
   if (gorunum.isPending) return <Yukleniyor />;
-  if (gorunum.isError || !gorunum.data) return <Hata />;
+  if (gorunum.isError || !gorunum.data) return <Hata hata={gorunum.error} />;
 
   const veri = gorunum.data;
 

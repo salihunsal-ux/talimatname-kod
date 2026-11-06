@@ -40,7 +40,8 @@ export function KurulumSayfasi() {
   const [acik, setAcik] = useState<string | null>(null);
 
   if (durum.isPending) return <Yukleniyor />;
-  if (durum.isError || !durum.data) return <Hata metin={tr.hata.aglaBaglanilamadi} />;
+  if (durum.isError || !durum.data)
+    return <Hata hata={durum.error} metin={tr.hata.aglaBaglanilamadi} />;
 
   const veri = durum.data;
   const secili = acik ?? veri.current;
@@ -223,9 +224,7 @@ function MarkaAdimi({ durum, onKaydedildi }: { durum: KurulumDurumu; onKaydedild
           </div>
         </fieldset>
 
-        {kaydet.isError && (
-          <Hata metin={problemCoz(kaydet.error)?.title ?? tr.hata.aglaBaglanilamadi} />
-        )}
+        {kaydet.isError && <Hata hata={kaydet.error} />}
 
         <div className="eylemler">
           <Dugme type="submit" disabled={kaydet.isPending || !ad.trim()}>
@@ -503,9 +502,7 @@ function PlanAdimi({ onKaydedildi }: { onKaydedildi: () => void }) {
       </header>
 
       {oneri.isPending && <Yukleniyor />}
-      {oneri.isError && (
-        <Hata metin={problemCoz(oneri.error)?.title ?? tr.hata.aglaBaglanilamadi} />
-      )}
+      {oneri.isError && <Hata hata={oneri.error} />}
 
       {oneri.data && (
         <div className="yigin">

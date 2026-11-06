@@ -113,7 +113,7 @@ export function PersonelSayfasi() {
       </div>
 
       {personel.isPending && <IskeletTablo sutunlar={4} />}
-      {personel.isError && <Hata metin={tr.hata.aglaBaglanilamadi} />}
+      {personel.isError && <Hata hata={personel.error} metin={tr.hata.aglaBaglanilamadi} />}
 
       {personel.data && personel.data.length === 0 && (
         <p className="bos-durum">{tr.personel.bos}</p>

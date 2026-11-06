@@ -49,7 +49,7 @@ export function SubelerSayfasi() {
       <div className="liste-detay">
         <div className="liste-detay-kenar">
           {agac.isPending && <IskeletListe satirlar={6} />}
-          {agac.isError && <Hata metin={tr.hata.aglaBaglanilamadi} />}
+          {agac.isError && <Hata hata={agac.error} metin={tr.hata.aglaBaglanilamadi} />}
           {bos && <p className="bos-durum">{tr.subeler.subeYok}</p>}
 
           {agac.data?.map((bolge) => (
@@ -110,7 +110,7 @@ function SubeDetayi({ id, onPasiflestirildi }: { id: string; onPasiflestirildi: 
   });
 
   if (detay.isPending) return <Yukleniyor />;
-  if (detay.isError || !detay.data) return <Hata />;
+  if (detay.isError || !detay.data) return <Hata hata={detay.error} />;
 
   const sube = detay.data;
 

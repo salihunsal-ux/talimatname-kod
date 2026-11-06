@@ -96,7 +96,7 @@ export function AksiyonlarSayfasi() {
       </div>
 
       {aksiyonlar.isPending && <IskeletListe satirlar={3} />}
-      {aksiyonlar.isError && <Hata metin={tr.hata.aglaBaglanilamadi} />}
+      {aksiyonlar.isError && <Hata hata={aksiyonlar.error} metin={tr.hata.aglaBaglanilamadi} />}
       {aksiyonlar.data?.length === 0 && <p className="bos-durum">{tr.aksiyon.bos}</p>}
 
       <ul className="liste-yigin">

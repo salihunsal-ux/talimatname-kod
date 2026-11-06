@@ -100,7 +100,7 @@ function BugunListesi({ onAc }: { onAc: (runId: string) => void }) {
       </header>
 
       {liste.isPending && <IskeletListe satirlar={3} />}
-      {liste.isError && <Hata metin={tr.hata.aglaBaglanilamadi} />}
+      {liste.isError && <Hata hata={liste.error} metin={tr.hata.aglaBaglanilamadi} />}
       {liste.data?.length === 0 && <p className="bos-durum">{tr.saha.listeYok}</p>}
 
       <ul className="liste-yigin">
@@ -170,7 +170,7 @@ function ListeCalistirma({ runId, onKapat }: { runId: string; onKapat: () => voi
   });
 
   if (gorunum.isPending) return <Yukleniyor />;
-  if (gorunum.isError || !gorunum.data) return <Hata />;
+  if (gorunum.isError || !gorunum.data) return <Hata hata={gorunum.error} />;
 
   const veri = gorunum.data;
   const maddeler = veri.sections.flatMap((b) => b.items);

@@ -581,6 +581,7 @@ export const tr = {
   hata: {
     genel: 'Bir şey ters gitti',
     aglaBaglanilamadi: 'Sunucuya bağlanılamadı',
+    yenidenGir: 'Yeniden giriş yap',
   },
 } as const;
 
