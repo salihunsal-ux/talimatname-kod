@@ -251,7 +251,11 @@ function EskalasyonBosluklari({ veri }: { veri: PanoYaniti }) {
           <li key={b.branch_id}>
             {b.critical
               ? bosluk.kritikSatir(b.branch_name)
-              : bosluk.satir(b.branch_name, b.missing.join(' ve '), b.reached_label)}
+              : bosluk.satir(
+                  b.branch_name,
+                  b.missing.join(' ve '),
+                  bosluk.ulasan[b.reached] ?? b.reached_label,
+                )}
           </li>
         ))}
       </ul>

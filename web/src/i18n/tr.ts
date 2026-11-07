@@ -394,8 +394,16 @@ export const tr = {
     bosluk: {
       baslik: (sayi: number) => `${sayi} şubede uyarı şube müdürüne ulaşmıyor`,
       kritikBaslik: (sayi: number) => `${sayi} şubede uyarı hiç kimseye ulaşmıyor`,
+      // Yönelme eki etiketten türetilemiyor ("yönetici" → "yöneticiye",
+      // "bölge müdürü" → "bölge müdürüne"): basamak başına yazılı.
+      ulasan: {
+        branch_manager: 'şube müdürüne',
+        region_manager: 'bölge müdürüne',
+        admin: 'yöneticiye',
+        hicbiri: 'hiç kimseye',
+      } as Record<string, string>,
       satir: (sube: string, eksik: string, ulasan: string) =>
-        `${sube}: ${eksik} yok — uyarı ${ulasan.toLocaleLowerCase('tr')} gidiyor.`,
+        `${sube}: ${eksik} yok — uyarı ${ulasan} gidiyor.`,
       kritikSatir: (sube: string) => `${sube}: zincirde kimse yok — uyarı kayboluyor.`,
       aciklama: 'Kaçırılan liste ve kritik madde uyarıları bu merdivenden iniyor (BR-11).',
       cozum: 'Personel ekranından şubeye müdür atayın.',

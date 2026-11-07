@@ -201,7 +201,10 @@ describe('eskalasyon boşlukları (BR-11 · FR-0915)', () => {
     kur();
 
     expect(await screen.findByText(/1 şubede uyarı şube müdürüne ulaşmıyor/)).toBeInTheDocument();
-    expect(screen.getByText(/Şişli: Şube müdürü ve Bölge müdürü yok/)).toBeInTheDocument();
+    // Yönelme eki: "yönetici gidiyor" değil, "yöneticiye gidiyor".
+    expect(
+      screen.getByText('Şişli: Şube müdürü ve Bölge müdürü yok — uyarı yöneticiye gidiyor.'),
+    ).toBeInTheDocument();
   });
 
   it('zincirde kimse yoksa bunu ayrıca söylüyor', async () => {
