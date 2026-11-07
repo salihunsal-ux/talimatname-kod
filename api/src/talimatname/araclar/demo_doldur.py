@@ -18,8 +18,8 @@ dosya var ve ne olduğu belli.
 
 Kullanım (sunucuda, api konteyneri içinde):
 
-    python -m tools.demo_doldur --gun 28
-    python -m tools.demo_doldur --gun 28 --kuru   # yazmadan özet
+    python -m talimatname.araclar.demo_doldur --gun 28
+    python -m talimatname.araclar.demo_doldur --gun 28 --kuru   # yazmadan özet
 """
 
 from __future__ import annotations
