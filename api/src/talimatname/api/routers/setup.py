@@ -107,7 +107,10 @@ class YuklemeRaporu(BaseModel):
     updated: int
     rejected: bool
     errors: list[SatirHatasi]
-    branches: list[str] = Field(default_factory=list, description="Kabul edilen şube kodları")
+    branches: list[str] = Field(
+        default_factory=list,
+        description="Kabul edilen şube kodları; yalnızca şube yüklemesinde dolar",
+    )
 
 
 def _marka(ayar: AccountSettings | None) -> MarkaCiktisi | None:
@@ -151,7 +154,12 @@ def _personel_raporu(rapor: StaffReport) -> YuklemeRaporu:
         updated=rapor.updated,
         rejected=rapor.rejected,
         errors=[SatirHatasi(row=h.row, field=h.field, message=h.message) for h in rapor.errors],
-        branches=[satir.phone for satir in rapor.rows],
+        # `branches` **şube kodu** alanı; personel raporunda boş kalır.
+        # Eskiden kabul edilen satırların telefonları buraya yazılıyordu:
+        # 200 kişilik bir yüklemede cevap gövdesi, istemcinin şube kodu
+        # sanacağı bir alanda 200 numara taşıyordu (BR-21). Listeyi okuyan
+        # kimse yok; ekranda created/updated/error_rows sayıları duruyor.
+        branches=[],
     )
 
 

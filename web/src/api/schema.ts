@@ -3664,7 +3664,7 @@ export interface components {
             errors: components["schemas"]["SatirHatasi"][];
             /**
              * Branches
-             * @description Kabul edilen şube kodları
+             * @description Kabul edilen şube kodları; yalnızca şube yüklemesinde dolar
              */
             branches?: string[];
         };

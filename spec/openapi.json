@@ -8385,7 +8385,7 @@
             },
             "type": "array",
             "title": "Branches",
-            "description": "Kabul edilen şube kodları"
+            "description": "Kabul edilen şube kodları; yalnızca şube yüklemesinde dolar"
           }
         },
         "type": "object",

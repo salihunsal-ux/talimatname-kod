@@ -999,3 +999,40 @@ def test_uc_nokta_personel_onizleme_ve_yukleme(tmp_path: Path) -> None:
         files={"file": ("personel.xlsx", veri, "application/vnd.ms-excel")},
     ).json()
     assert yukleme["created"] == 1
+
+
+def test_personel_raporu_telefon_tasimiyor(tmp_path: Path) -> None:
+    """`branches` şube kodu alanı; personel raporu oraya numara yazmaz.
+
+    Eskiden kabul edilen her satırın telefonu bu listeye giriyordu, yani
+    cevap gövdesi istemcinin şube kodu sanacağı bir alanda numaraları
+    taşıyordu (BR-21). Alanı okuyan kimse yok.
+    """
+    istemci = _istemci(tmp_path)
+    veri = _personel_dosyasi(
+        [_kisi("Yeni Kişi", "0532 999 88 77"), _kisi("Başka Kişi", "0532 999 88 78")]
+    )
+
+    for uc in ("preview", "import"):
+        yanit = istemci.post(
+            f"/api/v1/setup/staff/{uc}",
+            files={"file": ("personel.xlsx", veri, "application/vnd.ms-excel")},
+        ).json()
+
+        assert yanit["accepted"] == 2
+        assert yanit["branches"] == []
+        assert "88 77" not in str(yanit)
+        assert "905329998877" not in str(yanit)
+
+
+def test_sube_raporu_kodlari_tasimaya_devam_ediyor(tmp_path: Path) -> None:
+    """Aynı alan şube yüklemesinde anlamlı: orada kod listesi doğru."""
+    istemci = _istemci(tmp_path)
+    veri = _dosya([_sube("ALS", "Alsancak")])
+
+    yanit = istemci.post(
+        "/api/v1/setup/branches/import",
+        files={"file": ("subeler.xlsx", veri, "application/vnd.ms-excel")},
+    ).json()
+
+    assert yanit["branches"] == ["ALS"]
