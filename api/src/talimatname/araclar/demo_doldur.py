@@ -127,12 +127,19 @@ def kanit_yukle(
 
 def calistirmayi_doldur(run: Run, *, basarisiz_mi: bool, gec_mi: bool, kisi: UUID | None) -> str:
     """Tek çalıştırmayı cevaplayıp gönderir; sonucu anlatan satır döner."""
-    # Gönderim anı: pencere içinde ya da (geç ise) pencereden sonra,
-    # tolerans bitmeden. Yazma anı her hâlükârda pencere içinde.
-    yazma_ani = run.window_start + timedelta(minutes=10)
+    # Zamanlar pencereye sığacak biçimde sıkıştırılıyor: kısa pencereli
+    # ya da toleransı sıfır planlarda sabit +10 dk tolerans bitişini
+    # aşıyor ve sunucu haklı olarak `pencere-kapali` diyordu.
+    son_an = run.tolerance_end - timedelta(minutes=1)
+    yazma_ani = min(run.window_start + timedelta(minutes=10), son_an)
+    if gec_mi and run.tolerance_end <= run.window_end:
+        gec_mi = False  # tolerans yok: "geç" diye bir hâl de yok
     gonderim_ani = (
-        run.window_end + timedelta(minutes=10) if gec_mi else run.window_end - timedelta(minutes=5)
+        min(run.window_end + timedelta(minutes=10), son_an)
+        if gec_mi
+        else max(run.window_end - timedelta(minutes=5), yazma_ani)
     )
+    gonderim_ani = min(gonderim_ani, son_an)
 
     yurutme, _ = saat_kurulu_servisler(yazma_ani)
     surum = yurutme._version(run)
