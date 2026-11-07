@@ -11,12 +11,14 @@ from pydantic import BaseModel, Field, model_validator
 
 from talimatname.api.bagimliliklar import (
     ayarlar,
+    kurulum_servisi,
     organizasyon_servisi,
     plan_servisi,
     sablon_servisi,
     zamanlayici_servisi,
 )
 from talimatname.api.guvenlik import Kullanici, Mudur, Yonetici
+from talimatname.api.is_gunu import bugun
 from talimatname.domain.plans import Assignment, Plan, Run
 from talimatname.domain.window import (
     MAX_TOLERANCE_MINUTES,
@@ -30,12 +32,14 @@ from talimatname.services.organization import (
 )
 from talimatname.services.plans import HORIZON_DAYS, PlanService
 from talimatname.services.scheduler import SchedulerService
+from talimatname.services.setup import SetupService
 from talimatname.services.templates import TemplateService
 
 router = APIRouter(tags=["plan"])
 
 Servis = Annotated[PlanService, Depends(plan_servisi)]
 OrgServis = Annotated[OrganizationService, Depends(organizasyon_servisi)]
+KurulumServis = Annotated[SetupService, Depends(kurulum_servisi)]
 SablonServis = Annotated[TemplateService, Depends(sablon_servisi)]
 ZamanlayiciServis = Annotated[SchedulerService, Depends(zamanlayici_servisi)]
 
@@ -204,6 +208,10 @@ class PlanGirdisi(BaseModel):
 class CalistirmaOzet(BaseModel):
     id: UUID
     plan_id: UUID
+    #: Hangi liste olduğu. Saha kartı yalnızca şube adını yazıyordu;
+    #: iki liste de "Kadıköy" görünüyor, hangi işin yapılacağı ancak
+    #: liste açılınca öğreniliyordu (bağımsız test turu B10).
+    plan_name: str
     branch_id: UUID
     branch_name: str
     business_day: date
@@ -260,11 +268,21 @@ def _sube_adlari(org: OrganizationService) -> dict[UUID, str]:
     }
 
 
-def _calistirma(run: Run, adlar: dict[UUID, str], simdi: datetime) -> CalistirmaOzet:
+def _plan_adlari(servis: PlanService) -> dict[UUID, str]:
+    return {plan.id: plan.name for plan in servis.list_plans(include_inactive=True)}
+
+
+def _calistirma(
+    run: Run,
+    adlar: dict[UUID, str],
+    simdi: datetime,
+    plan_adlari: dict[UUID, str],
+) -> CalistirmaOzet:
     durum, gec = run.state_at(simdi)
     return CalistirmaOzet(
         id=run.id,
         plan_id=run.plan_id,
+        plan_name=plan_adlari.get(run.plan_id, "Liste"),
         branch_id=run.branch_id,
         branch_name=adlar.get(run.branch_id, "—"),
         business_day=run.business_day,
@@ -348,7 +366,7 @@ def plan_onizleme(
     return OnizlemeYaniti(
         days=days,
         run_count=len(runs),
-        runs=[_calistirma(r, adlar, simdi) for r in runs],
+        runs=[_calistirma(r, adlar, simdi, {plan.id: plan.name}) for r in runs],
     )
 
 
@@ -442,11 +460,13 @@ def calistirmalar(
     servis: Servis,
     org: OrgServis,
     kullanici: Kullanici,
+    kurulum: KurulumServis,
     business_day: date | None = None,
 ) -> list[CalistirmaOzet]:
-    gun = business_day or datetime.now(UTC).date()
+    gun = business_day or bugun(kurulum)
     adlar = _sube_adlari(org)
     kapsam = erisilebilir_sube_idleri(kullanici, org)
     runs = [r for r in servis.runs_for_day(gun) if r.branch_id in kapsam]
     simdi = datetime.now(UTC)
-    return [_calistirma(r, adlar, simdi) for r in runs]
+    plan_adlari = _plan_adlari(servis)
+    return [_calistirma(r, adlar, simdi, plan_adlari) for r in runs]

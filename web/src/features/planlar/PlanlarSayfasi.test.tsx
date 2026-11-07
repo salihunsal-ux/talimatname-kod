@@ -51,6 +51,7 @@ beforeEach(() => {
     {
       id: 'r-1',
       plan_id: 'p-1',
+      plan_name: 'Günlük kapanış',
       branch_id: 'b-1',
       branch_name: 'Kadıköy',
       business_day: '2026-11-02',
@@ -161,6 +162,7 @@ describe('Planlar sayfası', () => {
         {
           id: 'r-2',
           plan_id: 'p-x',
+          plan_name: 'Günlük kapanış',
           branch_id: 'b-1',
           branch_name: 'Kadıköy',
           business_day: '2026-11-02',

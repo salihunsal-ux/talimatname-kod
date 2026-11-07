@@ -92,7 +92,10 @@ class AuthService:
         numara = normalize_phone(phone)
         kullanici = self._users.user_by_phone(numara)
         if kullanici is None:
-            raise UnknownPhone(f"Telefon: {numara}")
+            # Detay yok: numarayı geri yazmak kullanıcıya bir şey
+            # söylemiyordu, ekranda başlığın yerine geçip "Telefon:
+            # +90…" diye görünüyordu (bağımsız test turu B08).
+            raise UnknownPhone()
         if kullanici.status != "active":
             raise UserInactive(f"Durum: {kullanici.status}")
 
@@ -144,7 +147,10 @@ class AuthService:
 
         kullanici = self._users.user_by_phone(numara)
         if kullanici is None:  # kullanıcı bu arada silinmiş olabilir
-            raise UnknownPhone(f"Telefon: {numara}")
+            # Detay yok: numarayı geri yazmak kullanıcıya bir şey
+            # söylemiyordu, ekranda başlığın yerine geçip "Telefon:
+            # +90…" diye görünüyordu (bağımsız test turu B08).
+            raise UnknownPhone()
         del self._challenges[numara]
         return kullanici, self.issue_token(kullanici)
 

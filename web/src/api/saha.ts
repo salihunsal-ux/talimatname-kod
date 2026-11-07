@@ -79,6 +79,40 @@ async function ozet(bayt: ArrayBuffer): Promise<string> {
   return [...new Uint8Array(ham)].map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
+/** Sunucunun kabul ettiği kanıt türleri (`ALLOWED_TYPES`). */
+export type KanitTuru = 'image/jpeg' | 'image/png';
+
+/**
+ * Dosyanın gönderilecek tür etiketi.
+ *
+ * Eskiden PNG dışındaki **her** dosya `image/jpeg` diye etiketleniyor
+ * ama baytları dönüştürülmüyordu: dosya seçici `image/*` kabul ettiği
+ * için WebP/HEIC/GIF yanlış etiketle depoya gidiyordu (bağımsız test
+ * turu B12). Özeti baytlardan hesaplandığı için yükleme geçiyor, ama
+ * depodaki kayıt yalan söylüyor ve önizleme bozulabiliyordu.
+ *
+ * Dönüştürmek yerine **reddediyoruz**: tarayıcıda yeniden kodlamak
+ * kanıtın baytlarını değiştirir, damgalanan şey artık çekilen dosya
+ * olmaz.
+ */
+export function kanitTuru(dosya: File): KanitTuru {
+  const tur = dosya.type.toLowerCase();
+  if (tur === 'image/png') return 'image/png';
+  if (tur === 'image/jpeg' || tur === 'image/jpg') return 'image/jpeg';
+  throw new DesteklenmeyenTur(dosya.type || 'bilinmeyen');
+}
+
+/** Kanıt olarak yüklenemeyen dosya türü. */
+export class DesteklenmeyenTur extends Error {
+  readonly tur: string;
+
+  constructor(tur: string) {
+    super(`Desteklenmeyen dosya türü: ${tur}`);
+    this.name = 'DesteklenmeyenTur';
+    this.tur = tur;
+  }
+}
+
 /**
  * Kanıt yükleme: izin → bayt → tamamla (FR-0606).
  *
@@ -94,8 +128,7 @@ export async function kanitYukle(
   dosya: File,
 ): Promise<void> {
   const bayt = await dosya.arrayBuffer();
-  // Sunucu yalnızca bu iki türü kabul ediyor; tarayıcı HEIC de verebilir.
-  const tur = dosya.type === 'image/png' ? 'image/png' : 'image/jpeg';
+  const tur = kanitTuru(dosya);
 
   const { data: izin, error: izinHatasi } = await api.POST(
     '/api/v1/runs/{run_id}/answers/{answer_id}/evidence',

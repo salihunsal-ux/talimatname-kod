@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { problemCoz } from '../../api/client';
+import { problemCoz, type Problem } from '../../api/client';
 import { kodDogrula, kodIste, type KodYaniti } from '../../api/oturum';
 import { Alan } from '../../bilesenler/Alan';
 import { Dugme } from '../../bilesenler/Dugme';
@@ -24,6 +24,20 @@ import { TemaSecici } from '../../bilesenler/Tema';
  * söylüyor ve kodu görünür kılan ayar açıksa kodu gösteriyor. Sağlayıcı
  * bağlandığında (ST-067) bu uyarı kendiliğinden kaybolur.
  */
+/**
+ * Girişte kullanıcıya gösterilecek cümle.
+ *
+ * Eskiden `detail` başlığın **yerine** geçiyordu: kayıtlı olmayan
+ * numarada ekranda yalnızca "Telefon: +90…" yazıyor, "Bu numarayla
+ * kayıtlı kullanıcı yok" hiç görünmüyordu (bağımsız test turu B08).
+ * Başlık artık her zaman duruyor; detay varsa arkasına ekleniyor —
+ * "2 hakkınız kaldı" ya da geri sayım gibi gerçekten kullanıcıya ait
+ * olanlar kaybolmasın.
+ */
+function girisHatasi(problem: Problem): string {
+  return problem.detail ? `${problem.title}: ${problem.detail}` : problem.title;
+}
+
 export function GirisSayfasi({
   onGiris,
   suresiDoldu = false,
@@ -47,7 +61,7 @@ export function GirisSayfasi({
       await is();
     } catch (sebep) {
       const problem = problemCoz(sebep);
-      setHata(problem ? (problem.detail ?? problem.title) : tr.hata.aglaBaglanilamadi);
+      setHata(problem ? girisHatasi(problem) : tr.hata.aglaBaglanilamadi);
     } finally {
       setCalisiyor(false);
     }

@@ -21,6 +21,7 @@ import {
   type OlcumSerisi,
 } from '../../api/raporlar';
 import { Cip } from '../../bilesenler/Cip';
+import { sonGunler } from '../../tarih';
 import { tr } from '../../i18n/tr';
 import { Dugme } from '../../bilesenler/Dugme';
 import { Hata, Yukleniyor } from '../../bilesenler/Durum';
@@ -215,12 +216,6 @@ function donemMetni(is: CiktiIsi): string {
   return `${is.params.first_day ?? ''} – ${is.params.last_day ?? ''}`;
 }
 
-function aralik(gunSayisi: number): { ilk: string; son: string } {
-  const son = new Date();
-  const ilk = new Date(son.getTime() - gunSayisi * 24 * 60 * 60 * 1000);
-  return { ilk: ilk.toISOString().slice(0, 10), son: son.toISOString().slice(0, 10) };
-}
-
 function AylikOzetBolumu({
   yil,
   ay,
@@ -350,7 +345,7 @@ function SubeTablosu({ ozet }: { ozet: AylikOzet }) {
 
 function OlcumBolumu() {
   const [yalnizAralikDisi, setYalnizAralikDisi] = useState(false);
-  const { ilk, son } = aralik(30);
+  const { ilk, son } = sonGunler(30);
   const seriler = useQuery({
     queryKey: ['rapor-olcum', ilk, son, yalnizAralikDisi],
     queryFn: () => olcumGunlugu(ilk, son, yalnizAralikDisi),
@@ -444,7 +439,7 @@ function OlcumSerisiKarti({ seri }: { seri: OlcumSerisi }) {
 
 function GaleriBolumu() {
   const [yalnizBayrakli, setYalnizBayrakli] = useState(false);
-  const { ilk, son } = aralik(14);
+  const { ilk, son } = sonGunler(14);
   const kanitlar = useQuery({
     queryKey: ['rapor-galeri', ilk, son, yalnizBayrakli],
     queryFn: () => kanitGalerisi(ilk, son, yalnizBayrakli),

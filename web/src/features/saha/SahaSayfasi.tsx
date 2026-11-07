@@ -6,6 +6,7 @@ import { calistirmaGorunumu, type MaddeDurumu } from '../../api/calistirma';
 import { gununCalistirmalari } from '../../api/planlar';
 import {
   type CevapGirdisi,
+  DesteklenmeyenTur,
   cevapYaz,
   kanitYukle,
   listeyiGonder,
@@ -94,6 +95,28 @@ function saat(iso: string): string {
   return new Date(iso).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
 }
 
+/**
+ * Pencere yazısı. Gece yarısını aşan ya da başka güne düşen pencerede
+ * tarih de yazılıyor: sahada yalnızca "00:00–03:30" görünüyor,
+ * yönetici panosu aynı pencereyi "08/11 00:00–03:30" diye açıklıyordu
+ * (bağımsız test turu B10). Hangi gecenin işi olduğu saatten tahmin
+ * edilmemeli.
+ */
+function pencereYazisi(run: { window_start: string; window_end: string }): string {
+  const basi = new Date(run.window_start);
+  const sonu = new Date(run.window_end);
+  const ayniGun = basi.toDateString() === sonu.toDateString();
+  const bugunMu = basi.toDateString() === new Date().toDateString();
+  const aralik = `${saat(run.window_start)}–${saat(run.window_end)}`;
+  if (ayniGun && bugunMu) return aralik;
+  return `${gun(run.window_start)} ${aralik}`;
+}
+
+/** Gün ve ay: "08/11". */
+function gun(iso: string): string {
+  return new Date(iso).toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit' });
+}
+
 function BugunListesi({ onAc }: { onAc: (runId: string) => void }) {
   const liste = useQuery({ queryKey: ['saha-bugun'], queryFn: () => gununCalistirmalari() });
 
@@ -123,7 +146,11 @@ function BugunListesi({ onAc }: { onAc: (runId: string) => void }) {
             <li key={run.id} className="kart">
               <div className="yigin yigin--dar">
                 <div className="kart-serit">
-                  <strong className="kart-serit-ad">{run.branch_name}</strong>
+                  {/* Birincil bilgi **hangi liste** olduğu: iki kart da
+                      "Kadıköy" yazdığında hangi işin yapılacağı ancak
+                      liste açılınca öğreniliyordu (B10). Şube ikincil —
+                      personel zaten tek şubede, yönetici birden çok. */}
+                  <strong className="kart-serit-ad">{run.plan_name}</strong>
                   <Cip
                     renk={run.status === 'submitted' ? 'marka' : acilabilir ? 'uyari' : 'pasif'}
                     metin={
@@ -132,7 +159,7 @@ function BugunListesi({ onAc }: { onAc: (runId: string) => void }) {
                   />
                 </div>
                 <p className="meta">
-                  {tr.saha.pencere}: {saat(run.window_start)}–{saat(run.window_end)} ·{' '}
+                  {run.branch_name} · {tr.saha.pencere}: {pencereYazisi(run)} ·{' '}
                   {acilisa > 0
                     ? `${tr.saha.acilis} ${saat(run.writable_from)}`
                     : tr.saha.kalan(kalan)}
@@ -360,7 +387,8 @@ function MaddeKarti({
       await kanitYukle(runId, answerId, madde.item_id, dosya);
       await tazele();
     } catch (e) {
-      setHata(problemCoz(e)?.title ?? tr.hata.genel);
+      if (e instanceof DesteklenmeyenTur) setHata(tr.saha.desteklenmeyenTur(e.tur));
+      else setHata(problemCoz(e)?.title ?? tr.hata.genel);
     } finally {
       setYukleniyor(false);
     }
@@ -562,7 +590,9 @@ function MaddeKarti({
               {yukleniyor ? tr.saha.fotografYukleniyor : tr.saha.fotografSec}
               <input
                 type="file"
-                accept="image/*"
+                // Sunucu yalnızca JPEG ve PNG kabul ediyor; `image/*`
+                // seçtirip sonra reddetmek kullanıcıyı boşa yoruyordu.
+                accept="image/jpeg,image/png"
                 capture="environment"
                 className="sr-only"
                 disabled={yukleniyor || fotografKapali}

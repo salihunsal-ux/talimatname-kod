@@ -4304,6 +4304,10 @@
             "format": "uuid",
             "title": "Plan Id"
           },
+          "plan_name": {
+            "type": "string",
+            "title": "Plan Name"
+          },
           "branch_id": {
             "type": "string",
             "format": "uuid",
@@ -4352,6 +4356,7 @@
         "required": [
           "id",
           "plan_id",
+          "plan_name",
           "branch_id",
           "branch_name",
           "business_day",

@@ -101,6 +101,24 @@ describe('GirisSayfasi', () => {
     expect(screen.queryByLabelText('Doğrulama kodu')).not.toBeInTheDocument();
   });
 
+  it('teşhis detayı başlığın yerine geçmiyor (bağımsız test turu B08)', async () => {
+    // Eski sürüm `detail ?? title` yazıyordu: ekranda yalnızca
+    // "Telefon: +90…" görünüyor, ne olduğu hiç yazmıyordu.
+    iste.mockRejectedValue({
+      type: 'urn:talimatname:kullanici-bulunamadi',
+      title: 'Bu numarayla kayıtlı kullanıcı yok',
+      status: 404,
+      detail: 'Telefon: +905321110003',
+    });
+    render(<GirisSayfasi onGiris={vi.fn()} />);
+
+    await telefonAdimi();
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Bu numarayla kayıtlı kullanıcı yok',
+    );
+  });
+
   it('yanıt gövdesi boş gelse de ekran beyaz kalmaz', async () => {
     /* Ara sunucunun HTML 500'ünde openapi-fetch hem `data` hem
        `error` boş bırakıyordu: `bilgi` tanımsız kalıp giriş ekranı

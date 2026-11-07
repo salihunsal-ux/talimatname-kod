@@ -35,6 +35,7 @@ from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date, datetime
 from functools import lru_cache
+from html import escape
 from pathlib import Path
 from typing import Any
 from uuid import UUID
@@ -286,6 +287,18 @@ class _Belge(BaseDocTemplate):
         tuval.restoreState()
 
 
+def _baslik_hucresi(saga_yatik: bool) -> ParagraphStyle:
+    """Tablo başlığı: beyaz, kalın, sığmazsa satır atlar."""
+    return ParagraphStyle(
+        "tablo-baslik-saga" if saga_yatik else "tablo-baslik",
+        fontName=FONT_BOLD,
+        fontSize=8.5,
+        leading=10,
+        textColor=colors.white,
+        alignment=TA_RIGHT if saga_yatik else 0,
+    )
+
+
 def _tablo(
     satirlar: Sequence[Sequence[object]],
     *,
@@ -293,8 +306,22 @@ def _tablo(
     vurgulu: Sequence[int] = (),
     saga_yatik: Sequence[int] = (),
 ) -> Table:
-    """Başlık satırı koyu, tek satırlar gri; `vurgulu` satırlar kırmızı."""
-    tablo = Table([list(satir) for satir in satirlar], colWidths=list(genislikler), repeatRows=1)
+    """Başlık satırı koyu, tek satırlar gri; `vurgulu` satırlar kırmızı.
+
+    Başlık hücreleri **Paragraph**: düz metin reportlab'da sarılmaz,
+    "Zamanındalık" dar sütuna sığmayıp komşu sütunun sınırına
+    dayanıyordu (bağımsız test turu B14). Gövde düz metin kalıyor:
+    sayılar ve kısa kodlar zaten sığıyor, Paragraph'a çevirmek
+    hizalamayı ve satır yüksekliğini boş yere değiştirirdi.
+    """
+    govde = [list(satir) for satir in satirlar]
+    if govde:
+        saga = set(saga_yatik)
+        govde[0] = [
+            Paragraph(escape(str(hucre)), _baslik_hucresi(sutun in saga))
+            for sutun, hucre in enumerate(govde[0])
+        ]
+    tablo = Table(govde, colWidths=list(genislikler), repeatRows=1)
     # reportlab biçim komutları heterojen demetler: tipi kütüphane
     # kendi içinde çözüyor, burada Any kalıyor.
     bicim: list[Any] = [

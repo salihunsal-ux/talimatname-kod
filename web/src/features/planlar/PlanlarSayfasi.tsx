@@ -15,6 +15,7 @@ import { sablonListesi } from '../../api/sablonlar';
 import { subeAgaci } from '../../api/subeler';
 import { Cip } from '../../bilesenler/Cip';
 import { useYonetici } from '../../api/yetki';
+import { bugunIso } from '../../tarih';
 import { tr } from '../../i18n/tr';
 import { Dugme } from '../../bilesenler/Dugme';
 import { tekrarMetni } from './tekrar';
@@ -216,7 +217,7 @@ function PlanFormu() {
       month_nth: tekrar === 'monthly' && ayKurali === 'ninci' ? ninci : null,
       month_weekday: tekrar === 'monthly' && ayKurali === 'ninci' ? ayHaftaGunu : null,
       ends_on: bitisTarihi === '' ? null : bitisTarihi,
-      starts_on: new Date().toISOString().slice(0, 10),
+      starts_on: bugunIso(),
       start_mode: baslangicTuru,
       start_time: baslangicTuru === 'fixed' ? `${saatDegeri}:00` : null,
       anchor_reference: baslangicTuru === 'anchor' ? cipa : null,

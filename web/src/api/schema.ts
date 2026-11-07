@@ -1820,6 +1820,8 @@ export interface components {
              * Format: uuid
              */
             plan_id: string;
+            /** Plan Name */
+            plan_name: string;
             /**
              * Branch Id
              * Format: uuid

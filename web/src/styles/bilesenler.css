@@ -344,9 +344,17 @@ textarea.alan {
   gap: var(--bosluk-2);
 }
 
+/* NFR-11: dokunma hedefi en az 44 px. Bağlantının ölçülen kutusu
+   ~16 px yüksekliğindeydi; yazı boyutu küçük kalsın diye yüksekliği
+   satır kutusundan değil, dolgudan alıyor (bağımsız test turu B13). */
 .giris-alt a {
   font-size: var(--meta);
   font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding-inline: var(--bosluk-2);
+  margin-inline-start: calc(-1 * var(--bosluk-2));
 }
 
 .giris-form {

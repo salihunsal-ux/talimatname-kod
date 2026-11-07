@@ -501,6 +501,8 @@ export const tr = {
     aciklama: 'Açıklama',
     aciklamaIpucu: 'Başarısız ve yapılamadı cevaplarında açıklama ve fotoğraf zorunlu (BR-06).',
     fotografOnceCevap: 'Fotoğraf için önce cevabı kaydedin.',
+    desteklenmeyenTur: (tur: string) =>
+      `Bu dosya türü yüklenemiyor (${tur}). JPEG ya da PNG bir fotoğraf seçin.`,
     gonder: 'Listeyi gönder',
     gonderildi: 'Liste gönderildi. Merkez panosunda görünüyor.',
     gonderimEngeli: 'Gönderime engel var:',

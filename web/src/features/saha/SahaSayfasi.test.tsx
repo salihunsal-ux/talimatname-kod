@@ -77,6 +77,7 @@ beforeEach(() => {
   bugun.mockResolvedValue([
     {
       id: 'r-1',
+      plan_name: 'Günlük kapanış',
       branch_name: 'Kadıköy',
       status: 'scheduled',
       window_start: '2026-11-05T19:00:00Z',
@@ -129,6 +130,7 @@ describe('pencere kapısı ve ilerleme (bağımsız test turu Y-1, O-3)', () => 
     bugun.mockResolvedValue([
       {
         id: 'r-1',
+        plan_name: 'Günlük kapanış',
         branch_name: 'Kadıköy',
         status: 'scheduled',
         window_start: acilis.toISOString(),
@@ -215,6 +217,7 @@ describe('başarısız cevabın kanıtı (bağımsız test turu B01, B09)', () =
     bugun.mockResolvedValue([
       {
         id: 'r-1',
+        plan_name: 'Günlük kapanış',
         branch_name: 'Kadıköy',
         status: 'in_progress',
         window_start: ACILIS,
@@ -363,5 +366,49 @@ describe('başarısız cevabın kanıtı (bağımsız test turu B01, B09)', () =
     await ac();
 
     expect(await screen.findByText('Fotoğraf için önce cevabı kaydedin.')).toBeTruthy();
+  });
+});
+
+describe('liste kartının bağlamı (bağımsız test turu B10)', () => {
+  it('kartın başlığı liste adı, şube meta satırında', async () => {
+    // İki kart da "Kadıköy" yazıyordu: hangi işin yapılacağı ancak
+    // liste açılınca öğreniliyordu.
+    bugun.mockResolvedValue([
+      {
+        id: 'r-1',
+        plan_name: 'Günlük kapanış',
+        branch_name: 'Kadıköy',
+        status: 'scheduled',
+        window_start: '2026-11-05T19:00:00Z',
+        writable_from: '2026-11-05T18:45:00Z',
+        window_end: '2026-11-05T22:30:00Z',
+        tolerance_end: '2026-11-05T23:30:00Z',
+      },
+    ] as never);
+    kur();
+
+    expect(await screen.findByText('Günlük kapanış')).toBeTruthy();
+    expect(screen.getByText(/Kadıköy/)).toBeTruthy();
+  });
+
+  it('gece yarısını aşan pencerede tarih de yazıyor', async () => {
+    // Sahada "00:00–03:30" görünüyor, yönetici panosu aynı pencereyi
+    // "08/11 00:00–03:30" diyordu.
+    bugun.mockResolvedValue([
+      {
+        id: 'r-1',
+        plan_name: 'Gece devri',
+        branch_name: 'Kadıköy',
+        status: 'scheduled',
+        window_start: '2027-03-09T21:00:00Z',
+        writable_from: '2027-03-09T20:45:00Z',
+        window_end: '2027-03-10T00:30:00Z',
+        tolerance_end: '2027-03-10T01:30:00Z',
+      },
+    ] as never);
+    kur();
+
+    const meta = await screen.findByText(/Pencere:/);
+    expect(meta.textContent).toMatch(/\d{2}\/\d{2}/);
   });
 });

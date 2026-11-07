@@ -3,6 +3,7 @@ import { useState } from 'react';
 
 import { panoGetir, type Hucre } from '../../api/pano';
 import { CalistirmaDetayi } from '../calistirma/CalistirmaDetayi';
+import { bugunIso } from '../../tarih';
 import { tr } from '../../i18n/tr';
 import { Hata } from '../../bilesenler/Durum';
 import { IskeletOzet, IskeletTablo } from '../../bilesenler/Iskelet';
@@ -31,10 +32,6 @@ function hucreTuru(hucre: Hucre): keyof typeof HUCRE {
     return hucre.late ? 'late' : 'submitted';
   }
   return hucre.status;
-}
-
-function bugunIso(): string {
-  return new Date().toISOString().slice(0, 10);
 }
 
 function saat(iso: string | null | undefined): string {

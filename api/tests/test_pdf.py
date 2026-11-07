@@ -15,10 +15,13 @@ from uuid import UUID
 
 import pytest
 from pypdf import PdfReader
+from reportlab.lib.enums import TA_RIGHT
+from reportlab.platypus import Paragraph
 
 from talimatname.domain.reports import BranchSummary, Counters, Measurement, MonthlySummary
 from talimatname.services.pdf import (
     Brand,
+    _tablo,
     document_code,
     measurements_pdf,
     monthly_pdf,
@@ -295,3 +298,22 @@ def test_zincir_adi_varsa_ikisi_de_yaziliyor() -> None:
 
     assert "Kahve Durağı" in alt
     assert URUN_ADI in alt
+
+
+def test_b14_tablo_basliklari_sarilabiliyor() -> None:
+    """Başlık hücresi Paragraph: düz metin reportlab'da sarılmıyor.
+
+    "Zamanındalık" dar sütuna sığmayıp komşu sütunun sınırına
+    dayanıyordu (bağımsız test turu B14). Gövde düz metin kalmalı:
+    sayıları Paragraph'a çevirmek hizalamayı bozardı.
+    """
+    tablo = _tablo(
+        [["Şube", "Zamanındalık"], ["Kadıköy", "%91"]],
+        genislikler=[100, 40],
+        saga_yatik=[1],
+    )
+
+    baslik, govde = tablo._cellvalues  # type: ignore[attr-defined]
+    assert all(isinstance(h, Paragraph) for h in baslik)
+    assert all(isinstance(h, str) for h in govde)
+    assert baslik[1].style.alignment == TA_RIGHT
