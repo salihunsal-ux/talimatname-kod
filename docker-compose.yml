@@ -90,6 +90,9 @@ services:
       dockerfile: api/Dockerfile
     environment: *api-ortam
     command: ["alembic", "upgrade", "head"]
+    # Tek seferlik iş: imajın API sağlık kontrolü burada anlamsız.
+    healthcheck:
+      disable: true
     depends_on:
       postgres:
         condition: service_healthy
@@ -101,6 +104,8 @@ services:
       dockerfile: api/Dockerfile
     environment: *api-ortam
     command: ["python", "-m", "talimatname.seed"]
+    healthcheck:
+      disable: true
     depends_on:
       postgres:
         condition: service_healthy
@@ -129,7 +134,18 @@ services:
       dockerfile: api/Dockerfile
     restart: unless-stopped
     environment: *api-ortam
-    command: ["python", "-m", "talimatname.scheduler", "--interval", "60"]
+    command:
+      ["python", "-m", "talimatname.scheduler", "--interval", "60", "--nabiz", "/tmp/nabiz"]
+    # İmajın kendi sağlık kontrolü API'ye ait (`curl :8000`); zamanlayıcı
+    # HTTP sunucusu değil, onu asla geçemez. Nabız dosyası her **başarılı**
+    # turdan sonra tazeleniyor: üst üste hata veren ya da takılmış bir
+    # döngü de sağlıksız görünüyor, yalnızca ölmüş süreç değil.
+    healthcheck:
+      test: ["CMD", "python", "-m", "talimatname.scheduler", "--nabiz-denetle", "/tmp/nabiz"]
+      interval: 60s
+      timeout: 10s
+      start_period: 90s
+      retries: 3
     depends_on:
       postgres:
         condition: service_healthy

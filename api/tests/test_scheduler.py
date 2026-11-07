@@ -11,6 +11,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from conftest import oturum_ac
+from talimatname import scheduler as zamanlayici
 from talimatname.api.app import create_app
 from talimatname.domain.plans import Run
 from talimatname.infra.memory import (
@@ -198,3 +199,61 @@ def test_uc_nokta_ikinci_tur_bos_doner(istemci: TestClient) -> None:
 
     assert ikinci["created"] == 0
     assert ikinci["deleted"] == 0
+
+
+# --- nabız (kap sağlık kontrolü) -------------------------------------
+#
+# Zamanlayıcı bir HTTP sunucusu değil: imajın `curl :8000` kontrolünü
+# miras alınca 5 gün boyunca "unhealthy" göründü, oysa turlar dönüyordu.
+# Nabız dosyası her **başarılı** turdan sonra tazeleniyor.
+
+
+def test_nabiz_taze_dosya_saglikli(tmp_path: Path) -> None:
+    an = datetime(2026, 11, 7, 20, 0, tzinfo=UTC)
+    nabiz = tmp_path / "nabiz"
+    zamanlayici.nabiz_yaz(nabiz, an)
+
+    assert zamanlayici.nabiz_denetle(nabiz, 200, an + timedelta(seconds=90)) == 0
+
+
+def test_nabiz_bayatlayinca_sagliksiz(tmp_path: Path) -> None:
+    an = datetime(2026, 11, 7, 20, 0, tzinfo=UTC)
+    nabiz = tmp_path / "nabiz"
+    zamanlayici.nabiz_yaz(nabiz, an)
+
+    assert zamanlayici.nabiz_denetle(nabiz, 200, an + timedelta(seconds=201)) == 1
+
+
+def test_nabiz_yoksa_sagliksiz(tmp_path: Path) -> None:
+    assert zamanlayici.nabiz_denetle(tmp_path / "hic-yok", 200) == 1
+
+
+def test_bozuk_nabiz_sagliksiz(tmp_path: Path) -> None:
+    nabiz = tmp_path / "nabiz"
+    nabiz.write_text("bu bir tarih degil", encoding="utf-8")
+
+    assert zamanlayici.nabiz_denetle(nabiz, 200) == 1
+
+
+def test_nabiz_yazilamiyorsa_tur_dusmez(tmp_path: Path) -> None:
+    """Dosya yazılamazsa uyarı kalır, süreç devam eder."""
+    zamanlayici.nabiz_yaz(tmp_path / "olmayan-klasor" / "nabiz")
+
+
+def test_tek_tur_nabiz_birakir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    nabiz = tmp_path / "nabiz"
+    monkeypatch.setattr(zamanlayici, "tek_tur", lambda: 0)
+
+    assert zamanlayici.main(["--once", "--nabiz", str(nabiz)]) == 0
+    assert zamanlayici.nabiz_yasi(nabiz) is not None
+
+
+def test_denetim_veritabanina_baglanmaz(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Sağlık kontrolü saniyede bir koşabilir: tur servisini kurmamalı."""
+
+    def patlasin() -> None:
+        raise AssertionError("sağlık kontrolü tur koşmamalı")
+
+    monkeypatch.setattr(zamanlayici, "tek_tur", patlasin)
+
+    assert zamanlayici.main(["--nabiz-denetle", str(tmp_path / "yok")]) == 1

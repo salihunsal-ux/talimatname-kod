@@ -44,6 +44,9 @@ ENV EVIDENCE_DIR=/veri/kanit
 
 EXPOSE 8000
 
+# API'ye özel: `curl :8000`. Bu imajı farklı bir `command` ile koşan her
+# servis (zamanlayıcı, göç, tohum) kendi `healthcheck`ini yazmalı, yoksa
+# geçemeyeceği bir kontrolü miras alır ve hep kırmızı görünür.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD curl -fsS http://127.0.0.1:8000/api/v1/health || exit 1
 
