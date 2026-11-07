@@ -24,6 +24,7 @@ class BranchCodeTaken(DomainError):
     code = "sube-kodu-kullanimda"
     title = "Bu şube kodu zaten var"
     kind: ErrorKind = "conflict"
+    field = "code"
 
 
 class BranchNotFound(DomainError):

@@ -77,3 +77,28 @@ def test_uc_nokta_gecersiz_govdede_turkce_sebep_donuyor(istemci: TestClient) -> 
     assert sebepler, "alan sebebi dönmedi"
     for sebep in sebepler:
         assert not INGILIZCE.search(sebep), f"İngilizce sızdı: {sebep}"
+
+
+def test_alan_hatasi_hangi_alan_oldugunu_soyluyor(istemci: TestClient) -> None:
+    """D-4: form hatayı alanın yanına yazabilsin diye `errors` dolu gelmeli."""
+    mevcut = next(s for d in istemci.get("/api/v1/branches").json() for s in d["branches"])
+
+    yanit = istemci.post(
+        "/api/v1/branches",
+        json={"code": mevcut["code"], "name": "Çakışma", "timezone": "Europe/Istanbul"},
+    )
+
+    assert yanit.status_code == 409, yanit.text
+    govde = yanit.json()
+    assert govde["title"] == "Bu şube kodu zaten var"
+    assert govde["errors"] == [{"alan": "code", "sebep": "Bu şube kodu zaten var"}]
+
+
+def test_alani_olmayan_kural_hatasi_errors_tasimiyor(istemci: TestClient) -> None:
+    """Her kural hatası bir alana ait değil: uydurma alan adı üretilmemeli."""
+    kosu = istemci.get("/api/v1/runs").json()[0]
+
+    yanit = istemci.post(f"/api/v1/runs/{kosu['id']}/cancel", json={"reason": ""})
+
+    assert yanit.status_code in (409, 422), yanit.text
+    assert "code" not in str(yanit.json().get("errors", ""))

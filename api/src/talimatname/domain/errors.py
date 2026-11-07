@@ -19,10 +19,17 @@ class DomainError(Exception):
     code = "alan-hatasi"
     title = "İşlem kuralı gereği yapılamadı"
     kind: ErrorKind = "conflict"
+    #: Hangi girdi alanı reddedildi. Dolu olduğunda cevaba `errors`
+    #: giriyor ve form hatayı o alanın yanına yazabiliyor; yoksa
+    #: kullanıcı cümleyi okuyup formu gözle arıyor (bağımsız test
+    #: turu D-4). Alanı olmayan kural hataları için `None` doğru.
+    field: str | None = None
 
     def __init__(self, detail: str | None = None, **extra: Any) -> None:
         super().__init__(detail or self.title)
         self.detail = detail
+        if self.field is not None and "errors" not in extra:
+            extra["errors"] = [{"alan": self.field, "sebep": self.title}]
         self.extra = extra
 
 
