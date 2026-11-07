@@ -19,6 +19,7 @@ import structlog
 from sqlalchemy import text
 
 from talimatname.api.app import configure_logging
+from talimatname.domain.users import User
 from talimatname.infra.db.adapters import (
     SqlOrganizationRepository,
     SqlPlanRepository,
@@ -65,6 +66,17 @@ def ensure_tenant(tenant_id: UUID = DEV_TENANT, name: str = DEV_TENANT_NAME) -> 
         return True
 
 
+def korunur(mevcut: User | None) -> bool:
+    """Var olan kayıt tohumun üzerine yazılmasın mı?
+
+    Maskelenmiş kullanıcı korunur: maskeleme KVKK silme talebinin
+    karşılığıdır (FR-1310, BR-22) ve geri alınamaz. Tohum idempotent
+    diye her koşuşta adı ve telefonu geri yazsaydı, silinmiş kişi
+    verisi bir `python -m talimatname.seed` ile geri gelirdi.
+    """
+    return mevcut is not None and mevcut.status == "masked"
+
+
 def seed(tenant_id: UUID = DEV_TENANT) -> dict[str, int]:
     """Tohumu yazar. Var olan satırlar üzerine yazılır (idempotent)."""
     org_kaynak = MemoryOrganizationRepository()
@@ -102,7 +114,11 @@ def seed(tenant_id: UUID = DEV_TENANT) -> dict[str, int]:
                 istasyon_satiri.kind = istasyon.kind
                 o.add(istasyon_satiri)
 
+    maskeli = 0
     for kullanici in kullanici_kaynak.users():
+        if korunur(kullanicilar.user(kullanici.id)):
+            maskeli += 1
+            continue
         kullanicilar.save_user(kullanici)
 
     for sablon in sablon_kaynak.templates():
@@ -116,7 +132,8 @@ def seed(tenant_id: UUID = DEV_TENANT) -> dict[str, int]:
     return {
         "bolge": len(org_kaynak.regions()),
         "sube": len(org_kaynak.branches()),
-        "kullanici": len(kullanici_kaynak.users()),
+        "kullanici": len(kullanici_kaynak.users()) - maskeli,
+        "maskeli_atlandi": maskeli,
         "sablon": len(sablon_kaynak.templates()),
         "plan": len(plan_kaynak.plans()),
     }

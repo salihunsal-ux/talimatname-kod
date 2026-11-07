@@ -6,6 +6,8 @@ günlüğü silinmemeli ve betik üretimde koşmamalı.
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
+
 import pytest
 
 from talimatname.araclar import demo_sifirla
@@ -74,3 +76,26 @@ def test_evet_yoksa_silmiyor(
     cikti = capsys.readouterr().out
     assert "--evet" in cikti
     assert "olay günlüğü (500) korunur" in cikti
+
+
+def test_tohum_maskeli_kullaniciyi_diriltmiyor() -> None:
+    """Maskeleme geri alınamaz; tohum onu geri yazmamalı (BR-22, FR-1310).
+
+    Tohum idempotent diye her koşuşta adı ve telefonu üzerine yazsaydı,
+    KVKK talebiyle silinmiş kişi verisi bir `python -m talimatname.seed`
+    ile geri gelirdi.
+    """
+    from talimatname.domain.users import RoleAssignment, User
+    from talimatname.infra.memory import sabit_id
+    from talimatname.seed import korunur
+
+    normal = User(
+        id=sabit_id("kullanici:+905321110003"),
+        full_name="Ayşe Şube",
+        phone="+905321110003",
+        assignments=(RoleAssignment("branch_manager", sabit_id("sube:KDK")),),
+    )
+
+    assert korunur(None) is False
+    assert korunur(normal) is False
+    assert korunur(normal.masked(datetime.now(UTC), 4821)) is True
