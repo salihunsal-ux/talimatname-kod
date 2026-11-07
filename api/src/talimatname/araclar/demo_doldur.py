@@ -99,8 +99,16 @@ def saat_kurulu_servisler(an: datetime) -> tuple[ExecutionService, EvidenceServi
 
 
 def kanit_yukle(
-    kanit: EvidenceService, *, run_id: UUID, answer_id: UUID, item_id: UUID, kisi: UUID | None
+    *, run_id: UUID, answer_id: UUID, item_id: UUID, kisi: UUID | None, cekim: datetime
 ) -> None:
+    """Yer tutucu görseli kanıt olarak yükler.
+
+    Yükleme belirteci **gerçek saatle** imzalanıyor: geçmiş saatle
+    imzalanan belirtecin süresi daha doğarken dolmuş oluyor. Dosya
+    bugün yükleniyor, `captured_at` ise listenin doldurulduğu ana
+    yazılıyor — demoda olan tam olarak bu ve kayıt da bunu söylüyor.
+    """
+    _, kanit = saat_kurulu_servisler(datetime.now(UTC))
     baytlar = yer_tutucu_png(f"{run_id}:{item_id}")
     kayit, belirtec = kanit.start(
         run_id=run_id,
@@ -111,6 +119,7 @@ def kanit_yukle(
         size_bytes=len(baytlar),
         user_id=kisi,
         from_gallery=True,  # galeriden: demo görseli, o an çekilmedi
+        captured_at=cekim,
     )
     kanit.receive(belirtec, baytlar)
     kanit.complete(kayit.id)
@@ -125,7 +134,7 @@ def calistirmayi_doldur(run: Run, *, basarisiz_mi: bool, gec_mi: bool, kisi: UUI
         run.window_end + timedelta(minutes=10) if gec_mi else run.window_end - timedelta(minutes=5)
     )
 
-    yurutme, kanit = saat_kurulu_servisler(yazma_ani)
+    yurutme, _ = saat_kurulu_servisler(yazma_ani)
     surum = yurutme._version(run)
     maddeler = [m for m in surum.items if m.scored]
     if not maddeler:
@@ -163,7 +172,13 @@ def calistirmayi_doldur(run: Run, *, basarisiz_mi: bool, gec_mi: bool, kisi: UUI
         # Fotoğraf zorunlu maddeye ve düşen maddeye kanıt gerekiyor
         # (BR-06): ikisinde de yer tutucu görsel yükleniyor.
         if madde.photo_required or duser:
-            kanit_yukle(kanit, run_id=run.id, answer_id=answer_id, item_id=madde.id, kisi=kisi)
+            kanit_yukle(
+                run_id=run.id,
+                answer_id=answer_id,
+                item_id=madde.id,
+                kisi=kisi,
+                cekim=yazma_ani,
+            )
 
     yurutme_g, _ = saat_kurulu_servisler(gonderim_ani)
     sonuc = yurutme_g.submit(run.id, user_id=kisi)
