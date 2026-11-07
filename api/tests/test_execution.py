@@ -11,11 +11,13 @@ from zoneinfo import ZoneInfo
 import pytest
 from fastapi.testclient import TestClient
 
-from conftest import oturum_ac
+from conftest import json_madde_degeri, madde_degeri, oturum_ac
 from talimatname.api.app import create_app
 from talimatname.domain.actions import from_critical_item
 from talimatname.domain.answers import clock_skew
 from talimatname.domain.errors import RunLocked
+from talimatname.domain.templates import Item
+from talimatname.domain.validation import ValidationError
 from talimatname.infra.memory import (
     MemoryActionRepository,
     MemoryAnswerRepository,
@@ -66,6 +68,7 @@ def _cevapla(servis: ExecutionService, run_id: UUID, **ek: object) -> None:
             answer_id=uuid4(),
             item_id=madde.id,
             state="passed",
+            value=madde_degeri(madde, "passed"),
             evidence_count=1 if madde.photo_required else 0,
             **ek,  # type: ignore[arg-type]
         )
@@ -209,6 +212,7 @@ def test_kritik_madde_basarisizsa_sonuc_basarisiz() -> None:
         answer_id=uuid4(),
         item_id=kritik.id,
         state="failed",
+        value=madde_degeri(kritik, "failed"),
         evidence_count=1,
         note="Sıcaklık 9 derece, teknisyen çağrıldı",
     )
@@ -247,6 +251,24 @@ def test_gonderim_kilidi_birakir() -> None:
 def istemci(tmp_path: Path) -> TestClient:
     """Kanıt dosyaları geçici dizine: depo testten kirlenmesin."""
     return oturum_ac(TestClient(create_app(Settings(evidence_dir=str(tmp_path)))))
+
+
+def _surum_degerleri(istemci: TestClient, run_id: str) -> dict[str, object]:
+    """Madde kimliği → maddeyi geçiren değer, **istemcinin yolundan**.
+
+    Seçenek etiketleri çalıştırma görünümünde yok: cihaz şablon sürümünü
+    manifestten öğrenip bir kez indiriyor ve önbelleğe alıyor
+    (`ManifestSurumu`). Test de aynı yolu izliyor — yoksa sunucunun
+    seçenek denetimi (BR-06) sınanmış sayılmaz.
+    """
+    manifest = istemci.get("/api/v1/sync/manifest").json()
+    surum_id = next(k["template_version_id"] for k in manifest["runs"] if k["run_id"] == run_id)
+    surum = istemci.get(f"/api/v1/template-versions/{surum_id}").json()
+    return {
+        madde["id"]: json_madde_degeri(madde, "passed")
+        for bolum in surum["sections"]
+        for madde in bolum["items"]
+    }
 
 
 def _acik_calistirma(istemci: TestClient) -> dict[str, object]:
@@ -383,6 +405,7 @@ def test_uc_nokta_cevap_ve_gonderim(istemci: TestClient) -> None:
     """
     run = _acik_calistirma(istemci)
     gorunum = istemci.get(f"/api/v1/runs/{run['id']}").json()
+    degerler = _surum_degerleri(istemci, str(run["id"]))
 
     cevap_idleri: dict[str, str] = {}
     fotograf_isteyen: list[str] = []
@@ -394,15 +417,17 @@ def test_uc_nokta_cevap_ve_gonderim(istemci: TestClient) -> None:
             cevap_idleri[madde["item_id"]] = cevap_id
             if madde["photo_required"]:
                 fotograf_isteyen.append(madde["item_id"])
-            istemci.put(
+            yazma = istemci.put(
                 f"/api/v1/runs/{run['id']}/answers/{cevap_id}",
                 json={
                     "item_id": madde["item_id"],
                     "state": "passed",
+                    "value": degerler[madde["item_id"]],
                     # Beyan: cihaz "fotoğraf çektim" diyor, henüz yüklemedi.
                     "evidence_count": 1 if madde["photo_required"] else 0,
                 },
             )
+            assert yazma.status_code == 200, yazma.text
 
     assert fotograf_isteyen, "tohumda fotoğraf zorunlu madde yok"
     erken = istemci.post(f"/api/v1/runs/{run['id']}/submit", json={})
@@ -472,11 +497,13 @@ def _kritik_basarisiz_gonder(servis: ExecutionService, run_id: UUID) -> int:
             continue
         basarisiz = madde.critical
         kritik += int(basarisiz)
+        durum = "failed" if basarisiz else "passed"
         servis.write_answer(
             run_id=run_id,
             answer_id=uuid4(),
             item_id=madde.id,
-            state="failed" if basarisiz else "passed",
+            state=durum,
+            value=madde_degeri(madde, durum),
             note="sıcaklık yüksek" if basarisiz else None,
             evidence_count=1 if (madde.photo_required or basarisiz) else 0,
         )
@@ -627,3 +654,176 @@ def test_hazirlik_payi_sifirken_pencere_tam_zamaninda_acilir() -> None:
 
     assert kosu.writable_from(0) == kosu.window_start
     assert kosu.writable_from(15) == kosu.window_start - timedelta(minutes=15)
+
+
+# --- BR-06: sonucu sunucu hesaplar (bağımsız test turu B02) -------------
+
+
+def _olculen_madde(servis: ExecutionService, run_id: UUID) -> Item:
+    madde = next(
+        (m for m in servis.view(run_id).version.items if m.type in ("temperature", "number")),
+        None,
+    )
+    assert madde is not None, "tohumda ölçüm maddesi yok"
+    assert madde.min_value is not None
+    assert madde.max_value is not None
+    return madde
+
+
+def _yaz(servis: ExecutionService, run_id: UUID, madde: Item, **ek: object) -> object:
+    return servis.write_answer(
+        run_id=run_id,
+        answer_id=uuid4(),
+        item_id=madde.id,
+        **ek,  # type: ignore[arg-type]
+    )
+
+
+def test_br06_aralik_disi_olcum_istemci_gecti_dese_de_basarisiz() -> None:
+    """İstemcinin iddiası sonucu belirlemiyor (B02).
+
+    Hatalı bir istemci sürümü ya da elle kurulmuş bir istek, aralık
+    dışı ölçümü "geçti" diye yazarsa liste %100 puan alır ve denetim
+    izi yalan söyler. Sonuç şablon sürümünden çıkıyor.
+    """
+    servis, run_id, _, _ = _kurulum()
+    madde = _olculen_madde(servis, run_id)
+
+    cevap = _yaz(servis, run_id, madde, state="passed", value=(madde.max_value or 0) + 95)
+
+    assert cevap.state == "failed"  # type: ignore[attr-defined]
+
+
+def test_br06_aralik_ici_olcum_istemci_basarisiz_dese_de_gecer() -> None:
+    """Kural iki yönlü: sunucu suçlamayı da düzeltir."""
+    servis, run_id, _, _ = _kurulum()
+    madde = _olculen_madde(servis, run_id)
+    orta = ((madde.min_value or 0) + (madde.max_value or 0)) / 2
+
+    cevap = _yaz(servis, run_id, madde, state="failed", value=orta)
+
+    assert cevap.state == "passed"  # type: ignore[attr-defined]
+
+
+def test_br06_aralik_sinirlari_dahildir() -> None:
+    """Rapordaki kabul ölçütü: 4,0 geçer, 4,1 geçmez."""
+    servis, run_id, _, _ = _kurulum()
+    madde = _olculen_madde(servis, run_id)
+    ust = madde.max_value or 0
+
+    assert _yaz(servis, run_id, madde, state="passed", value=ust).state == "passed"  # type: ignore[attr-defined]
+    assert _yaz(servis, run_id, madde, state="passed", value=madde.min_value).state == "passed"  # type: ignore[attr-defined]
+    assert _yaz(servis, run_id, madde, state="passed", value=ust + 0.1).state == "failed"  # type: ignore[attr-defined]
+
+
+def test_br06_tam_olcum_tam_sayi_kalir() -> None:
+    """`6` saklanır, `6.0` değil: uydurma hassasiyet okuyanı yanıltır."""
+    servis, run_id, _, _ = _kurulum()
+    madde = _olculen_madde(servis, run_id)
+
+    cevap = _yaz(servis, run_id, madde, state="passed", value=float(madde.max_value or 0))
+
+    assert cevap.value == int(madde.max_value or 0)  # type: ignore[attr-defined]
+    assert isinstance(cevap.value, int)  # type: ignore[attr-defined]
+
+
+@pytest.mark.parametrize("deger", [None, "altı", True, float("inf"), float("nan"), [4], {}])
+def test_br06_olcum_sayi_degilse_reddedilir(deger: object) -> None:
+    """Sayı olmayan, sonsuz ve eksik ölçüm sunucuda durur."""
+    servis, run_id, _, _ = _kurulum()
+    madde = _olculen_madde(servis, run_id)
+
+    with pytest.raises(ValidationError) as hata:
+        _yaz(servis, run_id, madde, state="passed", value=deger)
+
+    assert hata.value.field_name == "value"
+
+
+def test_br06_ondalik_virgulle_de_okunur() -> None:
+    """Çevrimdışı istemci ondalığı virgülle gönderebilir."""
+    servis, run_id, _, _ = _kurulum()
+    madde = _olculen_madde(servis, run_id)
+    disarida = f"{(madde.max_value or 0) + 5},5"
+
+    cevap = _yaz(servis, run_id, madde, state="passed", value=disarida)
+
+    assert cevap.state == "failed"  # type: ignore[attr-defined]
+    assert cevap.value == (madde.max_value or 0) + 5.5  # type: ignore[attr-defined]
+
+
+def test_br06_secim_sonucu_secenegin_gecer_bayragindan_cikar() -> None:
+    servis, run_id, _, _ = _kurulum()
+    madde = next(m for m in servis.view(run_id).version.items if m.type == "choice")
+    kalmaz = next(s for s in madde.options if not s.passing)
+
+    cevap = _yaz(servis, run_id, madde, state="passed", value=kalmaz.label)
+
+    assert cevap.state == "failed"  # type: ignore[attr-defined]
+
+
+def test_br06_sablonda_olmayan_secenek_reddedilir() -> None:
+    servis, run_id, _, _ = _kurulum()
+    madde = next(m for m in servis.view(run_id).version.items if m.type == "choice")
+
+    with pytest.raises(ValidationError):
+        _yaz(servis, run_id, madde, state="passed", value="Belki")
+
+
+def test_br06_metin_cevabi_bos_olamaz() -> None:
+    servis, run_id, _, _ = _kurulum()
+    madde = next(m for m in servis.view(run_id).version.items if m.type == "text")
+
+    with pytest.raises(ValidationError):
+        _yaz(servis, run_id, madde, state="passed", value="   ")
+
+
+def test_br06_talimat_satiri_cevaplanmaz() -> None:
+    """FR-0306: talimat bilgi verir, cevap beklemez."""
+    servis, run_id, _, _ = _kurulum()
+    madde = next(m for m in servis.view(run_id).version.items if m.type == "instruction")
+
+    with pytest.raises(ValidationError) as hata:
+        _yaz(servis, run_id, madde, state="passed")
+
+    assert hata.value.field_name == "item_id"
+
+
+def test_br06_yapilamadi_beyani_yanindaki_olcumu_dusurur() -> None:
+    """Beyanın yanında duran bir ölçüm okuyanı yanıltır."""
+    servis, run_id, _, _ = _kurulum()
+    # Tohumdaki tek ölçüm maddesi kritik, kritik madde de atlanamaz
+    # (BR-09): beyanı kritik olmayan bir maddede sınıyoruz.
+    madde = next(m for m in servis.view(run_id).version.items if m.scored and not m.critical)
+
+    cevap = _yaz(
+        servis,
+        run_id,
+        madde,
+        state="not_done",
+        value=99,
+        not_done_reason="no_material",
+        note="Termometre arızalı",
+    )
+
+    assert cevap.state == "not_done"  # type: ignore[attr-defined]
+    assert cevap.value is None  # type: ignore[attr-defined]
+
+
+def test_br06_uc_noktada_da_sunucu_karar_veriyor(istemci: TestClient) -> None:
+    """Aynı kural HTTP yolunda: cevap 200 döner ama durumu düzeltilmiş."""
+    run = _acik_calistirma(istemci)
+    gorunum = istemci.get(f"/api/v1/runs/{run['id']}").json()
+    madde = next(
+        m
+        for bolum in gorunum["sections"]
+        for m in bolum["items"]
+        if m["type"] in ("temperature", "number") and m["max_value"] is not None
+    )
+
+    cevap = istemci.put(
+        f"/api/v1/runs/{run['id']}/answers/{uuid4()}",
+        json={"item_id": madde["item_id"], "state": "passed", "value": madde["max_value"] + 95},
+    )
+
+    assert cevap.status_code == 200, cevap.text
+    assert cevap.json()["state"] == "failed"

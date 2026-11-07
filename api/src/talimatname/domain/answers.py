@@ -18,12 +18,14 @@ from __future__ import annotations
 
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
+from math import isfinite
 from typing import Any, Literal
 from uuid import UUID
 
 from talimatname.domain.errors import RunLocked
 from talimatname.domain.scoring import AnswerState, ItemOutcome
 from talimatname.domain.sync import NotDoneReason, check_not_done_reason, clock_flagged
+from talimatname.domain.templates import RANGED, ChoiceOption, Item, ItemType
 from talimatname.domain.validation import ValidationError
 
 #: Kilit bu süre yenilenmezse düşer: cihaz kapanırsa liste kilitli kalmasın.
@@ -165,3 +167,96 @@ def submission_blockers(
         if basarisiz and not cevap.note:
             eksikler.append(Missing(item_id, baslik, "note"))
     return eksikler
+
+
+#: Sonucu **sunucunun** hesapladığı türler: ölçüm ve seçim. Kalanlarda
+#: (onay, fotoğraf, metin) sonucu kişi beyan eder; beyanı doğrulayacak
+#: bir değer yok.
+DECIDED: frozenset[ItemType] = RANGED | frozenset({"choice"})
+
+
+def resolve_answer(item: Item, *, state: str, value: Any) -> tuple[AnswerState, Any]:
+    """Cevabın durumunu ve değerini **sunucuda** kesinleştirir (BR-06).
+
+    İstemci sonucu da hesaplayıp gönderiyor — anında geri bildirim
+    için gerekli. Ama bu hesabı yapan **tek** yer olamaz: 0–4 °C
+    aralıklı maddeye `99` yazıp "geçti" diyen bir istemci (hatalı
+    sürüm, eski çevrimdışı kuyruk ya da elle kurulmuş istek) aksi
+    halde %100 puanlı bir liste üretir ve denetim izi yalan söyler
+    (bağımsız test turu B02). Ölçülebilir maddede sonuç şablon
+    sürümünden ve değerden çıkar, istemcinin iddiasından değil.
+
+    Şablon sürümü çalıştırmaya sabitlendiği için bu hesap, cevap
+    aylar sonra kuyruktan gelse de o günün sınırlarıyla yapılır.
+
+    `not_done` ve `not_applicable` birer **beyandır**, ölçüm değil:
+    oldukları gibi kalır, yanlarındaki ölçüm değeri düşer — "yapamadım"
+    diyen cevapta duran bir sıcaklık okuyanı yanıltır. Sebep denetimi
+    `check_not_done_reason` içinde.
+    """
+    if item.type == "instruction":
+        # FR-0306: talimat satırı bilgi verir, cevap beklemez.
+        raise ValidationError("item_id", "Talimat satırı cevaplanmaz")
+    if state == "not_done":
+        return "not_done", None
+    if state == "not_applicable":
+        return "not_applicable", None
+    if state not in ("passed", "failed"):
+        raise ValidationError("state", f"Bilinmeyen cevap durumu: {state}")
+    beyan: AnswerState = "passed" if state == "passed" else "failed"
+
+    if item.type in RANGED:
+        sayi = _olcum(value)
+        if item.min_value is None or item.max_value is None:
+            # Yayın doğrulaması sınırsız aralıklı maddeyi engelliyor
+            # (Item.issues). Yine de böyle bir sürüm varsa ölçüm
+            # saklanır, sonuç beyandan kalır: uyduracak sınır yok.
+            return beyan, sayi
+        icinde = item.min_value <= sayi <= item.max_value
+        return ("passed" if icinde else "failed"), sayi
+
+    if item.type == "choice":
+        secenek = _secenek(value, item)
+        return ("passed" if secenek.passing else "failed"), secenek.label
+
+    if item.type == "text":
+        return beyan, _metin(value)
+
+    # confirm / photo: değer taşımaz.
+    return beyan, None
+
+
+def _olcum(value: Any) -> float | int:
+    """Ölçüm değerini sayıya çevirir; çeviremezse reddeder."""
+    if isinstance(value, bool) or value is None:
+        raise ValidationError("value", "Ölçüm değeri girilmeli")
+    if isinstance(value, int | float):
+        sayi = float(value)
+    elif isinstance(value, str):
+        # Çevrimdışı istemci ondalığı virgülle gönderebilir.
+        try:
+            sayi = float(value.strip().replace(",", ".", 1))
+        except ValueError:
+            raise ValidationError("value", "Ölçüm bir sayı olmalı") from None
+    else:
+        raise ValidationError("value", "Ölçüm bir sayı olmalı")
+    if not isfinite(sayi):
+        raise ValidationError("value", "Ölçüm sonlu bir sayı olmalı")
+    # Tam sayı tam kalsın: "6 °C" okunur, "6.0 °C" uydurma hassasiyet.
+    return int(sayi) if sayi.is_integer() else sayi
+
+
+def _secenek(value: Any, item: Item) -> ChoiceOption:
+    """Seçimi şablondaki seçeneğe bağlar; listede yoksa reddeder."""
+    if isinstance(value, str):
+        aranan = " ".join(value.split())
+        for secenek in item.options:
+            if secenek.label == aranan:
+                return secenek
+    raise ValidationError("value", "Seçenek şablonda yok")
+
+
+def _metin(value: Any) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise ValidationError("value", "Metin cevabı boş olamaz")
+    return " ".join(value.split())

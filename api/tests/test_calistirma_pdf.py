@@ -21,7 +21,7 @@ from fastapi.testclient import TestClient
 from PIL import Image
 from pypdf import PdfReader
 
-from conftest import oturum_ac
+from conftest import madde_degeri, oturum_ac
 from talimatname.api import bagimliliklar
 from talimatname.api.app import create_app
 from talimatname.infra.memory import (
@@ -135,7 +135,18 @@ class Dunya:
         assert surum is not None
         return list(surum.items)
 
+    @property
+    def cevaplanabilir(self) -> list[object]:
+        """Talimat satırı hariç maddeler: talimat cevaplanmaz (FR-0306)."""
+        return [m for m in self.maddeler if getattr(m, "scored", True)]
+
     def cevapla(self, madde_id: UUID, durum: str, **ek: object) -> None:
+        # Değer verilmediyse türünden türetilir: sonucu sunucu
+        # hesapladığı için (BR-06) ölçüm maddesi değer olmadan
+        # cevaplanamıyor.
+        if "value" not in ek:
+            madde = next(m for m in self.maddeler if m.id == madde_id)  # type: ignore[attr-defined]
+            ek["value"] = madde_degeri(madde, durum)  # type: ignore[arg-type]
         self.yurutme.write_answer(
             run_id=self.run.id,
             answer_id=uuid4(),
@@ -170,7 +181,7 @@ def dunya(tmp_path: Path) -> Dunya:
 
 
 def test_kagitta_maddeler_ve_cevaplar_var(dunya: Dunya) -> None:
-    ilk = dunya.maddeler[0]
+    ilk = dunya.cevaplanabilir[0]
     dunya.cevapla(ilk.id, "passed")  # type: ignore[attr-defined]
 
     rapor = dunya.disa.run_report(dunya.run.id)
@@ -194,7 +205,7 @@ def test_cevapsiz_madde_bos_birakilmiyor(dunya: Dunya) -> None:
 
 def test_yapilamadi_sebebi_kagida_giriyor(dunya: Dunya) -> None:
     """Yapılmayan iş sebebiyle merkeze düşer (BR-09); kâğıtta da sebebi var."""
-    madde = dunya.maddeler[0]
+    madde = dunya.cevaplanabilir[0]
     dunya.cevapla(
         madde.id,  # type: ignore[attr-defined]
         "not_done",
@@ -247,7 +258,7 @@ def test_eksik_kanit_raporu_dusurmez(dunya: Dunya) -> None:
 
 def test_denetim_izi_ozeti_kagitta(dunya: Dunya) -> None:
     """FR-1213 'denetim izi özeti': çalıştırmaya dokunan olaylar."""
-    for madde in dunya.maddeler:
+    for madde in dunya.cevaplanabilir:
         dunya.cevapla(madde.id, "passed")  # type: ignore[attr-defined]
         if getattr(madde, "photo_required", False):
             # Gönderim kapısı kanıtı **sayıyor** (FR-0607): fotoğrafı
@@ -277,7 +288,7 @@ def test_gunluk_yoksa_denetim_izi_basligi_basilmiyor(dunya: Dunya) -> None:
 
 def test_icerik_kodu_veriden_turuyor(dunya: Dunya) -> None:
     ilk = dunya.disa.run_report(dunya.run.id)
-    dunya.cevapla(dunya.maddeler[0].id, "passed")  # type: ignore[attr-defined]
+    dunya.cevapla(dunya.cevaplanabilir[0].id, "passed")  # type: ignore[attr-defined]
     ikinci = dunya.disa.run_report(dunya.run.id)
 
     assert run_code(ilk, brand=MARKA) != run_code(ikinci, brand=MARKA)

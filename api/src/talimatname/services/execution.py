@@ -26,6 +26,7 @@ from talimatname.domain.answers import (
     clock_skew,
     ensure_writable,
     outcomes,
+    resolve_answer,
     submission_blockers,
 )
 from talimatname.domain.errors import DomainError, ErrorKind
@@ -202,6 +203,10 @@ class ExecutionService:
             # BR-09: kritik madde atlanamaz, sebebi de olmaz.
             raise NotDoneNotAllowed(f"Madde: {madde.title}")
 
+        # BR-06: sonucu sunucu hesaplar. Kilitten **önce**: bozuk bir
+        # istek kimsenin kilidini tazelemesin.
+        durum, deger = resolve_answer(madde, state=state, value=value)
+
         kilit = ensure_writable(self._answers.lock(run_id), user_id, an)
         self._answers.save_lock(run_id, kilit)
 
@@ -209,8 +214,8 @@ class ExecutionService:
             id=answer_id,
             run_id=run_id,
             item_id=item_id,
-            state=state,  # type: ignore[arg-type]
-            value=value,
+            state=durum,
+            value=deger,
             note=note,
             user_id=user_id,
             device_id=device_id,

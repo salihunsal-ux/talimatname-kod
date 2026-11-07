@@ -8,6 +8,7 @@ işaretli testler ölçüyor.
 from __future__ import annotations
 
 from collections.abc import Iterator
+from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
@@ -15,6 +16,7 @@ from fastapi.testclient import TestClient
 from talimatname.api import bagimliliklar
 from talimatname.api.routers import auth as auth_router
 from talimatname.api.routers import dogrulama as dogrulama_router
+from talimatname.domain.templates import Item
 from talimatname.settings import get_settings
 
 
@@ -63,3 +65,64 @@ def oturum_ac(istemci: TestClient, rol: str = "admin") -> TestClient:
     belirtec = bagimliliklar.kimlik_servisi().issue_token(kullanici)
     istemci.headers["Authorization"] = f"Bearer {belirtec}"
     return istemci
+
+
+def madde_degeri(madde: Item, durum: str) -> object:
+    """Maddeyi istenen sonuca götüren değer (alan nesnesinden)."""
+    return _deger(
+        madde.type,
+        madde.min_value,
+        madde.max_value,
+        [(s.label, s.passing) for s in madde.options],
+        durum,
+        madde.title,
+    )
+
+
+def json_madde_degeri(madde: dict[str, Any], durum: str) -> object:
+    """Aynı değer, uç nokta cevabından.
+
+    Uçtan uca testler maddeyi JSON olarak görüyor; değeri elle
+    uydurmasınlar diye aynı çekirdek.
+    """
+    return _deger(
+        madde["type"],
+        madde.get("min_value"),
+        madde.get("max_value"),
+        [(o["label"], o.get("passing", True)) for o in madde.get("options", [])],
+        durum,
+        madde.get("title", ""),
+    )
+
+
+def _deger(
+    tur: str,
+    alt: float | None,
+    ust: float | None,
+    secenekler: list[tuple[str, bool]],
+    durum: str,
+    baslik: str,
+) -> object:
+    """Sonucu artık sunucu hesaplıyor (BR-06).
+
+    Ölçüm maddesine "geçti" demek yetmiyor: aralığın içinden bir sayı,
+    seçim maddesine de geçer bir seçenek gerekiyor. Testler bu değeri
+    tek tek uydurursa aralık değiştiğinde sessizce bayatlar.
+    """
+    if durum in ("not_done", "not_applicable"):
+        return None
+    if tur in ("temperature", "number"):
+        if alt is None or ust is None:
+            return 0
+        if durum == "failed":
+            return ust + 1
+        orta = (alt + ust) / 2
+        return int(orta) if float(orta).is_integer() else orta
+    if tur == "choice":
+        istenen = durum == "passed"
+        etiket = next((e for e, gecer in secenekler if gecer is istenen), None)
+        assert etiket is not None, f"Şablonda '{durum}' veren seçenek yok: {baslik}"
+        return etiket
+    if tur == "text":
+        return "Kontrol edildi"
+    return None

@@ -35,6 +35,7 @@ from uuid import UUID, uuid5
 
 from talimatname.api import bagimliliklar
 from talimatname.domain.plans import Run, plan_runs
+from talimatname.domain.templates import Item
 from talimatname.services.evidence import EvidenceService
 from talimatname.services.execution import ExecutionService
 
@@ -141,6 +142,32 @@ def kanit_yukle(
     kanit.complete(kayit.id)
 
 
+def _deger(madde: Item, duser: bool, rastgele: random.Random) -> object:
+    """Maddeyi istenen sonuca götüren değer.
+
+    Sonucu artık **sunucu** hesaplıyor (BR-06): ölçüm maddesine değer
+    vermeden "geçti" yazmak reddediliyor. Bu eşleme demo aracına ait,
+    alan katmanına değil — testlerin kendi karşılığı `conftest` içinde.
+    """
+    if madde.type in ("temperature", "number"):
+        alt = float(madde.min_value) if madde.min_value is not None else 0.0
+        ust = float(madde.max_value) if madde.max_value is not None else 8.0
+        if duser:
+            return round(ust + 3, 1)
+        return round(rastgele.uniform(alt, ust), 1)
+    if madde.type == "choice":
+        istenen = not duser
+        secenek = next((s for s in madde.options if s.passing is istenen), None)
+        if secenek is None:
+            # Geçmez seçeneği olmayan maddede düşüş kurgulanamaz.
+            secenek = madde.options[0]
+        return secenek.label
+    if madde.type == "text":
+        return "Devir sorunsuz." if not duser else "Devirde eksik kaldı."
+    # confirm / photo: değer taşımaz, sonucu beyan belirler.
+    return None
+
+
 def calistirmayi_doldur(run: Run, *, basarisiz_mi: bool, gec_mi: bool, kisi: UUID | None) -> str:
     """Tek çalıştırmayı cevaplayıp gönderir; sonucu anlatan satır döner."""
     # Zamanlar pencereye sığacak biçimde sıkıştırılıyor: kısa pencereli
@@ -172,16 +199,7 @@ def calistirmayi_doldur(run: Run, *, basarisiz_mi: bool, gec_mi: bool, kisi: UUI
         answer_id = uuid5(TOHUM_UZAYI, f"cevap:{run.id}:{madde.id}")
         duser = madde is dusen
         durum = "failed" if duser else "passed"
-        deger = None
-        if getattr(madde, "type", None) == "temperature":
-            # Kabul aralığının içinden bir değer; düşerse dışından.
-            alt = madde.min_value if madde.min_value is not None else 0
-            ust = madde.max_value if madde.max_value is not None else 8
-            deger = str(round(rastgele.uniform(float(alt), float(ust)), 1))
-            if duser:
-                deger = str(round(float(ust) + 3, 1))
-        elif getattr(madde, "type", None) == "text":
-            deger = "Devir sorunsuz."
+        deger = _deger(madde, duser, rastgele)
 
         yurutme.write_answer(
             run_id=run.id,
