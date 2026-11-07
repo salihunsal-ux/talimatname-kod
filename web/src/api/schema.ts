@@ -517,7 +517,21 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Bir iş gününün çalıştırmaları */
+        /**
+         * Bir iş gününün çalıştırmaları
+         * @description Gün verilmezse "şu an çalışılabilir olanlar", verilirse tam o gün.
+         *
+         *     Saha istemcisi bunu gün vermeden çağırıyor ve sorduğu şey "bugünün
+         *     iş günü hangisi" değil, **"şimdi neyi doldurabilirim"**. Kapanış
+         *     vardiyası gece yarısını aşıyor: 22:00–01:30 penceresinin iş günü
+         *     dünse, saat 00:30'da liste hâlâ açıktır ama artık "bugün" değildir.
+         *     Yalnızca bugünü döndürmek kartı personelin elindeyken ekrandan
+         *     siliyordu (BR-01, bağımsız test turu B11'in ikinci yüzü).
+         *
+         *     Bu yüzden gün verilmediğinde dünün **hâlâ açık** çalıştırmaları da
+         *     listeye giriyor. Gün açıkça verildiğinde (pano, raporlar) anlam
+         *     değişmiyor: tam o iş günü.
+         */
         get: operations["calistirmalar_api_v1_runs_get"];
         put?: never;
         post?: never;

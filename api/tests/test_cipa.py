@@ -24,6 +24,7 @@ from conftest import oturum_ac
 from sahte_tsa import SahteTsa
 from talimatname.api import bagimliliklar
 from talimatname.api.app import create_app
+from talimatname.domain import chain_anchor
 from talimatname.domain.audit import AuditEvent, sealed
 from talimatname.domain.chain_anchor import ChainAnchor, due, local_day
 from talimatname.domain.validation import ValidationError
@@ -383,12 +384,23 @@ def cipali_istemci(monkeypatch: pytest.MonkeyPatch, tmp_path: object) -> TestCli
     return TestClient(uygulama)
 
 
-def test_zamanlayici_turu_gunde_bir_cipa_aliyor(cipali_istemci: TestClient) -> None:
+def test_zamanlayici_turu_gunde_bir_cipa_aliyor(
+    cipali_istemci: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """İki tur, **tek** çıpa.
 
     İlk turu kimin attığı önemli değil (geliştirmede ilk istek de bir
     tur atıyor); sınanan şey günde bir kez alınması.
+
+    Saat sabitleniyor: çıpa yerel 04:00'ten önce alınmıyor (FR-1302),
+    yani duvardaki saate bırakılırsa bu test gece yarısı ile 04:00
+    arasında düşüyordu — tam da kapanış vardiyasının çalıştığı saatler.
     """
+    # Saat kapısı kaldırılıyor: çıpa yerel 04:00'ten önce alınmıyor
+    # (FR-1302), yani duvardaki saate bırakılırsa bu test gece yarısı
+    # ile 04:00 arasında düşüyordu — tam da kapanış vardiyasının
+    # çalıştığı saatler. Sınanan şey saat değil, günde bir kez olması.
+    monkeypatch.setattr(chain_anchor, "ANCHOR_HOUR", 0)
     istemci = oturum_ac(cipali_istemci)
 
     istemci.post("/api/v1/scheduler/tick")

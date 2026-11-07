@@ -463,10 +463,31 @@ def calistirmalar(
     kurulum: KurulumServis,
     business_day: date | None = None,
 ) -> list[CalistirmaOzet]:
-    gun = business_day or bugun(kurulum)
+    """Gün verilmezse "şu an çalışılabilir olanlar", verilirse tam o gün.
+
+    Saha istemcisi bunu gün vermeden çağırıyor ve sorduğu şey "bugünün
+    iş günü hangisi" değil, **"şimdi neyi doldurabilirim"**. Kapanış
+    vardiyası gece yarısını aşıyor: 22:00–01:30 penceresinin iş günü
+    dünse, saat 00:30'da liste hâlâ açıktır ama artık "bugün" değildir.
+    Yalnızca bugünü döndürmek kartı personelin elindeyken ekrandan
+    siliyordu (BR-01, bağımsız test turu B11'in ikinci yüzü).
+
+    Bu yüzden gün verilmediğinde dünün **hâlâ açık** çalıştırmaları da
+    listeye giriyor. Gün açıkça verildiğinde (pano, raporlar) anlam
+    değişmiyor: tam o iş günü.
+    """
     adlar = _sube_adlari(org)
     kapsam = erisilebilir_sube_idleri(kullanici, org)
-    runs = [r for r in servis.runs_for_day(gun) if r.branch_id in kapsam]
     simdi = datetime.now(UTC)
+
+    gun = business_day or bugun(kurulum)
+    runs = list(servis.runs_for_day(gun))
+    if business_day is None:
+        runs += [r for r in servis.runs_for_day(gun - timedelta(days=1)) if r.tolerance_end > simdi]
+    runs = sorted(
+        (r for r in runs if r.branch_id in kapsam),
+        key=lambda r: (r.window_start, str(r.branch_id)),
+    )
+
     plan_adlari = _plan_adlari(servis)
     return [_calistirma(r, adlar, simdi, plan_adlari) for r in runs]

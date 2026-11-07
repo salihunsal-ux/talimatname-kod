@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import UTC, date, datetime, timedelta
+from zoneinfo import ZoneInfo
 
 import pytest
 from fastapi.testclient import TestClient
@@ -129,4 +130,8 @@ def test_uc_nokta_varsayilan_gun_bugun(istemci: TestClient) -> None:
     yanit = istemci.get("/api/v1/dashboard")
 
     assert yanit.status_code == 200
-    assert yanit.json()["business_day"] == datetime.now(UTC).date().isoformat()
+    # Hesabın saat dilimine göre (BR-01), UTC'ye göre değil: İstanbul'da
+    # 00:30 ile 03:00 arası UTC hâlâ dünü gösteriyor ve kapanış vardiyası
+    # tam o saatlerde çalışıyor.
+    bugun_trt = datetime.now(ZoneInfo("Europe/Istanbul")).date()
+    assert yanit.json()["business_day"] == bugun_trt.isoformat()

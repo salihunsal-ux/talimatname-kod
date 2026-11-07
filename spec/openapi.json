@@ -1360,6 +1360,7 @@
           "plan"
         ],
         "summary": "Bir iş gününün çalıştırmaları",
+        "description": "Gün verilmezse \"şu an çalışılabilir olanlar\", verilirse tam o gün.\n\nSaha istemcisi bunu gün vermeden çağırıyor ve sorduğu şey \"bugünün\niş günü hangisi\" değil, **\"şimdi neyi doldurabilirim\"**. Kapanış\nvardiyası gece yarısını aşıyor: 22:00–01:30 penceresinin iş günü\ndünse, saat 00:30'da liste hâlâ açıktır ama artık \"bugün\" değildir.\nYalnızca bugünü döndürmek kartı personelin elindeyken ekrandan\nsiliyordu (BR-01, bağımsız test turu B11'in ikinci yüzü).\n\nBu yüzden gün verilmediğinde dünün **hâlâ açık** çalıştırmaları da\nlisteye giriyor. Gün açıkça verildiğinde (pano, raporlar) anlam\ndeğişmiyor: tam o iş günü.",
         "operationId": "calistirmalar_api_v1_runs_get",
         "parameters": [
           {

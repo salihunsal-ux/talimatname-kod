@@ -1019,3 +1019,59 @@ def test_br10_gecen_cevap_aksiyon_acmiyor() -> None:
     _cevapla(servis, run_id)
 
     assert aksiyonlar.actions() == []
+
+
+# --- gece yarısını aşan pencere (B11'in ikinci yüzü) ------------------
+
+
+def test_gece_yarisini_asan_calistirma_ertesi_gun_listede_kaliyor(istemci: TestClient) -> None:
+    """Kapanış vardiyası 00:30'da kartını kaybetmemeli.
+
+    Pencere 22:00–01:30 ise iş günü **dündür**; saat 00:30'da hesabın
+    günü ertesi gündür ama liste hâlâ açıktır. `GET /runs` yalnızca
+    bugünü döndürdüğünde kart, personel doldururken ekrandan siliniyordu.
+    """
+    sube = next(s for d in istemci.get("/api/v1/branches").json() for s in d["branches"])
+    yerel = datetime.now(ZoneInfo("Europe/Istanbul"))
+    # Dün 23:00'te başlayan, bugün devam eden bir pencere.
+    basla = (yerel - timedelta(hours=2)).replace(second=0, microsecond=0)
+    dun = (yerel - timedelta(days=1)).date()
+    surum = next(
+        v
+        for t in istemci.get("/api/v1/templates").json()
+        for v in t["versions"]
+        if v["status"] == "published"
+    )
+    plan = istemci.post(
+        "/api/v1/plans",
+        json={
+            "name": "Gece yarısını aşan (test)",
+            "template_version_id": surum["id"],
+            "branch_ids": [sube["id"]],
+            "schedule": {
+                "repeat": "daily",
+                "starts_on": dun.isoformat(),
+                "start_mode": "fixed",
+                "start_time": basla.strftime("%H:%M"),
+                "duration_minutes": 300,
+                "tolerance_minutes": 60,
+            },
+        },
+    )
+    assert plan.status_code in (200, 201), plan.text
+    istemci.post("/api/v1/scheduler/tick")
+
+    acik = [k for k in istemci.get("/api/v1/runs").json() if k["plan_name"].startswith("Gece")]
+    simdi = datetime.now(UTC)
+    hala_acik = [k for k in acik if datetime.fromisoformat(k["tolerance_end"]) > simdi]
+
+    assert hala_acik, "açık pencere gün verilmeden çağrılan listede yok"
+
+
+def test_gun_acikca_verilince_yalnizca_o_gun_doner(istemci: TestClient) -> None:
+    """Pano ve raporlar tam bir iş günü soruyor: anlam değişmemeli."""
+    bugun = datetime.now(ZoneInfo("Europe/Istanbul")).date()
+
+    liste = istemci.get(f"/api/v1/runs?business_day={bugun.isoformat()}").json()
+
+    assert all(k["business_day"] == bugun.isoformat() for k in liste)
