@@ -205,3 +205,163 @@ describe('pencere kapısı ve ilerleme (bağımsız test turu Y-1, O-3)', () => 
     expect(screen.queryByText(/1\/3 madde/)).not.toBeInTheDocument();
   });
 });
+
+describe('başarısız cevabın kanıtı (bağımsız test turu B01, B09)', () => {
+  const ACILIS = new Date(Date.now() - 10 * 60_000).toISOString();
+  const BITIS = new Date(Date.now() + 3_600_000).toISOString();
+
+  /** Penceresi açık listeyi kurar ve detayını açar. */
+  async function ac() {
+    bugun.mockResolvedValue([
+      {
+        id: 'r-1',
+        branch_name: 'Kadıköy',
+        status: 'in_progress',
+        window_start: ACILIS,
+        writable_from: ACILIS,
+        window_end: BITIS,
+        tolerance_end: BITIS,
+      },
+    ] as never);
+    kur();
+    await userEvent.click(await screen.findByRole('button', { name: 'Listeyi aç' }));
+  }
+
+  /** Penceresi açık, sıcaklık maddesi başarısız cevaplanmış bir liste. */
+  function basarisizListe(cevapEk: Record<string, unknown> = {}) {
+    gorunum.mockResolvedValue({
+      ...CALISTIRMA,
+      status: 'in_progress',
+      writable_from: ACILIS,
+      window_start: ACILIS,
+      window_end: BITIS,
+      tolerance_end: BITIS,
+      blockers: [
+        { item_id: 'm-3', title: 'Süt dolabı sıcaklığı', kind: 'evidence' },
+        { item_id: 'm-3', title: 'Süt dolabı sıcaklığı', kind: 'note' },
+      ],
+      sections: [
+        {
+          id: 's-1',
+          title: 'Soğuk zincir',
+          items: [
+            madde({
+              item_id: 'm-3',
+              title: 'Süt dolabı sıcaklığı',
+              type: 'temperature',
+              type_label: 'Sıcaklık',
+              min_value: 0,
+              max_value: 4,
+              unit: '°C',
+              answer: {
+                id: 'c-3',
+                item_id: 'm-3',
+                state: 'failed',
+                value: 6,
+                note: null,
+                evidence_count: 0,
+                answered_at: '2026-11-05T19:10:00Z',
+                not_done_reason: null,
+                not_done_reason_label: null,
+                ...cevapEk,
+              },
+            }),
+          ],
+        },
+      ],
+    } as unknown as CalistirmaGorunumu);
+  }
+
+  it('başarısız cevapta açıklama alanı açılıyor (BR-06)', async () => {
+    basarisizListe();
+    await ac();
+
+    expect(await screen.findByLabelText('Açıklama')).toBeTruthy();
+  });
+
+  it('başarısız cevapta fotoğraf düğmesi açılıyor — madde fotoğraf istemese de', async () => {
+    basarisizListe();
+    await ac();
+
+    expect(await screen.findByText('Fotoğraf seç')).toBeTruthy();
+  });
+
+  it('geçen cevapta açıklama alanı yok: zorunlu olmayan alan sormuyoruz', async () => {
+    basarisizListe({ state: 'passed', value: 3 });
+    await ac();
+
+    // Başlık hem kartta hem engel listesinde geçiyor; varlığı yeter.
+    expect((await screen.findAllByText('Süt dolabı sıcaklığı')).length).toBeGreaterThan(0);
+    expect(screen.queryByLabelText('Açıklama')).toBeNull();
+  });
+
+  it('gönderim engeli maddenin kendisine götürüyor', async () => {
+    basarisizListe();
+    await ac();
+
+    const bag = (await screen.findAllByRole('link', { name: 'Süt dolabı sıcaklığı' }))[0];
+    expect(bag.getAttribute('href')).toBe('#madde-m-3');
+  });
+
+  it('dokunulmamış formda düğme “Kaydet” diyor, “Kaydedildi” yazmıyor (B09)', async () => {
+    // Boş formun düğmesinde "kaydedildi" yazıyordu: ilk kez gelen
+    // kullanıcı kaydın yapıldığını sanıyordu.
+    cevapsizOlcum();
+    await ac();
+
+    expect(await screen.findByRole('button', { name: 'Kaydet' })).toBeTruthy();
+    expect(screen.queryByText('Kaydedildi')).toBeNull();
+  });
+
+  it('kaydedilmiş ölçümde “Kaydedildi” yazıyor', async () => {
+    basarisizListe({ state: 'passed', value: 3 });
+    await ac();
+
+    expect(await screen.findByText('Kaydedildi')).toBeTruthy();
+  });
+
+  it('aralık uyarısı yalnızca gerçekten dışarıdaki değerde çıkıyor (B09)', async () => {
+    basarisizListe({ state: 'passed', value: 3 });
+    await ac();
+
+    expect(await screen.findByText('Kabul aralığı 0–4°C.')).toBeTruthy();
+    expect(screen.queryByText(/bu değer dışarıda/)).toBeNull();
+  });
+
+  /** Ölçüm maddesi hiç cevaplanmamış liste. */
+  function cevapsizOlcum() {
+    gorunum.mockResolvedValue({
+      ...CALISTIRMA,
+      status: 'in_progress',
+      writable_from: ACILIS,
+      window_start: ACILIS,
+      window_end: BITIS,
+      tolerance_end: BITIS,
+      sections: [
+        {
+          id: 's-1',
+          title: 'Soğuk zincir',
+          items: [
+            madde({
+              item_id: 'm-3',
+              title: 'Süt dolabı sıcaklığı',
+              type: 'temperature',
+              min_value: 0,
+              max_value: 4,
+              unit: '°C',
+              photo_required: true,
+              answer: null,
+            }),
+          ],
+        },
+      ],
+    } as unknown as CalistirmaGorunumu);
+  }
+
+  it('cevapsız ölçüm maddesinde fotoğraf önce cevap istiyor (BR-08a)', async () => {
+    cevapsizOlcum();
+    await ac();
+
+    expect(await screen.findByText('Fotoğraf için önce cevabı kaydedin.')).toBeTruthy();
+  });
+});

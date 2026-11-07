@@ -4,7 +4,14 @@ import { useState } from 'react';
 import { problemCoz } from '../../api/client';
 import { calistirmaGorunumu, type MaddeDurumu } from '../../api/calistirma';
 import { gununCalistirmalari } from '../../api/planlar';
-import { cevapYaz, kanitYukle, listeyiGonder, senkManifesti, surumDetayi } from '../../api/saha';
+import {
+  type CevapGirdisi,
+  cevapYaz,
+  kanitYukle,
+  listeyiGonder,
+  senkManifesti,
+  surumDetayi,
+} from '../../api/saha';
 import { Cip } from '../../bilesenler/Cip';
 import { Dugme } from '../../bilesenler/Dugme';
 import { Hata, Yukleniyor } from '../../bilesenler/Durum';
@@ -255,7 +262,11 @@ function ListeCalistirma({ runId, onKapat }: { runId: string; onKapat: () => voi
           <ul className="madde-listesi">
             {veri.blockers.map((eksik) => (
               <li key={`${eksik.item_id}-${eksik.kind}`}>
-                {eksik.title} — {tr.calistirma.eksikTuru[eksik.kind]}
+                {/* Engel, eksiğin durduğu maddeye götürüyor: uzun listede
+                    "fotoğraf gerekiyor" yazısını okuyup maddeyi gözle
+                    aramak gerekiyordu. */}
+                <a href={`#madde-${eksik.item_id}`}>{eksik.title}</a> —{' '}
+                {tr.calistirma.eksikTuru[eksik.kind]}
               </li>
             ))}
           </ul>
@@ -285,6 +296,25 @@ function ListeCalistirma({ runId, onKapat }: { runId: string; onKapat: () => voi
   );
 }
 
+/**
+ * Kayıt durumu: düğme artık "Kaydet" diyor, sonucu bu satır söylüyor.
+ * Eskiden düğmenin üstünde "kaydedildi" yazıyordu — henüz hiçbir şey
+ * kaydedilmemişken de (bağımsız test turu B09). Alan değişince başarı
+ * yazısı kalkıyor: `kayitli` bunu çağırandan alıyor.
+ */
+function KayitDurumu({
+  yaz,
+  kayitli,
+}: {
+  yaz: { isPending: boolean; isError: boolean };
+  kayitli: boolean;
+}) {
+  if (yaz.isError) return <span className="meta meta--hata">{tr.saha.kaydedilmedi}</span>;
+  if (yaz.isPending) return <span className="meta">{tr.saha.kaydediliyor}</span>;
+  if (kayitli) return <span className="meta">{tr.saha.kaydedildi}</span>;
+  return null;
+}
+
 function MaddeKarti({
   runId,
   madde,
@@ -303,6 +333,7 @@ function MaddeKarti({
   const [sebepAcik, setSebepAcik] = useState(false);
   const [yukleniyor, setYukleniyor] = useState(false);
   const [hata, setHata] = useState<string | null>(null);
+  const [not, setNot] = useState<string>(madde.answer?.note ?? '');
 
   // Cevap kimliği **cihazda** üretiliyor ve kalıcı: aynı maddeye ikinci
   // kez yazmak yeni kayıt açmıyor, mevcut cevabı güncelliyor (FR-0707).
@@ -337,6 +368,30 @@ function MaddeKarti({
 
   const cevap = madde.answer;
   const aralikli = madde.min_value != null && madde.max_value != null;
+  // BR-06: başarısız ve yapılamadı cevaplarında fotoğraf **ve** not
+  // zorunlu — maddenin "fotoğraf zorunlu" işaretinden bağımsız. Sunucu
+  // bunu gönderim kapısında arıyordu, ekranda girecek alan yoktu:
+  // kullanıcı ya listeyi gönderemiyor ya da ölçümü düzelterek engeli
+  // aşmaya yöneliyordu (bağımsız test turu B01).
+  const kanitGerek = cevap?.state === 'failed' || cevap?.state === 'not_done';
+  // Ölçüm, seçim ve metin maddesinde cevabı sunucu değerden hesaplıyor
+  // (BR-08a): değer gelmeden "geçti" yazıp fotoğraf eklenemez.
+  const degerGerek =
+    madde.type === 'temperature' ||
+    madde.type === 'number' ||
+    madde.type === 'choice' ||
+    madde.type === 'text';
+  const kayitliDeger = cevap?.value != null ? String(cevap.value) : '';
+  const degerDegisti = deger !== kayitliDeger;
+  const sayi = deger === '' ? null : Number(deger);
+  const aralikDisinda =
+    aralikli &&
+    sayi !== null &&
+    Number.isFinite(sayi) &&
+    (sayi < (madde.min_value as number) || sayi > (madde.max_value as number));
+  const kaydetMetni = yaz.isPending ? tr.saha.kaydediliyor : tr.saha.kaydet;
+  const fotografKapali = cevap === null && degerGerek;
+  const notDegisti = not.trim() !== (cevap?.note ?? '');
 
   if (madde.type === 'instruction') {
     return (
@@ -347,7 +402,10 @@ function MaddeKarti({
   }
 
   return (
-    <li className={cevap?.state === 'failed' ? 'kart kart--kritik' : 'kart'}>
+    <li
+      id={`madde-${madde.item_id}`}
+      className={cevap?.state === 'failed' ? 'kart kart--kritik' : 'kart'}
+    >
       <div className="yigin yigin--dar">
         <div className="kart-serit">
           <strong className="kart-serit-ad">{madde.title}</strong>
@@ -434,21 +492,20 @@ function MaddeKarti({
               gorunum="ikincil"
               boyut="kucuk"
               type="button"
-              disabled={deger === ''}
-              onClick={() => {
-                const sayi = Number(deger);
-                const icinde =
-                  !aralikli ||
-                  (sayi >= (madde.min_value as number) && sayi <= (madde.max_value as number));
+              disabled={deger === '' || yaz.isPending}
+              onClick={() =>
                 yaz.mutate({
+                  // Durum sunucuda hesaplanıyor (BR-08a); buradaki
+                  // tahmin yalnızca anında geri bildirim için.
                   item_id: madde.item_id,
-                  state: icinde ? 'passed' : 'failed',
-                  value: sayi,
-                });
-              }}
+                  state: aralikDisinda ? 'failed' : 'passed',
+                  value: Number(deger),
+                })
+              }
             >
-              {tr.saha.kaydedildi}
+              {kaydetMetni}
             </Dugme>
+            <KayitDurumu yaz={yaz} kayitli={cevap != null && !degerDegisti} />
           </div>
         )}
 
@@ -462,19 +519,20 @@ function MaddeKarti({
               gorunum="ikincil"
               boyut="kucuk"
               type="button"
-              disabled={deger.trim() === ''}
+              disabled={deger.trim() === '' || yaz.isPending}
               onClick={() =>
                 yaz.mutate({ item_id: madde.item_id, state: 'passed', value: deger.trim() })
               }
             >
-              {tr.saha.kaydedildi}
+              {kaydetMetni}
             </Dugme>
+            <KayitDurumu yaz={yaz} kayitli={cevap != null && !degerDegisti} />
           </div>
         )}
 
         {aralikli && (
-          <p className="alan-ipucu">
-            {tr.saha.aralikDisi(
+          <p className={aralikDisinda ? 'alan-ipucu alan-ipucu--uyari' : 'alan-ipucu'}>
+            {(aralikDisinda ? tr.saha.aralikDisi : tr.saha.aralikIpucu)(
               madde.min_value as number,
               madde.max_value as number,
               madde.unit ?? '',
@@ -482,16 +540,22 @@ function MaddeKarti({
           </p>
         )}
 
-        {!kilitli && (madde.photo_required || madde.type === 'photo') && (
+        {!kilitli && (madde.photo_required || madde.type === 'photo' || kanitGerek) && (
           <div className="kart-serit">
-            <label className="dugme dugme--ikincil dugme--kucuk">
+            <label
+              className={
+                fotografKapali
+                  ? 'dugme dugme--ikincil dugme--kucuk dugme--pasif'
+                  : 'dugme dugme--ikincil dugme--kucuk'
+              }
+            >
               {yukleniyor ? tr.saha.fotografYukleniyor : tr.saha.fotografSec}
               <input
                 type="file"
                 accept="image/*"
                 capture="environment"
                 className="sr-only"
-                disabled={yukleniyor}
+                disabled={yukleniyor || fotografKapali}
                 onChange={(o) => {
                   const dosya = o.target.files?.[0];
                   if (dosya) void fotografSec(dosya);
@@ -502,6 +566,44 @@ function MaddeKarti({
             {cevap != null && cevap.evidence_count > 0 && (
               <span className="meta">{tr.saha.fotografSayisi(cevap.evidence_count)}</span>
             )}
+            {fotografKapali && <span className="meta">{tr.saha.fotografOnceCevap}</span>}
+          </div>
+        )}
+
+        {/* BR-06: başarısız/yapılamadı cevabın açıklaması. Durum ve
+            değer korunarak aynı cevaba yazılıyor (cevap kimliği sabit),
+            sebep de taşınıyor — yoksa sunucu sebepsiz "yapılamadı"yı
+            reddeder. */}
+        {!kilitli && kanitGerek && cevap != null && (
+          <div className="alan-sirasi">
+            <label className="alan-etiket alan-etiket--genis">
+              {tr.saha.aciklama}
+              <input
+                className="alan"
+                value={not}
+                onChange={(o) => setNot(o.target.value)}
+                placeholder={tr.saha.aciklamaIpucu}
+              />
+            </label>
+            <Dugme
+              gorunum="ikincil"
+              boyut="kucuk"
+              type="button"
+              disabled={not.trim() === '' || !notDegisti || yaz.isPending}
+              onClick={() =>
+                yaz.mutate({
+                  item_id: madde.item_id,
+                  state: cevap.state as CevapGirdisi['state'],
+                  value: cevap.value,
+                  note: not.trim(),
+                  evidence_count: cevap.evidence_count,
+                  not_done_reason: cevap.not_done_reason as CevapGirdisi['not_done_reason'],
+                })
+              }
+            >
+              {kaydetMetni}
+            </Dugme>
+            <KayitDurumu yaz={yaz} kayitli={!notDegisti && (cevap.note ?? '') !== ''} />
           </div>
         )}
 

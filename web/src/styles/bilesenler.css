@@ -207,6 +207,27 @@ textarea.alan {
   color: var(--renk-sessiz);
 }
 
+/* Aralık ipucu iki hâlli: değer yokken kabul aralığını **söyler**,
+   gerçekten dışarıdaki değerde uyarır. Eskiden boş alanda da "bu değer
+   dışarıda" yazıyordu (bağımsız test turu B09). */
+.alan-ipucu--uyari {
+  color: var(--renk-uyari);
+  font-weight: 500;
+}
+
+/* Kaydedilemeyen alanın durumu sessiz griyle geçmesin. */
+.meta--hata {
+  color: var(--renk-kritik);
+  font-weight: 500;
+}
+
+/* Fotoğraf düğmesi etiket olduğu için `disabled` almıyor; görünümü
+   buradan kapanıyor (girdinin kendisi ayrıca disabled). */
+.dugme--pasif {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 /* --- bildiri (durum / hata) --------------------------------------- */
 
 .bildiri {
