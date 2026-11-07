@@ -54,6 +54,20 @@ api.use({
  * alanına bakar — Türkçe `title` metni değişebilir, `type` sözleşmedir.
  */
 /**
+ * Hatanın kullanıcıya gösterilecek tek cümlesi.
+ *
+ * Alan sebebi başlıktan **farklıysa** ekleniyor. Aynıysa eklemek
+ * "Bu şube kodu zaten var: Bu şube kodu zaten var" üretiyordu: sunucu
+ * alan adını söylemeye başlayınca ortaya çıktı.
+ */
+export function problemCumlesi(hata: unknown, yedek: string): string {
+  const problem = problemCoz(hata);
+  if (!problem) return yedek;
+  const sebep = problem.errors?.[0]?.sebep;
+  return sebep && sebep !== problem.title ? `${problem.title}: ${sebep}` : problem.title;
+}
+
+/**
  * Sunucunun alan hatalarını `{alan: sebep}` sözlüğüne çevirir.
  *
  * Form bunu alanın yanına yazıyor ve alanı `aria-invalid` yapıyor:

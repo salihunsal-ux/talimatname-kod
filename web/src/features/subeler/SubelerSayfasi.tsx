@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 
-import { alanHatalari, problemCoz } from '../../api/client';
+import { alanHatalari, problemCumlesi } from '../../api/client';
 import { subeAgaci, subeDetayi, subeEkle, subePasiflestir } from '../../api/subeler';
 import { useYonetici } from '../../api/yetki';
 import { tr } from '../../i18n/tr';
@@ -190,7 +190,6 @@ function SubeEkleFormu() {
     },
   });
 
-  const problem = problemCoz(ekle.error);
   const hatalar = alanHatalari(ekle.error);
 
   // Sunucu bir alanı reddettiğinde odak oraya gider: kullanıcı hatayı
@@ -253,8 +252,7 @@ function SubeEkleFormu() {
           </div>
           {ekle.isError && (
             <p role="alert" className="bildiri bildiri--hata">
-              {problem ? problem.title : tr.hata.genel}
-              {problem?.errors?.length ? `: ${problem.errors[0].sebep}` : ''}
+              {problemCumlesi(ekle.error, tr.hata.genel)}
             </p>
           )}
         </div>

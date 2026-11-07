@@ -53,3 +53,19 @@ describe('Hata', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('Sunucuya bağlanılamadı');
   });
 });
+
+describe('Hata — alan sebebi başlıkla aynıysa', () => {
+  it('cümleyi iki kez yazmıyor', () => {
+    // Sunucu alan adını söylemeye başlayınca (D-4) ortaya çıktı:
+    // "Bu şube kodu zaten var: Bu şube kodu zaten var".
+    render(
+      <Hata
+        hata={problem('sube-kodu-kullanimda', 'Bu şube kodu zaten var', {
+          errors: [{ alan: 'code', sebep: 'Bu şube kodu zaten var' }],
+        })}
+      />,
+    );
+
+    expect(screen.getByRole('alert')).toHaveTextContent(/^Bu şube kodu zaten var$/);
+  });
+});

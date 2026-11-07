@@ -1,4 +1,4 @@
-import { problemCoz } from '../api/client';
+import { problemCumlesi } from '../api/client';
 import { tr } from '../i18n/tr';
 
 /**
@@ -11,9 +11,7 @@ export function Yukleniyor({ metin }: { metin?: string }) {
 }
 
 export function Hata({ hata, metin }: { hata?: unknown; metin?: string }) {
-  const problem = problemCoz(hata);
-  const sebep = problem?.errors?.length ? `: ${problem.errors[0].sebep}` : '';
-  const yazi = problem ? `${problem.title}${sebep}` : (metin ?? tr.hata.aglaBaglanilamadi);
+  const yazi = problemCumlesi(hata, metin ?? tr.hata.aglaBaglanilamadi);
 
   return (
     <p role="alert" className="bildiri bildiri--hata">
