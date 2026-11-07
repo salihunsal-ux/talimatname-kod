@@ -240,6 +240,11 @@ class ExecutionService:
         an = self._now()
         run = self._run(run_id)
         self._ensure_open(run, an)
+        # BR-26: kilit yazmada denetleniyordu, gönderimde değil. Listeyi
+        # A dolduruyorken B gönderebiliyor ve `locked_by` B'ye yazıldığı
+        # için kayıt işi B'ye atfediyordu (bağımsız test turu B03).
+        # Kilidi tazelemeye gerek yok: gönderim onu zaten düşürüyor.
+        ensure_writable(self._answers.lock(run_id), user_id, an)
         surum = self._version(run)
         cevaplar = self._cevaplar(run_id)
 

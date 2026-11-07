@@ -14,7 +14,7 @@ from fastapi.testclient import TestClient
 from conftest import json_madde_degeri, madde_degeri, oturum_ac
 from talimatname.api.app import create_app
 from talimatname.domain.actions import from_critical_item
-from talimatname.domain.answers import clock_skew
+from talimatname.domain.answers import LOCK_MINUTES, clock_skew
 from talimatname.domain.errors import RunLocked
 from talimatname.domain.templates import Item
 from talimatname.domain.validation import ValidationError
@@ -827,3 +827,85 @@ def test_br06_uc_noktada_da_sunucu_karar_veriyor(istemci: TestClient) -> None:
 
     assert cevap.status_code == 200, cevap.text
     assert cevap.json()["state"] == "failed"
+
+
+# --- BR-26: gönderim de kilidi denetler (bağımsız test turu B03) --------
+
+
+def test_br26_kilit_sahibi_olmayan_gonderemez() -> None:
+    """Listeyi A dolduruyorken B gönderemez (B03).
+
+    Yazma denetleniyordu, gönderim denetlenmiyordu: B'nin gönderimi
+    kabul ediliyor ve `locked_by` B'ye yazıldığı için kayıt işi
+    yapmayan kişiye atfediyordu.
+    """
+    servis, run_id, planlar, _ = _kurulum()
+    a, b = uuid4(), uuid4()
+    _cevapla(servis, run_id, user_id=a)
+
+    with pytest.raises(RunLocked):
+        servis.submit(run_id, user_id=b)
+
+    assert planlar.run(run_id).status == "in_progress"  # type: ignore[union-attr]
+
+
+def test_br26_kilit_sahibi_gonderebilir() -> None:
+    servis, run_id, _, _ = _kurulum()
+    a = uuid4()
+    _cevapla(servis, run_id, user_id=a)
+
+    gonderilen = servis.submit(run_id, user_id=a)
+
+    assert gonderilen.status == "submitted"
+    assert gonderilen.locked_by == a
+
+
+def test_br26_kilit_dustukten_sonra_baskasi_gonderebilir() -> None:
+    """Kilit 30 dakika yenilenmezse düşer: cihazı kapanan kimseyi kilitlemez."""
+    servis, run_id, _, an = _kurulum()
+    a, b = uuid4(), uuid4()
+    _cevapla(servis, run_id, user_id=a)
+    sonra = ExecutionService(
+        servis._answers,
+        servis._plans,
+        servis._templates,
+        now=lambda: an + timedelta(minutes=LOCK_MINUTES + 1),
+    )
+
+    gonderilen = sonra.submit(run_id, user_id=b)
+
+    assert gonderilen.status == "submitted"
+
+
+def test_br26_uc_noktada_ikinci_kisi_gonderemez(istemci: TestClient) -> None:
+    """Aynı kural HTTP yolunda: 409 `calistirma-kilitli`.
+
+    İki aktör de **aynı** şubede: kapsam hatası (403) kilit hatasını
+    gölgelemesin.
+    """
+    # Kurulum şube müdürüyle (personel şube listesini göremiyor),
+    # yazma ve gönderme aynı şubenin iki personeliyle.
+    oturum_ac(istemci, "branch_manager")
+    run = _acik_calistirma(istemci)
+    oturum_ac(istemci, "staff")
+    gorunum = istemci.get(f"/api/v1/runs/{run['id']}").json()
+    degerler = _surum_degerleri(istemci, str(run["id"]))
+    madde = next(
+        m for bolum in gorunum["sections"] for m in bolum["items"] if m["type"] != "instruction"
+    )
+    yazma = istemci.put(
+        f"/api/v1/runs/{run['id']}/answers/{uuid4()}",
+        json={
+            "item_id": madde["item_id"],
+            "state": "passed",
+            "value": degerler[madde["item_id"]],
+        },
+    )
+    assert yazma.status_code == 200, yazma.text
+
+    # Aynı şubeden **başka** bir kişi gönderimi denerse.
+    ikinci = oturum_ac(TestClient(istemci.app), "staff2")
+    cevap = ikinci.post(f"/api/v1/runs/{run['id']}/submit", json={})
+
+    assert cevap.status_code == 409, cevap.text
+    assert cevap.json()["type"] == "urn:talimatname:calistirma-kilitli"

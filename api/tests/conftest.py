@@ -50,6 +50,8 @@ TELEFON = {
     "region_manager": "+905321110002",  # Anadolu bölgesi
     "branch_manager": "+905321110003",  # Kadıköy
     "staff": "+905321110005",  # Kadıköy
+    # Aynı şubede ikinci personel: çalıştırma kilidi iki kişi ister.
+    "staff2": "+905321110006",  # Kadıköy
 }
 
 
