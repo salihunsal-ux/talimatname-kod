@@ -186,20 +186,23 @@ def calistirmayi_doldur(run: Run, *, basarisiz_mi: bool, gec_mi: bool, kisi: UUI
     return f"{run.id} {etiket} · {sonuc.result} · %{sonuc.score_percent}"
 
 
-def gecmis_calistirmalar(ilk: date, an: datetime, *, kuru: bool) -> list[Run]:
-    """Geçmiş günlere çalıştırma üretir ve doldurulacakları döndürür.
+def gecmis_calistirmalar(ilk: date, bitis: date, an: datetime, *, kuru: bool) -> list[Run]:
+    """[ilk, bitis) aralığına çalıştırma üretir ve doldurulacakları döndürür.
 
     Zamanlayıcı yalnızca **ileriye** üretiyor (FR-0513), o yüzden demoda
     geçmiş yok. Burada aynı pencere motoruyla geriye üretiliyor.
 
-    Depoda zaten "kaçırıldı" duran çalıştırmalara **dokunulmuyor**:
-    onları sonradan doldurmak geçmişi düzeltmek olurdu (BR-03) ve zaten
-    gerçekçi bir karışım için kaçırılmış de gerekiyor.
+    `bitis` demonun kendi geçmişini korur: o günden **sonraki** hiçbir
+    çalıştırmaya dokunulmuyor. Demoyu gezerken kaçırılan liste
+    kaçırılmış kalır — sonradan doldurmak geçmişi düzeltmek olurdu
+    (BR-03). Sınırın gerisi ise tohum verisi: hiç yaşanmamış bir geçmiş
+    kuruluyor, var olan bir kayıt düzeltilmiyor. Bu yüzden orada
+    "kaçırıldı" damgası taşıyan (zamanlayıcının bu betiğin yarım kalan
+    turundan sonra damgaladığı) kayıtlar da doldurulabiliyor.
     """
     planlar = bagimliliklar._plan_deposu()
     org = bagimliliklar._org_deposu()
     mevcut = {r.id: r for r in planlar.runs()}
-    dun = (an - timedelta(days=1)).date()
 
     yeni: list[Run] = []
     for plan in planlar.plans():
@@ -209,14 +212,14 @@ def gecmis_calistirmalar(ilk: date, an: datetime, *, kuru: bool) -> list[Run]:
             sube = org.branch(branch_id)
             if sube is None or sube.status != "active":
                 continue
-            for kosu in plan_runs(plan, branch_id, sube.calendar(), ilk, dun):
+            for kosu in plan_runs(plan, branch_id, sube.calendar(), ilk, bitis - timedelta(days=1)):
+                if kosu.tolerance_end >= an:
+                    continue
                 var = mevcut.get(kosu.id)
                 if var is not None:
-                    # Zaten üretilmiş: yalnızca dokunulmamışsa doldurulur.
-                    if var.status in ("scheduled", "in_progress") and var.tolerance_end < an:
+                    # Gönderilmiş ya da iptal edilmişe dokunulmaz.
+                    if var.status not in ("submitted", "cancelled"):
                         yeni.append(var)
-                    continue
-                if kosu.tolerance_end >= an:
                     continue
                 if not kuru:
                     planlar.save_run(kosu)
@@ -229,6 +232,11 @@ def gecmis_calistirmalar(ilk: date, an: datetime, *, kuru: bool) -> list[Run]:
 def main() -> int:
     ayristirici = argparse.ArgumentParser(description=__doc__)
     ayristirici.add_argument("--gun", type=int, default=28, help="Kaç gün geriye doldurulsun")
+    ayristirici.add_argument(
+        "--bitis",
+        required=True,
+        help="Bu günden (YYYY-AA-GG) sonrasına dokunulmaz: demonun kendi geçmişi korunur",
+    )
     ayristirici.add_argument("--kuru", action="store_true", help="Yazma, yalnızca özet göster")
     secenekler = ayristirici.parse_args()
 
@@ -236,8 +244,9 @@ def main() -> int:
     an = datetime.now(UTC)
     en_eski = an - timedelta(days=secenekler.gun)
 
-    adaylar = gecmis_calistirmalar(en_eski.date(), an, kuru=secenekler.kuru)
-    print(f"aday çalıştırma: {len(adaylar)} ({secenekler.gun} gün)")
+    bitis = date.fromisoformat(secenekler.bitis)
+    adaylar = gecmis_calistirmalar(en_eski.date(), bitis, an, kuru=secenekler.kuru)
+    print(f"aday çalıştırma: {len(adaylar)} ({en_eski.date()} → {bitis}, hariç)")
 
     sayac = {"zamanında": 0, "geç": 0, "başarısız": 0, "kaçırıldı": 0, "hata": 0}
     for run in adaylar:
