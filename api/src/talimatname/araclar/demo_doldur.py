@@ -109,11 +109,23 @@ def kanit_yukle(
     yazılıyor — demoda olan tam olarak bu ve kayıt da bunu söylüyor.
     """
     _, kanit = saat_kurulu_servisler(datetime.now(UTC))
-    # Betik yarıda kalmış olabilir: aynı maddeye ikinci kez yüklemek
-    # `DuplicateEvidence` veriyor. Zaten doğrulanmış kanıt varsa geç.
-    if kanit.verified_counts(run_id).get(item_id, 0) > 0:
-        return
     baytlar = yer_tutucu_png(f"{run_id}:{item_id}")
+
+    # Betik yarıda kalmış olabilir: kayıt açılmış ama baytlar gitmemiş
+    # ya da doğrulanmamış olabilir. Yeniden `start` çağırmak
+    # `DuplicateEvidence` verir; kaldığı yerden sürdürülüyor.
+    for var in kanit.for_run(run_id):
+        if var.item_id != item_id:
+            continue
+        kayit_var, belirtec_var = kanit.resume(var.id)
+        if belirtec_var is None:
+            if kayit_var.status == "pending":
+                kanit.complete(kayit_var.id)
+            return
+        kanit.receive(belirtec_var, baytlar)
+        kanit.complete(kayit_var.id)
+        return
+
     kayit, belirtec = kanit.start(
         run_id=run_id,
         answer_id=answer_id,
