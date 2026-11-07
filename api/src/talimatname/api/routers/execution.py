@@ -129,6 +129,9 @@ class CalistirmaGorunumu(BaseModel):
     submitted_at: datetime | None = None
     template_name: str
     locked_by: UUID | None = None
+    locked_by_name: str | None = Field(
+        default=None, description='Kilidi tutanın adı (BR-26: "X yapıyor")'
+    )
     sections: list[BolumDurumu]
     blockers: list[Eksik]
 
@@ -184,6 +187,7 @@ def _gorunum(
     template_name: str,
     org: OrganizationService,
     isimler: dict[UUID, str],
+    kilit_adi: str | None = None,
 ) -> CalistirmaGorunumu:
     run = gorunum.run
     sube = org.get(run.branch_id)
@@ -203,6 +207,7 @@ def _gorunum(
         submitted_at=run.submitted_at,
         template_name=template_name,
         locked_by=gorunum.lock.user_id if gorunum.lock else None,
+        locked_by_name=kilit_adi,
         sections=[
             BolumDurumu(
                 id=bolum.id,
@@ -246,6 +251,7 @@ def calistirma_gorunumu(
         sablonlar.get(gorunum.version.template_id).name,
         org,
         _isimler(gorunum, kisiler),
+        servis.kilit_sahibi(gorunum.run.id),
     )
 
 
@@ -318,11 +324,71 @@ def calistirma_gonder(
         sablonlar.get(gorunum.version.template_id).name,
         org,
         _isimler(gorunum, kisiler),
+        servis.kilit_sahibi(gorunum.run.id),
     )
 
 
 class IptalGirdisi(BaseModel):
     reason: str = Field(min_length=1, max_length=200, description="Neden yapılmayacağı")
+
+
+@router.post("/runs/{run_id}/claim", summary="Listeyi üstlen (BR-26)")
+def calistirma_ustlen(
+    run_id: UUID,
+    servis: Servis,
+    sablonlar: SablonServis,
+    org: OrgServis,
+    kisiler: KisiServis,
+    kullanici: Kullanici,
+) -> CalistirmaGorunumu:
+    """Kilidi açıkça alır.
+
+    Yazmak kilidi zaten alıyordu; bu uç nokta niyeti öne çekiyor.
+    Personel listeyi açtığı anda kilidi alabilsin ki ikinci kişi ilk
+    maddenin yazılmasını beklemeden "X yapıyor" görsün.
+    """
+    sube_erisimi_zorunlu(kullanici, servis.view(run_id).run.branch_id, org)
+    servis.claim(run_id, kullanici.id)
+    gorunum = servis.view(run_id)
+    return _gorunum(
+        gorunum,
+        sablonlar.get(gorunum.version.template_id).name,
+        org,
+        _isimler(gorunum, kisiler),
+        servis.kilit_sahibi(gorunum.run.id),
+    )
+
+
+@router.post("/runs/{run_id}/release", summary="Kilidi bırak ya da kaldır (BR-26)")
+def calistirma_birak(
+    run_id: UUID,
+    servis: Servis,
+    sablonlar: SablonServis,
+    org: OrgServis,
+    kisiler: KisiServis,
+    kullanici: Kullanici,
+) -> CalistirmaGorunumu:
+    """Kendi kilidini bırakır; **müdür** başkasınınkini kaldırabilir.
+
+    BR-26: "sahibi bırakırsa serbest kalır; şube müdürü kilidi
+    kaldırabilir". Buna ihtiyaç var çünkü tek çıkış yolu 30 dakikalık
+    kilit süresinin dolmasıydı: personel hastalanıp eve gidince müdür
+    listeyi kurtaramıyordu.
+
+    Zorlama ayrı olay türüyle günlüğe giriyor — birinin işini devralmak,
+    kendi işini bırakmaktan başka bir şey.
+    """
+    sube_erisimi_zorunlu(kullanici, servis.view(run_id).run.branch_id, org)
+    mudur = bool({"admin", "region_manager", "branch_manager"} & set(kullanici.roles))
+    servis.release(run_id, kullanici.id, force=mudur)
+    gorunum = servis.view(run_id)
+    return _gorunum(
+        gorunum,
+        sablonlar.get(gorunum.version.template_id).name,
+        org,
+        _isimler(gorunum, kisiler),
+        servis.kilit_sahibi(gorunum.run.id),
+    )
 
 
 @router.post("/runs/{run_id}/cancel", summary="Yapılmayacak (FR-0514)")
@@ -349,6 +415,7 @@ def calistirma_iptal(
         sablonlar.get(gorunum.version.template_id).name,
         org,
         _isimler(gorunum, kisiler),
+        servis.kilit_sahibi(gorunum.run.id),
     )
 
 

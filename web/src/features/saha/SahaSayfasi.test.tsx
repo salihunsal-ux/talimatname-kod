@@ -6,6 +6,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { calistirmaGorunumu, type CalistirmaGorunumu } from '../../api/calistirma';
 import { gununCalistirmalari } from '../../api/planlar';
 import { senkManifesti, surumDetayi } from '../../api/saha';
+import type { Ben } from '../../api/oturum';
+import { Oturumlu } from '../../test/oturum';
+import { PERSONEL, SUBE_MUDURU } from '../../test/kullanicilar';
 import { SahaSayfasi } from './SahaSayfasi';
 
 vi.mock('../../api/calistirma');
@@ -63,11 +66,13 @@ const CALISTIRMA = {
   ],
 } as unknown as CalistirmaGorunumu;
 
-function kur() {
+function kur(ben: Ben | null = null) {
   const istemci = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
     <QueryClientProvider client={istemci}>
-      <SahaSayfasi />
+      <Oturumlu ben={ben}>
+        <SahaSayfasi />
+      </Oturumlu>
     </QueryClientProvider>,
   );
 }
@@ -109,7 +114,8 @@ describe('Saha istemcisi', () => {
     kur();
 
     const katlanir = await screen.findByText(/Bu istemcide olmayanlar/);
-    expect(katlanir).toHaveTextContent('(13)');
+    // 13 idi; FR-0521 (çalıştırma kilidi ekranda) yazılınca 12'ye düştü.
+    expect(katlanir).toHaveTextContent('(12)');
 
     await userEvent.click(katlanir);
     expect(screen.getByText(/Tarayıcı yapamıyor/)).toBeInTheDocument();
@@ -410,5 +416,58 @@ describe('liste kartının bağlamı (bağımsız test turu B10)', () => {
 
     const meta = await screen.findByText(/Pencere:/);
     expect(meta.textContent).toMatch(/\d{2}\/\d{2}/);
+  });
+});
+
+describe('çalıştırma kilidi ekranda (BR-26 · FR-0521)', () => {
+  // Kilit sunucuda hep vardı ama görünmüyordu: ikinci kişi yazmaya
+  // çalışınca 409 alıyordu ve mesajda ham bir kimlik vardı.
+
+  async function listeyiAc(ben: Ben | null) {
+    kur(ben);
+    await userEvent.click(await screen.findByRole('button', { name: 'Listeyi aç' }));
+    await screen.findByText('Gaz vanası kapatıldı');
+  }
+
+  it('kilit boşken üstlenme düğmesi çıkıyor', async () => {
+    await listeyiAc(PERSONEL);
+
+    expect(screen.getByRole('button', { name: 'Listeyi üstlen' })).toBeInTheDocument();
+  });
+
+  it('kilit sendeyse bırakma düğmesi çıkıyor', async () => {
+    gorunum.mockResolvedValue({ ...CALISTIRMA, locked_by: PERSONEL.id } as CalistirmaGorunumu);
+
+    await listeyiAc(PERSONEL);
+
+    expect(screen.getByText(/Liste sende/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Bırak' })).toBeInTheDocument();
+  });
+
+  it('başkasındaysa adını söylüyor, personele kaldırma düğmesi vermiyor', async () => {
+    gorunum.mockResolvedValue({
+      ...CALISTIRMA,
+      locked_by: 'baskasi-1',
+      locked_by_name: 'Emre Personel',
+    } as CalistirmaGorunumu);
+
+    await listeyiAc(PERSONEL);
+
+    expect(screen.getByText('Emre Personel bu listeyi dolduruyor.')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Kilidi kaldır' })).not.toBeInTheDocument();
+  });
+
+  it('müdür başkasının kilidini kaldırabiliyor', async () => {
+    // Tek çıkış yolu 30 dakika beklemekti: personel eve gidince müdür
+    // listeyi kurtaramıyordu.
+    gorunum.mockResolvedValue({
+      ...CALISTIRMA,
+      locked_by: 'baskasi-1',
+      locked_by_name: 'Emre Personel',
+    } as CalistirmaGorunumu);
+
+    await listeyiAc(SUBE_MUDURU);
+
+    expect(screen.getByRole('button', { name: 'Kilidi kaldır' })).toBeInTheDocument();
   });
 });

@@ -35,3 +35,17 @@ export const BOLGE_MUDURU: Ben = {
     },
   ],
 };
+
+export const PERSONEL: Ben = {
+  id: '00000000-0000-0000-0000-0000000000f1',
+  full_name: 'Test Personel',
+  phone: null,
+  roles: [
+    {
+      role: 'staff',
+      role_label: 'Personel',
+      scope_type: 'branch',
+      scope_id: '00000000-0000-0000-0000-0000000000c1',
+    },
+  ],
+};

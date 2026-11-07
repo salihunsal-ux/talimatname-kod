@@ -1075,3 +1075,84 @@ def test_gun_acikca_verilince_yalnizca_o_gun_doner(istemci: TestClient) -> None:
     liste = istemci.get(f"/api/v1/runs?business_day={bugun.isoformat()}").json()
 
     assert all(k["business_day"] == bugun.isoformat() for k in liste)
+
+
+# --- kilit: üstlenme, bırakma, müdür devralması (BR-26) ---------------
+
+
+def test_kilit_catismasinda_isim_gorunuyor(istemci: TestClient) -> None:
+    """ "Kilit sahibi: 73a8e2ba-…" kullanıcıya bir şey anlatmıyordu.
+
+    BR-26 "diğerleri **X yapıyor** görür" diyor; ham kimlik bunu
+    karşılamıyor (7 Kasım canlı turunda çıktı).
+    """
+    run = _simdi_yazilabilir(oturum_ac(istemci, "staff"))
+    istemci.post(f"/api/v1/runs/{run['id']}/claim")
+
+    ikinci = oturum_ac(istemci, "staff2")
+    yanit = ikinci.post(f"/api/v1/runs/{run['id']}/claim")
+
+    assert yanit.status_code == 409
+    govde = yanit.json()
+    assert govde["holder_name"] == "Emre Personel"
+    assert "Emre Personel" in govde["detail"]
+
+
+def test_gorunum_kilit_sahibinin_adini_tasiyor(istemci: TestClient) -> None:
+    run = _simdi_yazilabilir(oturum_ac(istemci, "staff"))
+
+    govde = istemci.post(f"/api/v1/runs/{run['id']}/claim").json()
+
+    assert govde["locked_by_name"] == "Emre Personel"
+
+
+def test_sahibi_kilidi_birakinca_serbest_kaliyor(istemci: TestClient) -> None:
+    run = _simdi_yazilabilir(oturum_ac(istemci, "staff"))
+    istemci.post(f"/api/v1/runs/{run['id']}/claim")
+
+    birak = istemci.post(f"/api/v1/runs/{run['id']}/release")
+
+    assert birak.status_code == 200
+    assert birak.json()["locked_by"] is None
+    ikinci = oturum_ac(istemci, "staff2")
+    assert ikinci.post(f"/api/v1/runs/{run['id']}/claim").status_code == 200
+
+
+def test_personel_baskasinin_kilidini_kaldiramaz(istemci: TestClient) -> None:
+    run = _simdi_yazilabilir(oturum_ac(istemci, "staff"))
+    istemci.post(f"/api/v1/runs/{run['id']}/claim")
+
+    ikinci = oturum_ac(istemci, "staff2")
+    yanit = ikinci.post(f"/api/v1/runs/{run['id']}/release")
+
+    assert yanit.status_code == 409
+    assert yanit.json()["type"].endswith("calistirma-kilitli")
+
+
+def test_mudur_kilidi_kaldirabiliyor(istemci: TestClient) -> None:
+    """Tek çıkış yolu 30 dakika beklemekti: personel eve gidince
+    müdür listeyi kurtaramıyordu (BR-26)."""
+    run = _simdi_yazilabilir(oturum_ac(istemci, "staff"))
+    istemci.post(f"/api/v1/runs/{run['id']}/claim")
+
+    mudur = oturum_ac(istemci, "admin")
+    yanit = mudur.post(f"/api/v1/runs/{run['id']}/release")
+
+    assert yanit.status_code == 200
+    assert yanit.json()["locked_by"] is None
+
+
+def test_kilit_olaylari_gunluge_yaziliyor(istemci: TestClient) -> None:
+    """BR-26 son cümle: "kilit olayları logda"."""
+    from talimatname.api import bagimliliklar
+
+    depo = bagimliliklar._izi_deposu()
+    run = _simdi_yazilabilir(oturum_ac(istemci, "staff"))
+    once = len(depo.events(limit=2000))
+
+    istemci.post(f"/api/v1/runs/{run['id']}/claim")
+    oturum_ac(istemci, "admin").post(f"/api/v1/runs/{run['id']}/release")
+
+    turler = [o.event_type for o in depo.events(limit=2000)[once:]]
+    assert "calistirma.kilit_alindi" in turler
+    assert "calistirma.kilit_kaldirildi" in turler

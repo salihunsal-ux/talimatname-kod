@@ -363,6 +363,8 @@ def yurutme_servisi() -> ExecutionService:
         _sablon_deposu(),
         _aksiyon_deposu(),
         verified_evidence=lambda run_id: kanit_servisi().verified_counts(run_id),
+        # Kilit çakışmasında "X yapıyor" diyebilmek için (BR-26).
+        user_name=lambda user_id: kullanici_servisi().name(user_id),
         audit=izi_servisi(),
         prep_minutes=ayarlar().run_prep_minutes,
     )

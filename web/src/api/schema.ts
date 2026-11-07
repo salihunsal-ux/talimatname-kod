@@ -823,6 +823,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/runs/{run_id}/claim": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Listeyi üstlen (BR-26)
+         * @description Kilidi açıkça alır.
+         *
+         *     Yazmak kilidi zaten alıyordu; bu uç nokta niyeti öne çekiyor.
+         *     Personel listeyi açtığı anda kilidi alabilsin ki ikinci kişi ilk
+         *     maddenin yazılmasını beklemeden "X yapıyor" görsün.
+         */
+        post: operations["calistirma_ustlen_api_v1_runs__run_id__claim_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/runs/{run_id}/release": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Kilidi bırak ya da kaldır (BR-26)
+         * @description Kendi kilidini bırakır; **müdür** başkasınınkini kaldırabilir.
+         *
+         *     BR-26: "sahibi bırakırsa serbest kalır; şube müdürü kilidi
+         *     kaldırabilir". Buna ihtiyaç var çünkü tek çıkış yolu 30 dakikalık
+         *     kilit süresinin dolmasıydı: personel hastalanıp eve gidince müdür
+         *     listeyi kurtaramıyordu.
+         *
+         *     Zorlama ayrı olay türüyle günlüğe giriyor — birinin işini devralmak,
+         *     kendi işini bırakmaktan başka bir şey.
+         */
+        post: operations["calistirma_birak_api_v1_runs__run_id__release_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/runs/{run_id}/cancel": {
         parameters: {
             query?: never;
@@ -1927,6 +1979,11 @@ export interface components {
             template_name: string;
             /** Locked By */
             locked_by?: string | null;
+            /**
+             * Locked By Name
+             * @description Kilidi tutanın adı (BR-26: "X yapıyor")
+             */
+            locked_by_name?: string | null;
             /** Sections */
             sections: components["schemas"]["BolumDurumu"][];
             /** Blockers */
@@ -5379,6 +5436,68 @@ export interface operations {
                 "application/json": components["schemas"]["GonderimGirdisi"];
             };
         };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalistirmaGorunumu"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    calistirma_ustlen_api_v1_runs__run_id__claim_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalistirmaGorunumu"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    calistirma_birak_api_v1_runs__run_id__release_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {

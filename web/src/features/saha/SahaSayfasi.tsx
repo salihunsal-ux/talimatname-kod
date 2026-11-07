@@ -2,7 +2,13 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 
 import { problemCoz } from '../../api/client';
-import { calistirmaGorunumu, type MaddeDurumu } from '../../api/calistirma';
+import {
+  calistirmaGorunumu,
+  kilidiBirak,
+  listeyiUstlen,
+  type CalistirmaGorunumu,
+  type MaddeDurumu,
+} from '../../api/calistirma';
 import { gununCalistirmalari } from '../../api/planlar';
 import {
   type CevapGirdisi,
@@ -17,6 +23,7 @@ import { Cip } from '../../bilesenler/Cip';
 import { Dugme } from '../../bilesenler/Dugme';
 import { Hata, Yukleniyor } from '../../bilesenler/Durum';
 import { IskeletListe } from '../../bilesenler/Iskelet';
+import { rolVar, useBen } from '../../api/yetki';
 import { tr } from '../../i18n/tr';
 
 /**
@@ -259,6 +266,8 @@ function ListeCalistirma({ runId, onKapat }: { runId: string; onKapat: () => voi
         </div>
       </header>
 
+      {!kapali && <KilitSeridi runId={runId} veri={veri} />}
+
       {acilmadi && <p className="bildiri bildiri--uyari">{tr.saha.acilmadi(acilisaKalan)}</p>}
       {kacirildi && <p className="bildiri bildiri--uyari">{tr.saha.kacirildi}</p>}
       {kapali && !kacirildi && !acilmadi && (
@@ -340,6 +349,75 @@ function KayitDurumu({
   if (yaz.isPending) return <span className="meta">{tr.saha.kaydediliyor}</span>;
   if (kayitli) return <span className="meta">{tr.saha.kaydedildi}</span>;
   return null;
+}
+
+/**
+ * Kim dolduruyor (BR-26 · FR-0521).
+ *
+ * Kilit sunucuda hep vardı ama ekranda görünmüyordu: ikinci kişi
+ * listeyi açıp yazmaya çalışınca 409 alıyordu ve mesajda ham bir
+ * kimlik vardı. Şerit üç hâlde: boşsa üstlen, sendeyse bırak,
+ * başkasındaysa adını söyle (müdüre kaldırma düğmesi).
+ */
+function KilitSeridi({ runId, veri }: { runId: string; veri: CalistirmaGorunumu }) {
+  const kuyruk = useQueryClient();
+  const ben = useBen();
+  const mudur = rolVar(ben, 'admin', 'region_manager', 'branch_manager');
+  const tazele = async () => {
+    await kuyruk.invalidateQueries({ queryKey: ['calistirma', runId] });
+  };
+  const ustlen = useMutation({ mutationFn: () => listeyiUstlen(runId), onSuccess: tazele });
+  const birak = useMutation({ mutationFn: () => kilidiBirak(runId), onSuccess: tazele });
+  const bekliyor = ustlen.isPending || birak.isPending;
+
+  if (veri.locked_by === null) {
+    return (
+      <div className="bildiri">
+        <Dugme boyut="kucuk" type="button" disabled={bekliyor} onClick={() => ustlen.mutate()}>
+          {tr.saha.kilidiAl}
+        </Dugme>
+      </div>
+    );
+  }
+
+  const bende = ben !== null && veri.locked_by === ben.id;
+  if (bende) {
+    return (
+      <div className="bildiri bildiri--saglam">
+        {tr.saha.sendeDuruyor}{' '}
+        <Dugme
+          gorunum="sessiz"
+          boyut="kucuk"
+          type="button"
+          disabled={bekliyor}
+          onClick={() => birak.mutate()}
+        >
+          {tr.saha.kilidiBirak}
+        </Dugme>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bildiri bildiri--uyari">
+      {veri.locked_by_name ? tr.saha.kilitTutan(veri.locked_by_name) : tr.saha.kilitVar}
+      {mudur && (
+        <>
+          {' '}
+          <Dugme
+            gorunum="sessiz"
+            boyut="kucuk"
+            type="button"
+            disabled={bekliyor}
+            onClick={() => birak.mutate()}
+          >
+            {tr.saha.kilidiKaldir}
+          </Dugme>
+          <span className="durum-metni"> {tr.saha.kilidiKaldirAciklama}</span>
+        </>
+      )}
+    </div>
+  );
 }
 
 function MaddeKarti({

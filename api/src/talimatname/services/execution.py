@@ -29,7 +29,7 @@ from talimatname.domain.answers import (
     resolve_answer,
     submission_blockers,
 )
-from talimatname.domain.errors import DomainError, ErrorKind
+from talimatname.domain.errors import DomainError, ErrorKind, RunLocked
 from talimatname.domain.plans import RUN_STATUS_LABELS, Run
 from talimatname.domain.scoring import evaluate
 from talimatname.domain.sync import NOT_DONE_REASON_LABELS
@@ -132,6 +132,7 @@ class ExecutionService:
         actions: ActionRepository | None = None,
         *,
         verified_evidence: Callable[[UUID], dict[UUID, int]] | None = None,
+        user_name: Callable[[UUID], str | None] | None = None,
         audit: AuditService | None = None,
         now: Callable[[], datetime] = lambda: datetime.now(UTC),
         prep_minutes: int = 0,
@@ -141,6 +142,10 @@ class ExecutionService:
         self._templates = templates
         self._actions = actions
         self._verified = verified_evidence
+        #: Kilidi kimin tuttuğunu **adıyla** söyleyebilmek için (BR-26:
+        #: "diğerleri X yapıyor görür"). Ham kimlik kullanıcıya bir şey
+        #: anlatmıyordu: "Kilit sahibi: 73a8e2ba-…" diyordu.
+        self._isim = user_name
         #: Olay günlüğü isteğe bağlı: alan testleri zincir kurmadan
         #: yürütme servisini kullanabilsin (FR-1301).
         self._izi = audit
@@ -208,7 +213,7 @@ class ExecutionService:
         # istek kimsenin kilidini tazelemesin.
         durum, deger = resolve_answer(madde, state=state, value=value)
 
-        kilit = ensure_writable(self._answers.lock(run_id), user_id, an)
+        kilit = self._kilidi_dogrula(run_id, user_id, an)
         self._answers.save_lock(run_id, kilit)
 
         cevap = Answer(
@@ -246,7 +251,7 @@ class ExecutionService:
         # A dolduruyorken B gönderebiliyor ve `locked_by` B'ye yazıldığı
         # için kayıt işi B'ye atfediyordu (bağımsız test turu B03).
         # Kilidi tazelemeye gerek yok: gönderim onu zaten düşürüyor.
-        ensure_writable(self._answers.lock(run_id), user_id, an)
+        self._kilidi_dogrula(run_id, user_id, an)
         surum = self._version(run)
         cevaplar = self._cevaplar(run_id)
 
@@ -413,6 +418,89 @@ class ExecutionService:
             madde: replace(cevap, evidence_count=dogrulanmis.get(madde, 0))
             for madde, cevap in cevaplar.items()
         }
+
+    def _kilit_izi(
+        self,
+        tur: str,
+        run_id: UUID,
+        *,
+        before: dict[str, object] | None = None,
+        after: dict[str, object] | None = None,
+    ) -> None:
+        """Kilit olayları günlüğe yazılır (BR-26 son cümle)."""
+        if self._izi is None:
+            return
+        self._izi.record(
+            tur, object_type="calistirma", object_id=run_id, before=before, after=after
+        )
+
+    def kilit_sahibi(self, run_id: UUID) -> str | None:
+        """Kilidi tutanın adı; kilit yoksa, düşmüşse ya da isim yoksa None."""
+        kilit = self._answers.lock(run_id)
+        if kilit is None or kilit.expired(self._now()) or self._isim is None:
+            return None
+        return self._isim(kilit.user_id)
+
+    def _kilidi_dogrula(self, run_id: UUID, user_id: UUID | None, an: datetime) -> RunLock | None:
+        """`ensure_writable`, hatayı kilit sahibinin **adıyla** zenginleştirir.
+
+        Alan katmanı isim bilmiyor ve bilmemeli; "X yapıyor" cümlesini
+        kurabilmek (BR-26) sunum katmanının işi ama isim çözümü burada,
+        çünkü hatayı doğuran yer burası.
+        """
+        try:
+            return ensure_writable(self._answers.lock(run_id), user_id, an)
+        except RunLocked as hata:
+            isim = self.kilit_sahibi(run_id)
+            if isim is None:
+                raise
+            raise RunLocked(
+                f"Listeyi şu an {isim} dolduruyor",
+                holder=hata.extra.get("holder"),
+                holder_name=isim,
+            ) from hata
+
+    def claim(self, run_id: UUID, user_id: UUID) -> RunLock:
+        """Listeyi üstlenir (BR-26: ilk açan alır).
+
+        Yazmak kilidi zaten alıyor; bu uç nokta açık niyet için:
+        personel listeyi açtığında kilidi alsın ki ikinci kişi ilk
+        maddeyi yazana kadar beklemesin.
+        """
+        an = self._now()
+        run = self._run(run_id)
+        self._ensure_open(run, an)
+        kilit = self._kilidi_dogrula(run_id, user_id, an)
+        self._answers.save_lock(run_id, kilit)
+        self._kilit_izi("calistirma.kilit_alindi", run_id, after={"kullanici": str(user_id)})
+        assert kilit is not None
+        return kilit
+
+    def release(self, run_id: UUID, user_id: UUID, *, force: bool = False) -> None:
+        """Kilidi bırakır. `force`: şube müdürü başkasının kilidini kaldırır.
+
+        BR-26: "sahibi bırakırsa serbest kalır; şube müdürü kilidi
+        kaldırabilir". Zorlama ayrı bir olay türüyle günlüğe giriyor:
+        birinin işini devralmak, kendi işini bırakmaktan başka bir şey.
+        """
+        kilit = self._answers.lock(run_id)
+        if kilit is None:
+            return
+        kendi = kilit.user_id == user_id
+        if not kendi and not force:
+            isim = self.kilit_sahibi(run_id)
+            raise RunLocked(
+                f"Listeyi şu an {isim} dolduruyor" if isim else f"Kilit sahibi: {kilit.user_id}",
+                holder=str(kilit.user_id),
+                holder_name=isim,
+            )
+        self._answers.save_lock(run_id, None)
+        self._kilit_izi(
+            "calistirma.kilit_birakildi" if kendi else "calistirma.kilit_kaldirildi",
+            run_id,
+            before={"kilit_sahibi": str(kilit.user_id)},
+            after={"kullanici": str(user_id)},
+        )
 
     def _run(self, run_id: UUID) -> Run:
         run = self._plans.run(run_id)

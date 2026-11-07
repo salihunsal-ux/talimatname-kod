@@ -2057,6 +2057,94 @@
         }
       }
     },
+    "/api/v1/runs/{run_id}/claim": {
+      "post": {
+        "tags": [
+          "yürütme"
+        ],
+        "summary": "Listeyi üstlen (BR-26)",
+        "description": "Kilidi açıkça alır.\n\nYazmak kilidi zaten alıyordu; bu uç nokta niyeti öne çekiyor.\nPersonel listeyi açtığı anda kilidi alabilsin ki ikinci kişi ilk\nmaddenin yazılmasını beklemeden \"X yapıyor\" görsün.",
+        "operationId": "calistirma_ustlen_api_v1_runs__run_id__claim_post",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Run Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalistirmaGorunumu"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/runs/{run_id}/release": {
+      "post": {
+        "tags": [
+          "yürütme"
+        ],
+        "summary": "Kilidi bırak ya da kaldır (BR-26)",
+        "description": "Kendi kilidini bırakır; **müdür** başkasınınkini kaldırabilir.\n\nBR-26: \"sahibi bırakırsa serbest kalır; şube müdürü kilidi\nkaldırabilir\". Buna ihtiyaç var çünkü tek çıkış yolu 30 dakikalık\nkilit süresinin dolmasıydı: personel hastalanıp eve gidince müdür\nlisteyi kurtaramıyordu.\n\nZorlama ayrı olay türüyle günlüğe giriyor — birinin işini devralmak,\nkendi işini bırakmaktan başka bir şey.",
+        "operationId": "calistirma_birak_api_v1_runs__run_id__release_post",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Run Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalistirmaGorunumu"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/runs/{run_id}/cancel": {
       "post": {
         "tags": [
@@ -4466,6 +4554,18 @@
               }
             ],
             "title": "Locked By"
+          },
+          "locked_by_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Locked By Name",
+            "description": "Kilidi tutanın adı (BR-26: \"X yapıyor\")"
           },
           "sections": {
             "items": {
