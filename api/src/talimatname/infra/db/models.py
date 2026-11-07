@@ -171,6 +171,33 @@ class RoleAssignment(Base):
     scope_id: Mapped[UUID | None] = mapped_column(Uuid)
 
 
+class UserSession(Base):
+    """Yenileme belirteci (FR-0203); sırrın **özeti**, kendisi değil.
+
+    Olay günlüğünün aksine güncellenebilir: iptal, son kullanım ve
+    döndürme satırı değiştirir (göç 0011).
+    """
+
+    __tablename__ = "user_session"
+    __table_args__ = (
+        UniqueConstraint("token_digest", name="uq_oturum_ozet"),
+        Index("ix_oturum_kullanici", "tenant_id", "user_id", "expires_at"),
+    )
+
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True)
+    tenant_id: Mapped[UUID] = _tenant_column()
+    user_id: Mapped[UUID] = mapped_column(Uuid, ForeignKey("app_user.id", ondelete="CASCADE"))
+    token_digest: Mapped[str] = mapped_column(String(64))
+    kind: Mapped[str] = mapped_column(String(8), default="web")
+    issued_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    device: Mapped[str | None] = mapped_column(String(120))
+    last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    revoked_reason: Mapped[str | None] = mapped_column(String(24))
+    replaced_by: Mapped[UUID | None] = mapped_column(Uuid)
+
+
 class Template(Base):
     __tablename__ = "template"
 

@@ -24,6 +24,7 @@ from talimatname.domain.exports import ExportJob
 from talimatname.domain.notifications import Notification
 from talimatname.domain.organization import Branch, Region, Station, uniform_hours
 from talimatname.domain.plans import Assignment, Plan, Run
+from talimatname.domain.sessions import Session
 from talimatname.domain.setup import AccountSettings
 from talimatname.domain.templates import (
     ChoiceOption,
@@ -244,6 +245,28 @@ class MemoryUserRepository:
     def next_mask_counter(self) -> int:
         self._mask_counter += 1
         return self._mask_counter
+
+
+class MemorySessionRepository:
+    """`SessionRepository` portunun bellek içi karşılığı (FR-0203)."""
+
+    def __init__(self) -> None:
+        self._oturumlar: dict[UUID, Session] = {}
+
+    def save_session(self, session: Session) -> None:
+        self._oturumlar[session.id] = session
+
+    def session(self, session_id: UUID) -> Session | None:
+        return self._oturumlar.get(session_id)
+
+    def session_by_digest(self, token_digest: str) -> Session | None:
+        return next(
+            (o for o in self._oturumlar.values() if o.token_digest == token_digest),
+            None,
+        )
+
+    def sessions_for_user(self, user_id: UUID) -> list[Session]:
+        return [o for o in self._oturumlar.values() if o.user_id == user_id]
 
 
 def _madde(

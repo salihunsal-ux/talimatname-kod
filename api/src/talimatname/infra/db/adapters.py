@@ -27,6 +27,7 @@ from talimatname.domain.exports import ExportJob
 from talimatname.domain.notifications import Notification
 from talimatname.domain.organization import Branch, Region, Station
 from talimatname.domain.plans import Assignment, Plan, Run
+from talimatname.domain.sessions import Session
 from talimatname.domain.setup import AccountSettings
 from talimatname.domain.templates import (
     ChoiceOption,
@@ -1086,6 +1087,65 @@ class SqlAuditRepository(_TenantRepository):
             return _olay(satir) if satir else None
 
 
+# ----------------------------------------------------------------- oturum
+
+
+def _oturum(satir: m.UserSession) -> Session:
+    return Session(
+        id=satir.id,
+        user_id=satir.user_id,
+        token_digest=satir.token_digest,
+        kind=satir.kind,  # type: ignore[arg-type]
+        issued_at=satir.issued_at,
+        expires_at=satir.expires_at,
+        device=satir.device,
+        last_used_at=satir.last_used_at,
+        revoked_at=satir.revoked_at,
+        revoked_reason=satir.revoked_reason,
+        replaced_by=satir.replaced_by,
+    )
+
+
+class SqlSessionRepository(_TenantRepository):
+    """Yenileme belirteci deposu (FR-0203). Sırrın özeti durur, kendisi değil."""
+
+    def save_session(self, session: Session) -> None:
+        with tenant_session(self._tenant) as o:
+            satir = o.get(m.UserSession, session.id) or m.UserSession(
+                id=session.id, tenant_id=self._tenant
+            )
+            satir.user_id = session.user_id
+            satir.token_digest = session.token_digest
+            satir.kind = session.kind
+            satir.issued_at = session.issued_at
+            satir.expires_at = session.expires_at
+            satir.device = session.device
+            satir.last_used_at = session.last_used_at
+            satir.revoked_at = session.revoked_at
+            satir.revoked_reason = session.revoked_reason
+            satir.replaced_by = session.replaced_by
+            o.add(satir)
+
+    def session(self, session_id: UUID) -> Session | None:
+        with tenant_session(self._tenant) as o:
+            satir = o.get(m.UserSession, session_id)
+            return _oturum(satir) if satir else None
+
+    def session_by_digest(self, token_digest: str) -> Session | None:
+        with tenant_session(self._tenant) as o:
+            satir = o.scalars(
+                select(m.UserSession).where(m.UserSession.token_digest == token_digest)
+            ).first()
+            return _oturum(satir) if satir else None
+
+    def sessions_for_user(self, user_id: UUID) -> list[Session]:
+        with tenant_session(self._tenant) as o:
+            satirlar = o.scalars(
+                select(m.UserSession).where(m.UserSession.user_id == user_id)
+            ).all()
+            return [_oturum(s) for s in satirlar]
+
+
 __all__ = [
     "SqlActionRepository",
     "SqlAnchorRepository",
@@ -1096,6 +1156,7 @@ __all__ = [
     "SqlNotificationRepository",
     "SqlOrganizationRepository",
     "SqlPlanRepository",
+    "SqlSessionRepository",
     "SqlTemplateRepository",
     "SqlUserRepository",
 ]

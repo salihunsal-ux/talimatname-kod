@@ -112,6 +112,160 @@
         }
       }
     },
+    "/api/v1/auth/refresh": {
+      "post": {
+        "tags": [
+          "oturum"
+        ],
+        "summary": "Oturumu yenile",
+        "description": "Yenileme belirtecini **döndürür**: eskisi aynı anda iptal olur.\n\nErişim belirteci kısa ömürlü ve durumsuz; onu uzatmak yerine\nyenisini üretiyoruz. Böylece oturum iptal edilebilir kalıyor\n(FR-0203) — pasifleştirilen ya da oturumu uzaktan kapatılan\nkullanıcı en fazla bir erişim belirteci ömrü kadar içeride kalır.\n\nDöndürülmüş bir belirteç ikinci kez sunulursa o kullanıcının bütün\noturumları kapatılır: belirteç iki elde demektir ve hangisinin\ngerçek kullanıcı olduğu bilinemez.",
+        "operationId": "oturum_yenile_api_v1_auth_refresh_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/YenilemeIstegi"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OturumYaniti"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "tags": [
+          "oturum"
+        ],
+        "summary": "Oturumu kapat",
+        "description": "Yenileme belirtecini iptal eder.\n\nTanınmayan belirteç **hata döndürmez**: istemci zaten belirteci\natıyor ve \"çıkamadın\" demek kullanıcıya yapacak bir şey bırakmıyor.\nElindeki erişim belirteci ömrü dolana kadar geçerli kalır; bunu\nkısaltmanın yolu erişim ömrünü kısa tutmak.",
+        "operationId": "oturum_kapat_api_v1_auth_logout_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/YenilemeIstegi"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DurumYaniti"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/sessions": {
+      "get": {
+        "tags": [
+          "oturum"
+        ],
+        "summary": "Açık oturumlar (cihaz listesi)",
+        "description": "Kullanıcının kendi açık oturumları (FR-0203).\n\nBaşkasının oturumları görünmez: liste kullanıcının kendi\nkimliğinden türetiliyor, parametre almıyor.",
+        "operationId": "oturum_listesi_api_v1_auth_sessions_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/OturumOzeti"
+                  },
+                  "type": "array",
+                  "title": "Response Oturum Listesi Api V1 Auth Sessions Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/sessions/{session_id}/revoke": {
+      "post": {
+        "tags": [
+          "oturum"
+        ],
+        "summary": "Oturumu uzaktan kapat",
+        "description": "Kaybolan telefondaki oturumu kapatır (FR-0203).",
+        "operationId": "oturum_sonlandir_api_v1_auth_sessions__session_id__revoke_post",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Session Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DurumYaniti"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/auth/me": {
       "get": {
         "tags": [
@@ -4964,6 +5118,17 @@
         "title": "DurumCiktisi",
         "description": "Sihirbazın durumu. `current` kaldığı yer (TC-004)."
       },
+      "DurumYaniti": {
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "title": "Ok",
+            "default": true
+          }
+        },
+        "type": "object",
+        "title": "DurumYaniti"
+      },
       "Eksik": {
         "properties": {
           "item_id": {
@@ -7078,6 +7243,69 @@
         "title": "OnizlemeYaniti",
         "description": "7 gün önizleme (FR-0511): kaydetmeden önce ne üretileceği."
       },
+      "OturumOzeti": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "kind": {
+            "type": "string",
+            "title": "Kind"
+          },
+          "device": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Device"
+          },
+          "issued_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Issued At"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Expires At"
+          },
+          "last_used_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Used At"
+          },
+          "current": {
+            "type": "boolean",
+            "title": "Current",
+            "description": "Bu isteği yapan oturum mu",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "device",
+          "issued_at",
+          "expires_at",
+          "last_used_at"
+        ],
+        "title": "OturumOzeti",
+        "description": "Cihaz listesi satırı (FR-0203). Belirteç ya da özeti **dönmez**."
+      },
       "OturumYaniti": {
         "properties": {
           "access_token": {
@@ -7093,6 +7321,16 @@
             "type": "integer",
             "title": "Expires In Minutes"
           },
+          "refresh_token": {
+            "type": "string",
+            "title": "Refresh Token",
+            "description": "Yenileme belirteci; **yalnızca burada** verilir, saklanması istemcinin işi"
+          },
+          "refresh_expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Refresh Expires At"
+          },
           "user": {
             "$ref": "#/components/schemas/BenYaniti"
           }
@@ -7101,6 +7339,8 @@
         "required": [
           "access_token",
           "expires_in_minutes",
+          "refresh_token",
+          "refresh_expires_at",
           "user"
         ],
         "title": "OturumYaniti"
@@ -8395,6 +8635,19 @@
           "message"
         ],
         "title": "YayinSorunu"
+      },
+      "YenilemeIstegi": {
+        "properties": {
+          "refresh_token": {
+            "type": "string",
+            "title": "Refresh Token"
+          }
+        },
+        "type": "object",
+        "required": [
+          "refresh_token"
+        ],
+        "title": "YenilemeIstegi"
       },
       "YuklemeIzni": {
         "properties": {

@@ -23,6 +23,7 @@ from talimatname.infra.memory import (
     MemoryNotificationRepository,
     MemoryOrganizationRepository,
     MemoryPlanRepository,
+    MemorySessionRepository,
     MemorySettingsRepository,
     MemoryTemplateRepository,
     MemoryUserRepository,
@@ -48,6 +49,7 @@ from talimatname.services.plans import PlanRepository, PlanService
 from talimatname.services.reminders import ReminderService
 from talimatname.services.reports import ReportService
 from talimatname.services.scheduler import SchedulerService
+from talimatname.services.sessions import SessionRepository, SessionService
 from talimatname.services.setup import SettingsRepository, SetupService
 from talimatname.services.storage import LocalObjectStore, ObjectStore, S3ObjectStore
 from talimatname.services.sync import SyncService
@@ -109,6 +111,15 @@ def _kullanici_deposu() -> UserRepository:
 
         return SqlUserRepository(_kiraci())  # type: ignore[arg-type]
     return MemoryUserRepository()
+
+
+@lru_cache
+def _oturum_deposu() -> SessionRepository:
+    if sql_modu():
+        from talimatname.infra.db.adapters import SqlSessionRepository
+
+        return SqlSessionRepository(_kiraci())  # type: ignore[arg-type]
+    return MemorySessionRepository()
 
 
 @lru_cache
@@ -255,6 +266,15 @@ def _kimlik_servisi() -> AuthService:
 
 def kimlik_servisi() -> AuthService:
     return _kimlik_servisi()
+
+
+@lru_cache
+def _oturum_servisi() -> SessionService:
+    return SessionService(_oturum_deposu())
+
+
+def oturum_servisi() -> SessionService:
+    return _oturum_servisi()
 
 
 def organizasyon_servisi() -> OrganizationService:

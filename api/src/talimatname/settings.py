@@ -80,7 +80,10 @@ class Settings(BaseSettings):
     #: alınamazsa gün atlanır ve bu kayda yazılır.
     tsa_timeout_seconds: int = Field(default=10, ge=1, le=120)
 
-    access_token_minutes: int = Field(default=30, ge=5, le=240)
+    #: Erişim belirteci ömrü. Yenileme belirteci yazılana kadar 30 dk idi
+    #: (oturum onunla bitiyordu); artık 15 dk yeter ve iptalin gecikmesi
+    #: bu kadardır: uzaktan kapatılan oturum en fazla bu süre içeride kalır.
+    access_token_minutes: int = Field(default=15, ge=5, le=240)
     #: Pencere açılmadan kaç dakika önce listeye yazılabilir (BR-02 hazırlık
     #: payı). 0 = tam pencerede açılır. Vardiya erken başladığında listeyi
     #: açabilmek için var; penceresiz doldurmaya kapı olmasın diye üst sınır

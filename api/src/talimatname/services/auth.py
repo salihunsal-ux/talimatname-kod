@@ -165,6 +165,19 @@ class AuthService:
             now=self._now(),
         )
 
+    def user_for(self, user_id: UUID) -> User:
+        """Yenilemede kullanılıyor: yetki belirteçten değil kullanıcıdan okunur.
+
+        Pasifleştirilen kullanıcı yenileyemez (FR-0205); yenileme
+        belirteci elinde kalsa bile.
+        """
+        kullanici = self._users.user(user_id)
+        if kullanici is None:
+            raise UnknownPhone()
+        if kullanici.status != "active":
+            raise UserInactive(f"Durum: {kullanici.status}")
+        return kullanici
+
     def user_id_for(self, phone: str) -> UUID | None:
         """Olay kaydı için kullanıcı kimliği; numara bilinmiyorsa None.
 

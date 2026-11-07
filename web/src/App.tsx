@@ -145,7 +145,10 @@ function Kapi() {
   }
 
   function cik() {
-    cikisYap();
+    // Sunucuya da haber veriyoruz (yenileme belirteci iptal olsun) ama
+    // beklemiyoruz: kullanıcı çıkmak istediğini söyledi, ekran hemen
+    // dönmeli. İstek başarısız olsa bile yerel silme yapılıyor.
+    void cikisYap();
     sorguIstemcisi.clear();
     setBelirtec(null);
     setSuresiDoldu(false);
@@ -153,7 +156,7 @@ function Kapi() {
 
   // Belirteç yok ya da sunucu kabul etmedi: giriş ekranı.
   if (belirtec === null || ben.isError) {
-    if (ben.isError) cikisYap();
+    if (ben.isError) void cikisYap();
     return <GirisSayfasi onGiris={giris} suresiDoldu={suresiDoldu} />;
   }
 

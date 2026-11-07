@@ -56,7 +56,9 @@ describe('GirisSayfasi', () => {
     dogrula.mockResolvedValue({
       access_token: 'belirtec',
       token_type: 'bearer',
-      expires_in_minutes: 30,
+      expires_in_minutes: 15,
+      refresh_token: 'yenileme',
+      refresh_expires_at: '2026-11-08T21:00:00Z',
       user: { id: 'k1', full_name: 'Cem Yönetici', phone: '+905321110001', roles: [] },
     });
     const onGiris = vi.fn();

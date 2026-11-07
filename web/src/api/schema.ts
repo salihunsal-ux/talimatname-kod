@@ -82,6 +82,103 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Oturumu yenile
+         * @description Yenileme belirtecini **döndürür**: eskisi aynı anda iptal olur.
+         *
+         *     Erişim belirteci kısa ömürlü ve durumsuz; onu uzatmak yerine
+         *     yenisini üretiyoruz. Böylece oturum iptal edilebilir kalıyor
+         *     (FR-0203) — pasifleştirilen ya da oturumu uzaktan kapatılan
+         *     kullanıcı en fazla bir erişim belirteci ömrü kadar içeride kalır.
+         *
+         *     Döndürülmüş bir belirteç ikinci kez sunulursa o kullanıcının bütün
+         *     oturumları kapatılır: belirteç iki elde demektir ve hangisinin
+         *     gerçek kullanıcı olduğu bilinemez.
+         */
+        post: operations["oturum_yenile_api_v1_auth_refresh_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Oturumu kapat
+         * @description Yenileme belirtecini iptal eder.
+         *
+         *     Tanınmayan belirteç **hata döndürmez**: istemci zaten belirteci
+         *     atıyor ve "çıkamadın" demek kullanıcıya yapacak bir şey bırakmıyor.
+         *     Elindeki erişim belirteci ömrü dolana kadar geçerli kalır; bunu
+         *     kısaltmanın yolu erişim ömrünü kısa tutmak.
+         */
+        post: operations["oturum_kapat_api_v1_auth_logout_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Açık oturumlar (cihaz listesi)
+         * @description Kullanıcının kendi açık oturumları (FR-0203).
+         *
+         *     Başkasının oturumları görünmez: liste kullanıcının kendi
+         *     kimliğinden türetiliyor, parametre almıyor.
+         */
+        get: operations["oturum_listesi_api_v1_auth_sessions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/sessions/{session_id}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Oturumu uzaktan kapat
+         * @description Kaybolan telefondaki oturumu kapatır (FR-0203).
+         */
+        post: operations["oturum_sonlandir_api_v1_auth_sessions__session_id__revoke_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/me": {
         parameters: {
             query?: never;
@@ -2135,6 +2232,14 @@ export interface components {
             completed_at?: string | null;
             brand?: components["schemas"]["MarkaCiktisi"] | null;
         };
+        /** DurumYaniti */
+        DurumYaniti: {
+            /**
+             * Ok
+             * @default true
+             */
+            ok?: boolean;
+        };
         /** Eksik */
         Eksik: {
             /**
@@ -3064,6 +3169,39 @@ export interface components {
             /** Runs */
             runs: components["schemas"]["CalistirmaOzet"][];
         };
+        /**
+         * OturumOzeti
+         * @description Cihaz listesi satırı (FR-0203). Belirteç ya da özeti **dönmez**.
+         */
+        OturumOzeti: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Kind */
+            kind: string;
+            /** Device */
+            device: string | null;
+            /**
+             * Issued At
+             * Format: date-time
+             */
+            issued_at: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /** Last Used At */
+            last_used_at: string | null;
+            /**
+             * Current
+             * @description Bu isteği yapan oturum mu
+             * @default false
+             */
+            current?: boolean;
+        };
         /** OturumYaniti */
         OturumYaniti: {
             /** Access Token */
@@ -3075,6 +3213,16 @@ export interface components {
             token_type?: string;
             /** Expires In Minutes */
             expires_in_minutes: number;
+            /**
+             * Refresh Token
+             * @description Yenileme belirteci; **yalnızca burada** verilir, saklanması istemcinin işi
+             */
+            refresh_token: string;
+            /**
+             * Refresh Expires At
+             * Format: date-time
+             */
+            refresh_expires_at: string;
             user: components["schemas"]["BenYaniti"];
         };
         /**
@@ -3660,6 +3808,11 @@ export interface components {
             /** Message */
             message: string;
         };
+        /** YenilemeIstegi */
+        YenilemeIstegi: {
+            /** Refresh Token */
+            refresh_token: string;
+        };
         /**
          * YuklemeIzni
          * @description Yükleme adresi ve belirteci.
@@ -3915,6 +4068,123 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OturumYaniti"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    oturum_yenile_api_v1_auth_refresh_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["YenilemeIstegi"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OturumYaniti"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    oturum_kapat_api_v1_auth_logout_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["YenilemeIstegi"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DurumYaniti"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    oturum_listesi_api_v1_auth_sessions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OturumOzeti"][];
+                };
+            };
+        };
+    };
+    oturum_sonlandir_api_v1_auth_sessions__session_id__revoke_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DurumYaniti"];
                 };
             };
             /** @description Validation Error */
