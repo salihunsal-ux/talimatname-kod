@@ -426,7 +426,17 @@ function MaddeKarti({
               }
             />
           )}
+          {/* Kilitli (gönderilmiş/kapanmış) listede cevap alanları yok;
+              değer yalnızca burada okunabilir (bağımsız test turu B07). */}
+          {kilitli && cevap?.value != null && (
+            <strong className="madde-satiri-deger">
+              {String(cevap.value)}
+              {madde.unit ? ` ${madde.unit}` : ''}
+            </strong>
+          )}
         </div>
+
+        {kilitli && cevap?.note && <p className="ikincil-metin">{cevap.note}</p>}
 
         {!kilitli && (madde.type === 'confirm' || madde.type === 'photo') && (
           <div className="kart-serit">

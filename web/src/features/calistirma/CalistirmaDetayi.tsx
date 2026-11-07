@@ -5,6 +5,7 @@ import {
   calistirmaIptal,
   calistirmaGorunumu,
   calistirmaPdf,
+  type CevapCiktisi,
   type MaddeDurumu,
 } from '../../api/calistirma';
 import { dosyayiIndir } from '../../api/raporlar';
@@ -238,6 +239,28 @@ export function CalistirmaDetayi({ runId, onKapat }: { runId: string; onKapat: (
   );
 }
 
+/**
+ * Cevabın **değeri**: kaç derece ölçüldü, hangi seçenek seçildi, vardiya
+ * notu ne diyordu. Satır yalnızca "Geçti/Geçmedi" yazıyordu; denetleyen
+ * kişi ölçümü bu ekrandan hiç göremiyordu (bağımsız test turu B07).
+ * Veri uç noktada zaten vardı, basılmıyordu.
+ */
+function Deger({ madde, cevap }: { madde: MaddeDurumu; cevap: CevapCiktisi }) {
+  if (cevap.value == null) return null;
+  if (madde.type === 'temperature' || madde.type === 'number') {
+    return (
+      <strong className="madde-satiri-deger">
+        {String(cevap.value)}
+        {madde.unit ? ` ${madde.unit}` : ''}
+      </strong>
+    );
+  }
+  if (madde.type === 'choice') return <Cip renk="nötr" metin={String(cevap.value)} />;
+  // Metin cevabı değerde duruyor (notta değil): kendi satırına iner.
+  if (madde.type === 'text') return <span className="madde-satiri-not">{String(cevap.value)}</span>;
+  return null;
+}
+
 function MaddeSatiri({ madde, kanitlar }: { madde: MaddeDurumu; kanitlar: Kanit[] }) {
   const cevap = madde.answer;
   const gorunum = cevap ? CEVAP[cevap.state] : null;
@@ -259,6 +282,7 @@ function MaddeSatiri({ madde, kanitlar }: { madde: MaddeDurumu; kanitlar: Kanit[
         <Cip renk="nötr" metin={madde.type_label} />
       ) : gorunum ? (
         <>
+          {cevap && <Deger madde={madde} cevap={cevap} />}
           <Cip renk={gorunum.renk} ikon={gorunum.ikon} metin={gorunum.ad} />
           {cevap?.not_done_reason_label && <Cip renk="uyari" metin={cevap.not_done_reason_label} />}
           {cevap?.evidence_count ? (
@@ -267,6 +291,11 @@ function MaddeSatiri({ madde, kanitlar }: { madde: MaddeDurumu; kanitlar: Kanit[
           <Kanitlar kanitlar={kanitlar} />
           {cevap?.clock_flagged && <Cip renk="uyari" ikon="⏱" metin={tr.calistirma.saatSapmasi} />}
           {cevap?.note && <span className="madde-satiri-not">{cevap.note}</span>}
+          {cevap && (cevap.answered_by || cevap.answered_at) && (
+            <span className="madde-satiri-kim">
+              {[cevap.answered_by, saat(cevap.answered_at)].filter(Boolean).join(' · ')}
+            </span>
+          )}
         </>
       ) : (
         <Cip renk="pasif" ikon="○" metin={tr.calistirma.cevapsiz} />

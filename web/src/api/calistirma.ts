@@ -4,6 +4,7 @@ import type { components } from './schema';
 
 export type CalistirmaGorunumu = components['schemas']['CalistirmaGorunumu'];
 export type MaddeDurumu = components['schemas']['MaddeDurumu'];
+export type CevapCiktisi = components['schemas']['CevapCiktisi'];
 
 export async function calistirmaGorunumu(id: string): Promise<CalistirmaGorunumu> {
   const { data, error } = await api.GET('/api/v1/runs/{run_id}', {

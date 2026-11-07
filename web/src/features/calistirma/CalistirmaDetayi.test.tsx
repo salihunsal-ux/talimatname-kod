@@ -97,6 +97,7 @@ const GORUNUM: CalistirmaGorunumu = {
           type: 'temperature',
           type_label: 'Sıcaklık',
           critical: true,
+          unit: '°C',
           answer: {
             id: 'a-2',
             item_id: 'i-2',
@@ -107,6 +108,26 @@ const GORUNUM: CalistirmaGorunumu = {
             answered_at: '2026-11-02T21:05:00Z',
             clock_skew_minutes: 40,
             clock_flagged: true,
+            answered_by: 'Emre Personel',
+          },
+        },
+        {
+          ...MADDE,
+          item_id: 'i-5',
+          title: 'Devreden vardiyaya not',
+          type: 'text',
+          type_label: 'Metin',
+          answer: {
+            id: 'a-5',
+            item_id: 'i-5',
+            state: 'passed',
+            value: 'Buzdolabı servisi yarın 10:00',
+            note: null,
+            evidence_count: 0,
+            answered_at: '2026-11-02T21:12:00Z',
+            clock_skew_minutes: 0,
+            clock_flagged: false,
+            answered_by: 'Zeynep Personel',
           },
         },
         {
@@ -182,7 +203,8 @@ describe('Çalıştırma detayı', () => {
     kur();
     await screen.findByRole('heading', { name: /Kadıköy/ });
 
-    expect(screen.getAllByText('Geçti')).toHaveLength(1);
+    // İki geçen madde var: onay ve metin cevabı.
+    expect(screen.getAllByText('Geçti')).toHaveLength(2);
     expect(screen.getByText('Geçmedi')).toBeInTheDocument();
     expect(screen.getByText('Sıcaklık 9 derece, teknisyen çağrıldı')).toBeInTheDocument();
     expect(screen.getByText('Cevapsız')).toBeInTheDocument();
@@ -317,5 +339,29 @@ describe('Çalıştırma detayı', () => {
     kur();
 
     expect(await screen.findByText(/ve 3 eksik daha/)).toBeInTheDocument();
+  });
+});
+
+describe('cevabın değeri ve kaydeden (bağımsız test turu B07)', () => {
+  it('ölçüm değeri birimiyle yazılı', async () => {
+    // Satır yalnızca "Geçmedi" diyordu: müdür kaç derece ölçüldüğünü
+    // bu ekrandan hiç göremiyordu, veri uç noktada duruyordu.
+    kur();
+
+    expect(await screen.findByText('9 °C')).toBeInTheDocument();
+  });
+
+  it('metin cevabının içeriği görünüyor', async () => {
+    // Vardiya notu `value` alanında saklanıyor; ekran yalnızca `note`
+    // basıyordu, o yüzden mesaj kayıp görünüyordu.
+    kur();
+
+    expect(await screen.findByText('Buzdolabı servisi yarın 10:00')).toBeInTheDocument();
+  });
+
+  it('cevabı kim ve saat kaçta yazdı', async () => {
+    kur();
+
+    expect(await screen.findByText(/Emre Personel/)).toBeInTheDocument();
   });
 });

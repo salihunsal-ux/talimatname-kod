@@ -1119,6 +1119,18 @@ textarea.alan {
   color: var(--renk-murekkep2);
 }
 
+/* Ölçüm değeri: satırın asıl kanıtı, çipten önce ve okunur boyda. */
+.madde-satiri-deger {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Cevabı kim ve ne zaman yazdı; kâğıtta da bu bilgi var. */
+.madde-satiri-kim {
+  flex-basis: 100%;
+  font-size: var(--meta);
+  color: var(--renk-sessiz);
+}
+
 /* Madde notu kendi satırına iner. */
 .madde-satiri-not {
   flex-basis: 100%;

@@ -4447,6 +4447,18 @@
             ],
             "title": "Not Done Reason Label",
             "description": "Sebebin Türkçe karşılığı; kod sözleşme, etiket değişebilir"
+          },
+          "answered_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Answered By",
+            "description": "Cevabı yazan kişinin adı; silinmiş kişide boş (BR-22)"
           }
         },
         "type": "object",

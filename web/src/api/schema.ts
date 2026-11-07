@@ -1896,6 +1896,11 @@ export interface components {
              * @description Sebebin Türkçe karşılığı; kod sözleşme, etiket değişebilir
              */
             not_done_reason_label?: string | null;
+            /**
+             * Answered By
+             * @description Cevabı yazan kişinin adı; silinmiş kişide boş (BR-22)
+             */
+            answered_by?: string | null;
         };
         /** CevapGirdisi */
         CevapGirdisi: {

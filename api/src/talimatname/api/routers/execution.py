@@ -18,6 +18,7 @@ from talimatname.api.bagimliliklar import (
     ayarlar,
     disa_aktarim_servisi,
     izi_servisi,
+    kullanici_servisi,
     kurulum_servisi,
     marka,
     organizasyon_servisi,
@@ -34,12 +35,14 @@ from talimatname.services.organization import OrganizationService
 from talimatname.services.pdf import run_code, run_pdf
 from talimatname.services.setup import SetupService
 from talimatname.services.templates import TemplateService
+from talimatname.services.users import UserService
 
 router = APIRouter(tags=["yürütme"])
 
 Servis = Annotated[ExecutionService, Depends(yurutme_servisi)]
 SablonServis = Annotated[TemplateService, Depends(sablon_servisi)]
 OrgServis = Annotated[OrganizationService, Depends(organizasyon_servisi)]
+KisiServis = Annotated[UserService, Depends(kullanici_servisi)]
 DisaAktarim = Annotated[ExportService, Depends(disa_aktarim_servisi)]
 KurulumServis = Annotated[SetupService, Depends(kurulum_servisi)]
 Iz = Annotated[AuditService, Depends(izi_servisi)]
@@ -78,6 +81,9 @@ class CevapCiktisi(BaseModel):
     not_done_reason: str | None = None
     not_done_reason_label: str | None = Field(
         default=None, description="Sebebin Türkçe karşılığı; kod sözleşme, etiket değişebilir"
+    )
+    answered_by: str | None = Field(
+        default=None, description="Cevabı yazan kişinin adı; silinmiş kişide boş (BR-22)"
     )
 
 
@@ -137,7 +143,7 @@ def _sebep_etiketi(kod: str | None) -> str | None:
     return NOT_DONE_REASON_LABELS[kod] if kod else None  # type: ignore[index]
 
 
-def _cevap(gorunum: RunView, item_id: UUID) -> CevapCiktisi | None:
+def _cevap(gorunum: RunView, item_id: UUID, isimler: dict[UUID, str]) -> CevapCiktisi | None:
     cevap = gorunum.answers.get(item_id)
     if cevap is None:
         return None
@@ -153,10 +159,32 @@ def _cevap(gorunum: RunView, item_id: UUID) -> CevapCiktisi | None:
         clock_flagged=cevap.clock_flagged,
         not_done_reason=cevap.not_done_reason,
         not_done_reason_label=_sebep_etiketi(cevap.not_done_reason),
+        answered_by=isimler.get(cevap.user_id) if cevap.user_id else None,
     )
 
 
-def _gorunum(gorunum: RunView, template_name: str, org: OrganizationService) -> CalistirmaGorunumu:
+def _isimler(gorunum: RunView, kisiler: UserService) -> dict[UUID, str]:
+    """Cevapları yazan kişilerin adları; kişi başına tek arama.
+
+    Denetleyen kişi ölçümün yanında "kim ölçtü"yü de görmeli (bağımsız
+    test turu B07); kâğıt bunu zaten yazıyordu, ekran yazmıyordu.
+    """
+    cikti: dict[UUID, str] = {}
+    for cevap in gorunum.answers.values():
+        if cevap.user_id is None or cevap.user_id in cikti:
+            continue
+        ad = kisiler.name(cevap.user_id)
+        if ad is not None:
+            cikti[cevap.user_id] = ad
+    return cikti
+
+
+def _gorunum(
+    gorunum: RunView,
+    template_name: str,
+    org: OrganizationService,
+    isimler: dict[UUID, str],
+) -> CalistirmaGorunumu:
     run = gorunum.run
     sube = org.get(run.branch_id)
     return CalistirmaGorunumu(
@@ -191,7 +219,7 @@ def _gorunum(gorunum: RunView, template_name: str, org: OrganizationService) -> 
                         min_value=madde.min_value,
                         max_value=madde.max_value,
                         unit=madde.unit,
-                        answer=_cevap(gorunum, madde.id),
+                        answer=_cevap(gorunum, madde.id, isimler),
                     )
                     for madde in bolum.items
                 ],
@@ -208,11 +236,17 @@ def calistirma_gorunumu(
     servis: Servis,
     sablonlar: SablonServis,
     org: OrgServis,
+    kisiler: KisiServis,
     kullanici: Kullanici,
 ) -> CalistirmaGorunumu:
     gorunum = servis.view(run_id)
     sube_erisimi_zorunlu(kullanici, gorunum.run.branch_id, org)
-    return _gorunum(gorunum, sablonlar.get(gorunum.version.template_id).name, org)
+    return _gorunum(
+        gorunum,
+        sablonlar.get(gorunum.version.template_id).name,
+        org,
+        _isimler(gorunum, kisiler),
+    )
 
 
 @router.put("/runs/{run_id}/answers/{answer_id}", summary="Cevap yaz (idempotent)")
@@ -269,6 +303,7 @@ def calistirma_gonder(
     servis: Servis,
     sablonlar: SablonServis,
     org: OrgServis,
+    kisiler: KisiServis,
     kullanici: Kullanici,
 ) -> CalistirmaGorunumu:
     """Eksik varsa 422 ve eksiklerin listesi döner; puan sunucuda hesaplanır.
@@ -278,7 +313,12 @@ def calistirma_gonder(
     sube_erisimi_zorunlu(kullanici, servis.view(run_id).run.branch_id, org)
     servis.submit(run_id, user_id=kullanici.id)
     gorunum = servis.view(run_id)
-    return _gorunum(gorunum, sablonlar.get(gorunum.version.template_id).name, org)
+    return _gorunum(
+        gorunum,
+        sablonlar.get(gorunum.version.template_id).name,
+        org,
+        _isimler(gorunum, kisiler),
+    )
 
 
 class IptalGirdisi(BaseModel):
@@ -292,6 +332,7 @@ def calistirma_iptal(
     servis: Servis,
     sablonlar: SablonServis,
     org: OrgServis,
+    kisiler: KisiServis,
     kullanici: Mudur,
 ) -> CalistirmaGorunumu:
     """Planlandı/Açık bir çalıştırmayı "yapılmayacak" yapar.
@@ -303,7 +344,12 @@ def calistirma_iptal(
     sube_erisimi_zorunlu(kullanici, servis.view(run_id).run.branch_id, org)
     servis.cancel(run_id, reason=girdi.reason, user_id=kullanici.id)
     gorunum = servis.view(run_id)
-    return _gorunum(gorunum, sablonlar.get(gorunum.version.template_id).name, org)
+    return _gorunum(
+        gorunum,
+        sablonlar.get(gorunum.version.template_id).name,
+        org,
+        _isimler(gorunum, kisiler),
+    )
 
 
 @router.get(

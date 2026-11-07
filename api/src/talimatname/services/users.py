@@ -89,6 +89,17 @@ class UserService:
             sonuc = [k for k in sonuc if can_access(k, sube)]
         return sorted(sonuc, key=lambda k: k.full_name.casefold())
 
+    def name(self, user_id: UUID) -> str | None:
+        """Kaydı yazan kişinin adı; bulunamazsa None.
+
+        Denetleyen kişi "kaç derece ölçüldü"nün yanında "kim ölçtü"yü
+        de görmeli (bağımsız test turu B07); kâğıt bunu zaten yazıyordu.
+        Maskelenmiş kullanıcının adı depoda da maskelidir (BR-22), o
+        yüzden burada ayrı bir maskeleme yok.
+        """
+        kisi = self._repo.user(user_id)
+        return kisi.full_name if kisi else None
+
     def get(self, user_id: UUID) -> User:
         kullanici = self._repo.user(user_id)
         if kullanici is None:
