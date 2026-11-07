@@ -18,7 +18,7 @@ from datetime import UTC, datetime
 from typing import Protocol
 from uuid import UUID
 
-from talimatname.domain.actions import from_critical_item
+from talimatname.domain.actions import from_critical_item, from_not_done
 from talimatname.domain.answers import (
     Answer,
     Missing,
@@ -32,7 +32,8 @@ from talimatname.domain.answers import (
 from talimatname.domain.errors import DomainError, ErrorKind
 from talimatname.domain.plans import RUN_STATUS_LABELS, Run
 from talimatname.domain.scoring import evaluate
-from talimatname.domain.templates import TemplateVersion
+from talimatname.domain.sync import NOT_DONE_REASON_LABELS
+from talimatname.domain.templates import Item, TemplateVersion
 from talimatname.domain.validation import ValidationError
 from talimatname.services.actions import ActionRepository
 from talimatname.services.audit import AuditService
@@ -230,6 +231,7 @@ class ExecutionService:
             not_done_reason=not_done_reason,  # type: ignore[arg-type]
         ).validated()
         self._answers.save_answer(cevap)
+        self._cevap_aksiyonu(run, madde, cevap, an)
 
         if run.status == "scheduled":
             self._plans.save_run(replace(run, status="in_progress"))
@@ -317,6 +319,51 @@ class ExecutionService:
                 after={"durum": "cancelled", "sebep": temiz},
             )
         return iptal
+
+    def _cevap_aksiyonu(self, run: Run, madde: Item, cevap: Answer, an: datetime) -> None:
+        """Cevap **kayda girer girmez** doğan aksiyonlar (FR-0405, BR-10).
+
+        Aksiyon yalnızca gönderimde açılıyordu: 9 derecelik buzdolabı
+        kaydedildikten sonra liste gönderilene kadar — kimi zaman hiç
+        gönderilmeden — merkezde kimse haberdar olmuyordu. FR-1008
+        'anında' diyor, FR-0405 tetik olarak **cevabı** gösteriyor
+        (bağımsız test turu B04, B05).
+
+        Kimlik (çalıştırma, madde) ikilisinden türediği için cevap
+        düzeltilip yeniden yazılsa da ikinci aksiyon doğmaz; gönderim
+        aşamasındaki tarama da aynı kimliği üretir. Düzeltilen cevap
+        aksiyonu **geri almaz**: 9 derece ölçülmüş olması bir olaydır,
+        aksiyon notuyla kapanır (BR-10).
+        """
+        if self._actions is None:
+            return
+        plan = self._plans.plan(run.plan_id)
+        plan_adi = plan.name if plan else "Liste"
+        if madde.critical and cevap.state == "failed":
+            aksiyon = from_critical_item(
+                run_id=run.id,
+                item_id=madde.id,
+                branch_id=run.branch_id,
+                item_title=madde.title,
+                plan_name=plan_adi,
+                now=an,
+            )
+        elif cevap.state == "not_done":
+            aksiyon = from_not_done(
+                run_id=run.id,
+                item_id=madde.id,
+                branch_id=run.branch_id,
+                item_title=madde.title,
+                plan_name=plan_adi,
+                reason_label=(
+                    NOT_DONE_REASON_LABELS[cevap.not_done_reason] if cevap.not_done_reason else None
+                ),
+                now=an,
+            )
+        else:
+            return
+        if aksiyon.id not in {a.id for a in self._actions.actions()}:
+            self._actions.save_action(aksiyon)
 
     def _kritik_aksiyonlar(
         self,

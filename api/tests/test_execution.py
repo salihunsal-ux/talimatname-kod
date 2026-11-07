@@ -909,3 +909,113 @@ def test_br26_uc_noktada_ikinci_kisi_gonderemez(istemci: TestClient) -> None:
 
     assert cevap.status_code == 409, cevap.text
     assert cevap.json()["type"] == "urn:talimatname:calistirma-kilitli"
+
+
+# --- FR-0405 / BR-10: aksiyon cevapla doğar (bağımsız test turu B04, B05) ---
+
+
+def test_br10_kritik_basarisiz_cevap_gonderim_beklemeden_aksiyon_aciyor() -> None:
+    """9 derecelik buzdolabı kaydedilir kaydedilmez merkeze düşmeli.
+
+    Aksiyon yalnızca gönderimde açılıyordu: liste gönderilene kadar —
+    kimi zaman hiç gönderilmeden — kimse haberdar olmuyordu. FR-1008
+    "anında" diyor.
+    """
+    servis, run_id, aksiyonlar, _ = _kritik_kurulum()
+    kritik = next(m for m in servis.view(run_id).version.items if m.critical)
+
+    _yaz(
+        servis,
+        run_id,
+        kritik,
+        state="failed",
+        value=madde_degeri(kritik, "failed"),
+        note="Sıcaklık yüksek",
+        evidence_count=1,
+    )
+
+    acilan = [a for a in aksiyonlar.actions() if a.source == "critical_item"]
+    assert len(acilan) == 1
+    assert acilan[0].priority == "critical"
+    assert servis.view(run_id).run.status != "submitted"
+
+
+def test_br10_kritik_aksiyon_cevap_tekrar_yazilinca_cogalmiyor() -> None:
+    """Çevrimdışı kuyruk aynı cevabı birkaç kez gönderebilir."""
+    servis, run_id, aksiyonlar, _ = _kritik_kurulum()
+    kritik = next(m for m in servis.view(run_id).version.items if m.critical)
+    deger = madde_degeri(kritik, "failed")
+
+    for _ in range(3):
+        _yaz(servis, run_id, kritik, state="failed", value=deger, note="Yüksek", evidence_count=1)
+
+    assert len([a for a in aksiyonlar.actions() if a.source == "critical_item"]) == 1
+
+
+def test_br10_cevap_duzeltilse_de_aksiyon_duruyor() -> None:
+    """Ölçüm düzeltilince aksiyon geri alınmaz: olay yaşandı.
+
+    Aksiyon notuyla kapanır (BR-10); silmek kaydı silmek olurdu.
+    """
+    servis, run_id, aksiyonlar, _ = _kritik_kurulum()
+    kritik = next(m for m in servis.view(run_id).version.items if m.critical)
+    _yaz(
+        servis,
+        run_id,
+        kritik,
+        state="failed",
+        value=madde_degeri(kritik, "failed"),
+        note="Yüksek",
+        evidence_count=1,
+    )
+
+    _yaz(servis, run_id, kritik, state="passed", value=madde_degeri(kritik, "passed"))
+
+    assert len([a for a in aksiyonlar.actions() if a.source == "critical_item"]) == 1
+
+
+def test_br10_yapilamadi_cevabi_aksiyon_aciyor() -> None:
+    """BR-10: yapılamadı → orta öncelik, 72 saat (TC-059)."""
+    servis, run_id, aksiyonlar, _ = _kritik_kurulum()
+    madde = next(m for m in servis.view(run_id).version.items if m.scored and not m.critical)
+
+    _yaz(
+        servis,
+        run_id,
+        madde,
+        state="not_done",
+        not_done_reason="no_material",
+        note="Deterjan bitti",
+        evidence_count=1,
+    )
+
+    acilan = [a for a in aksiyonlar.actions() if a.source == "not_done"]
+    assert len(acilan) == 1
+    assert acilan[0].priority == "normal"
+    assert acilan[0].due_at - acilan[0].opened_at == timedelta(hours=72)
+    assert "Malzeme yok" in (acilan[0].description or "")
+
+
+def test_br10_yapilamadi_aksiyonu_cogalmiyor() -> None:
+    servis, run_id, aksiyonlar, _ = _kritik_kurulum()
+    madde = next(m for m in servis.view(run_id).version.items if m.scored and not m.critical)
+
+    for sebep in ("no_material", "no_time"):
+        _yaz(
+            servis,
+            run_id,
+            madde,
+            state="not_done",
+            not_done_reason=sebep,
+            note="Yapılamadı",
+            evidence_count=1,
+        )
+
+    assert len([a for a in aksiyonlar.actions() if a.source == "not_done"]) == 1
+
+
+def test_br10_gecen_cevap_aksiyon_acmiyor() -> None:
+    servis, run_id, aksiyonlar, _ = _kritik_kurulum()
+    _cevapla(servis, run_id)
+
+    assert aksiyonlar.actions() == []

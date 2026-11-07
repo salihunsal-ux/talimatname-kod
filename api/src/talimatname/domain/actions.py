@@ -138,6 +138,47 @@ def from_critical_item(
     ).validated()
 
 
+def not_done_source(run_id: UUID, item_id: UUID) -> UUID:
+    """Yapılamadı aksiyonunun kaynak kimliği: (çalıştırma, madde).
+
+    Kritik maddedeki gibi: cevabın kimliği cihazda üretildiği için
+    ondan türetilemez, yoksa senkte kopya aksiyon doğar.
+    """
+    return uuid5(ACTION_NAMESPACE, f"yapilamadi:{run_id}:{item_id}")
+
+
+def from_not_done(
+    *,
+    run_id: UUID,
+    item_id: UUID,
+    branch_id: UUID,
+    item_title: str,
+    plan_name: str,
+    reason_label: str | None,
+    now: datetime,
+) -> Action:
+    """'Yapılamadı' cevabından doğan aksiyon (BR-10: orta, 72 sa).
+
+    Yapılamayan iş kendi kendine yapılmıyor: sebebi (malzeme yok,
+    ekipman arızalı) merkezde biri çözmeli. Tetik yazılmamıştı,
+    cevap sebebiyle kayda giriyor ama kimseye iş düşmüyordu
+    (bağımsız test turu B05).
+    """
+    kaynak = not_done_source(run_id, item_id)
+    sebep = f" Sebep: {reason_label}." if reason_label else ""
+    return Action(
+        id=action_id("not_done", kaynak),
+        branch_id=branch_id,
+        title=f"Yapılamadı: {item_title}",
+        source="not_done",
+        source_id=kaynak,
+        priority="normal",
+        opened_at=now,
+        due_at=due_at("normal", now),
+        description=f"{plan_name} listesinde madde yapılamadı.{sebep}",
+    ).validated()
+
+
 def from_missed_run(
     *,
     run_id: UUID,
