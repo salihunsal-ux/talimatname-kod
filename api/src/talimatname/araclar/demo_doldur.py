@@ -30,11 +30,11 @@ import random
 import struct
 import sys
 import zlib
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from uuid import UUID, uuid5
 
 from talimatname.api import bagimliliklar
-from talimatname.domain.plans import Run
+from talimatname.domain.plans import Run, plan_runs
 from talimatname.services.evidence import EvidenceService
 from talimatname.services.execution import ExecutionService
 
@@ -171,6 +171,46 @@ def calistirmayi_doldur(run: Run, *, basarisiz_mi: bool, gec_mi: bool, kisi: UUI
     return f"{run.id} {etiket} · {sonuc.result} · %{sonuc.score_percent}"
 
 
+def gecmis_calistirmalar(ilk: date, an: datetime, *, kuru: bool) -> list[Run]:
+    """Geçmiş günlere çalıştırma üretir ve doldurulacakları döndürür.
+
+    Zamanlayıcı yalnızca **ileriye** üretiyor (FR-0513), o yüzden demoda
+    geçmiş yok. Burada aynı pencere motoruyla geriye üretiliyor.
+
+    Depoda zaten "kaçırıldı" duran çalıştırmalara **dokunulmuyor**:
+    onları sonradan doldurmak geçmişi düzeltmek olurdu (BR-03) ve zaten
+    gerçekçi bir karışım için kaçırılmış de gerekiyor.
+    """
+    planlar = bagimliliklar._plan_deposu()
+    org = bagimliliklar._org_deposu()
+    mevcut = {r.id: r for r in planlar.runs()}
+    dun = (an - timedelta(days=1)).date()
+
+    yeni: list[Run] = []
+    for plan in planlar.plans():
+        if not plan.active:
+            continue
+        for branch_id in plan.branch_ids:
+            sube = org.branch(branch_id)
+            if sube is None or sube.status != "active":
+                continue
+            for kosu in plan_runs(plan, branch_id, sube.calendar(), ilk, dun):
+                var = mevcut.get(kosu.id)
+                if var is not None:
+                    # Zaten üretilmiş: yalnızca dokunulmamışsa doldurulur.
+                    if var.status in ("scheduled", "in_progress") and var.tolerance_end < an:
+                        yeni.append(var)
+                    continue
+                if kosu.tolerance_end >= an:
+                    continue
+                if not kuru:
+                    planlar.save_run(kosu)
+                yeni.append(kosu)
+
+    yeni.sort(key=lambda r: r.window_start)
+    return yeni
+
+
 def main() -> int:
     ayristirici = argparse.ArgumentParser(description=__doc__)
     ayristirici.add_argument("--gun", type=int, default=28, help="Kaç gün geriye doldurulsun")
@@ -178,21 +218,10 @@ def main() -> int:
     secenekler = ayristirici.parse_args()
 
     bagimliliklar._ilk_tur()
-    planlar = bagimliliklar._plan_deposu()
     an = datetime.now(UTC)
     en_eski = an - timedelta(days=secenekler.gun)
 
-    adaylar = [
-        r
-        for r in planlar.runs()
-        # Yalnızca **geçmiş** çalıştırmalar: bugünün ve geleceğin
-        # listelerine dokunulmuyor, demoyu gezen kişi onları kendi
-        # dolduracak.
-        if r.tolerance_end < an
-        and r.window_start >= en_eski
-        and r.status in ("scheduled", "in_progress")
-    ]
-    adaylar.sort(key=lambda r: r.window_start)
+    adaylar = gecmis_calistirmalar(en_eski.date(), an, kuru=secenekler.kuru)
     print(f"aday çalıştırma: {len(adaylar)} ({secenekler.gun} gün)")
 
     sayac = {"zamanında": 0, "geç": 0, "başarısız": 0, "kaçırıldı": 0, "hata": 0}
