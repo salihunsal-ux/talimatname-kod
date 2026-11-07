@@ -13,6 +13,7 @@ from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
+from talimatname.api.dogrulama_metni import alan_adi, turkce
 from talimatname.domain.errors import DomainError, ErrorKind
 from talimatname.domain.validation import ValidationError
 
@@ -75,9 +76,10 @@ def register_error_handlers(app: FastAPI) -> None:
 
     @app.exception_handler(RequestValidationError)
     async def _sema_dogrulama(request: Request, exc: RequestValidationError) -> JSONResponse:
+        # Sebep Türkçeleştirilir: Pydantic'in `msg` alanı İngilizce ve
+        # istemci bu cümleyi doğrudan ekrana basıyor (`Durum.tsx`).
         alanlar = [
-            {"alan": ".".join(str(p) for p in hata["loc"][1:]), "sebep": hata["msg"]}
-            for hata in exc.errors()
+            {"alan": alan_adi(hata["loc"]), "sebep": turkce(dict(hata))} for hata in exc.errors()
         ]
         return problem(
             code="gecersiz-istek",

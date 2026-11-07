@@ -1792,6 +1792,11 @@ export interface components {
              * Format: date-time
              */
             tolerance_end: string;
+            /**
+             * Writable From
+             * Format: date-time
+             */
+            writable_from: string;
             /** Submitted At */
             submitted_at?: string | null;
             /** Template Name */
@@ -1842,6 +1847,11 @@ export interface components {
              * Format: date-time
              */
             tolerance_end: string;
+            /**
+             * Writable From
+             * Format: date-time
+             */
+            writable_from: string;
             /** Status */
             status: string;
             /**
@@ -2868,6 +2878,11 @@ export interface components {
              * Format: date-time
              */
             tolerance_end: string;
+            /**
+             * Writable From
+             * Format: date-time
+             */
+            writable_from: string;
         };
         /** ManifestCiktisi */
         ManifestCiktisi: {

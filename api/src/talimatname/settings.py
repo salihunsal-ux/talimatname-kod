@@ -81,6 +81,11 @@ class Settings(BaseSettings):
     tsa_timeout_seconds: int = Field(default=10, ge=1, le=120)
 
     access_token_minutes: int = Field(default=30, ge=5, le=240)
+    #: Pencere açılmadan kaç dakika önce listeye yazılabilir (BR-02 hazırlık
+    #: payı). 0 = tam pencerede açılır. Vardiya erken başladığında listeyi
+    #: açabilmek için var; penceresiz doldurmaya kapı olmasın diye üst sınır
+    #: iki saat. Plan başına ayarlanması v1.1.
+    run_prep_minutes: int = Field(default=15, ge=0, le=120)
 
     # Belirteç imzası (RS256). Üretimde zorunlu; geliştirmede boşsa
     # geçici anahtar üretilir ve uyarı yazılır.

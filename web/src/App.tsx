@@ -19,6 +19,7 @@ import { SablonlarSayfasi } from './features/sablonlar/SablonlarSayfasi';
 import { SahaSayfasi } from './features/saha/SahaSayfasi';
 import { SubelerSayfasi } from './features/subeler/SubelerSayfasi';
 import { tr } from './i18n/tr';
+import { sayfaBasligiYaz } from './sayfaBasligi';
 
 export type Bolum =
   | 'pano'
@@ -86,10 +87,36 @@ function dogrulamaKodu(): string | null {
  * alınmış) burada anlaşılır ve oturum düşer: yetki belirtece değil
  * kullanıcıya bağlı (FR-0205).
  */
+/** Sekme başlığında görünen ekran adları; menüdekilerle aynı sözlükten. */
+const BOLUM_ADLARI: Record<Bolum, string> = {
+  pano: tr.gezinme.pano,
+  subeler: tr.gezinme.subeler,
+  personel: tr.gezinme.personel,
+  sablonlar: tr.gezinme.sablonlar,
+  planlar: tr.gezinme.planlar,
+  aksiyonlar: tr.gezinme.aksiyonlar,
+  bildirimler: tr.gezinme.bildirimler,
+  raporlar: tr.gezinme.raporlar,
+  saha: tr.gezinme.saha,
+  kurulum: tr.gezinme.kurulum,
+  sistem: tr.sistem.baslik,
+};
+
 function Kapi() {
   const [belirtec, setBelirtec] = useState<string | null>(() => belirtecAl());
   const [bolum, setBolum] = useState<Bolum>('pano');
   const [suresiDoldu, setSuresiDoldu] = useState(false);
+  const saha = sahaKapisiMi();
+
+  // Sekme başlığı açık ekranı söylesin (D-2). Saha kapısında tek ekran
+  // var ve adı "Yönetim paneli" değil.
+  useEffect(() => {
+    if (!belirtec) {
+      sayfaBasligiYaz(tr.giris.baslik, saha);
+      return;
+    }
+    sayfaBasligiYaz(saha ? null : (BOLUM_ADLARI[bolum] ?? null), saha);
+  }, [belirtec, bolum, saha]);
 
   // Belirteç 30 dakika yaşıyor ve yenileme yok (ST-044). Süre dolunca
   // sunucu her isteği reddediyor; kullanıcıyı ölü bir ekranda
@@ -132,7 +159,7 @@ function Kapi() {
 
   // Ayrı alan adı: rol ne olursa olsun saha istemcisi. Müdür de
   // buradan girip personelin gördüğü ekranı görebilir.
-  if (sahaKapisiMi()) {
+  if (saha) {
     return (
       <OturumBaglami value={ben.data ?? null}>
         <Kabuk

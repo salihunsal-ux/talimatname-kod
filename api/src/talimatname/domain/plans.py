@@ -17,7 +17,7 @@ pencere motoru hesaplar (`domain/window.py`).
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import Literal
 from uuid import UUID, uuid5
 
@@ -115,6 +115,16 @@ class Run:
     def started(self) -> bool:
         """Dokunulmuş mu? Plan değişikliğinde korunacaklar bunlar."""
         return self.status != "scheduled"
+
+    def writable_from(self, prep_minutes: int) -> datetime:
+        """Listeye ilk cevabın yazılabileceği an (BR-02 hazırlık payı).
+
+        Pencere başlangıcından `prep_minutes` kadar önce açılır: vardiya
+        erken başladığında liste elde olsun diye. Öncesinde yazmak
+        yasak — yoksa akşamki kapanış sabahtan işaretlenebilirdi ve
+        "pencere içi" ölçüsü (FR-1203) anlamını yitirirdi.
+        """
+        return self.window_start - timedelta(minutes=prep_minutes)
 
     def state_at(self, now: datetime) -> tuple[RunStatus, bool]:
         """(durum, geç mi) — zamana göre türetilmiş görünüm.

@@ -54,6 +54,7 @@ const GORUNUM: CalistirmaGorunumu = {
   result: 'failed',
   score_percent: 71,
   window_start: '2026-11-02T19:00:00Z',
+  writable_from: '2026-11-02T18:45:00Z',
   window_end: '2026-11-02T22:30:00Z',
   tolerance_end: '2026-11-02T22:30:00Z',
   submitted_at: '2026-11-02T21:40:00Z',

@@ -15,6 +15,7 @@ from fastapi import APIRouter, Depends, Response
 from pydantic import BaseModel, Field
 
 from talimatname.api.bagimliliklar import (
+    ayarlar,
     disa_aktarim_servisi,
     izi_servisi,
     kurulum_servisi,
@@ -115,6 +116,10 @@ class CalistirmaGorunumu(BaseModel):
     window_start: datetime
     window_end: datetime
     tolerance_end: datetime
+    #: Yazmanın açıldığı an (pencere başlangıcı eksi hazırlık payı).
+    #: İstemci bunu okuyup listeyi erken açmamalı; sunucu zaten reddeder
+    #: ama kullanıcıya dolduramayacağı bir liste göstermenin anlamı yok.
+    writable_from: datetime
     submitted_at: datetime | None = None
     template_name: str
     locked_by: UUID | None = None
@@ -166,6 +171,7 @@ def _gorunum(gorunum: RunView, template_name: str, org: OrganizationService) -> 
         window_start=run.window_start,
         window_end=run.window_end,
         tolerance_end=run.tolerance_end,
+        writable_from=run.writable_from(ayarlar().run_prep_minutes),
         submitted_at=run.submitted_at,
         template_name=template_name,
         locked_by=gorunum.lock.user_id if gorunum.lock else None,

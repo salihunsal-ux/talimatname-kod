@@ -6,6 +6,7 @@ import hashlib
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from uuid import UUID, uuid4
+from zoneinfo import ZoneInfo
 
 import pytest
 from fastapi.testclient import TestClient
@@ -29,6 +30,7 @@ from talimatname.services.execution import (
     RunClosed,
     SubmissionIncomplete,
     WindowClosed,
+    WindowNotOpen,
 )
 from talimatname.services.plans import PlanService
 from talimatname.settings import Settings
@@ -253,16 +255,92 @@ def _acik_calistirma(istemci: TestClient) -> dict[str, object]:
     Listenin ilkini körlemesine almak testi duvar saatine bağlıyordu:
     gece yarısından sonra ilk sıradaki çalıştırmanın toleransı dolmuş
     oluyor ve yazma 409 dönüyordu (CI de bu saatte kırmızı yanardı).
+
+    İki uçlu bakılır. Eskiden yalnızca tolerans bitişi denetleniyordu;
+    pencereye daha saatler varken de "açık" sayılıyordu — sunucu buna
+    izin verdiği için test geçiyordu. `pencere-acilmadi` kuralı
+    geldiğinde ortaya çıktı (bağımsız test turu Y-1).
     """
     simdi = datetime.now(UTC)
     acik = [
         k
         for k in istemci.get("/api/v1/runs").json()
-        if datetime.fromisoformat(k["tolerance_end"]) > simdi
+        if datetime.fromisoformat(k["writable_from"]) <= simdi
+        and datetime.fromisoformat(k["tolerance_end"]) > simdi
         and k["status"] in ("scheduled", "in_progress")
     ]
-    assert acik, "açık pencereli çalıştırma yok"
+    if acik:
+        return acik[0]  # type: ignore[no-any-return]
+    return _simdi_acik_calistirma_kur(istemci)
+
+
+def _simdi_acik_calistirma_kur(istemci: TestClient) -> dict[str, object]:
+    """Şu an yazılabilir bir çalıştırma **üretir**.
+
+    Tohumdaki pencereler sabit saatlerde; testi hangi saatte koştuğuna
+    bağlamamak için gerektiğinde penceresi şu anı kapsayan bir plan
+    kuruluyor ve zamanlayıcı elle çevriliyor.
+
+    Plan açmak yönetici işi, ama bu yardımcıyı şube müdürü de çağırıyor:
+    kurulum süresince belirteç geçici olarak yöneticiye çevrilip
+    çağıranın belirteci geri takılıyor.
+    """
+    # Şube **çağıranın kapsamından** seçilir: yöneticiye çevirip ilk
+    # şubeyi almak, şube müdürünü kendi göremediği bir çalıştırmayla
+    # bırakıyordu (403).
+    sube = next(s for d in istemci.get("/api/v1/branches").json() for s in d["branches"])
+    cagiranin_belirteci = istemci.headers.get("Authorization")
+    oturum_ac(istemci, "admin")
+    try:
+        _yazilabilir_plan_kur(istemci, sube["id"])
+    finally:
+        if cagiranin_belirteci is not None:
+            istemci.headers["Authorization"] = cagiranin_belirteci
+    return _simdi_yazilabilir(istemci)
+
+
+def _simdi_yazilabilir(istemci: TestClient) -> dict[str, object]:
+    simdi = datetime.now(UTC)
+    acik = [
+        k
+        for k in istemci.get("/api/v1/runs").json()
+        if datetime.fromisoformat(k["writable_from"]) <= simdi
+        and datetime.fromisoformat(k["tolerance_end"]) > simdi
+        and k["status"] in ("scheduled", "in_progress")
+    ]
+    assert acik, "kurulan plandan yazılabilir çalıştırma çıkmadı"
     return acik[0]  # type: ignore[no-any-return]
+
+
+def _yazilabilir_plan_kur(istemci: TestClient, sube_id: str) -> None:
+    surum = next(
+        v
+        for t in istemci.get("/api/v1/templates").json()
+        for v in t["versions"]
+        if v["status"] == "published"
+    )
+    yerel = datetime.now(ZoneInfo("Europe/Istanbul"))
+    basla = (yerel - timedelta(minutes=30)).replace(second=0, microsecond=0)
+
+    plan = istemci.post(
+        "/api/v1/plans",
+        json={
+            "name": "Yazılabilir pencere (test)",
+            "template_version_id": surum["id"],
+            "branch_ids": [sube_id],
+            "schedule": {
+                "repeat": "daily",
+                "starts_on": basla.date().isoformat(),
+                "start_mode": "fixed",
+                "start_time": basla.strftime("%H:%M"),
+                "duration_minutes": 240,
+                "tolerance_minutes": 60,
+            },
+        },
+    )
+    assert plan.status_code in (200, 201), plan.text
+    tur = istemci.post("/api/v1/scheduler/tick")
+    assert tur.status_code in (200, 201), tur.text
 
 
 def test_uc_nokta_gorunum_maddeleri_ve_eksikleri_doner(istemci: TestClient) -> None:
@@ -498,3 +576,54 @@ def test_personel_yapilmayacak_diyemez(istemci: TestClient) -> None:
     yanit = personel.post(f"/api/v1/runs/{kosu}/cancel", json={"reason": "olmaz"})
 
     assert yanit.status_code == 403
+
+
+def test_pencere_acilmadan_cevap_yazilamaz() -> None:
+    """Y-1: liste penceresinden (hazırlık payı dahil) önce doldurulamaz.
+
+    Bulunduğunda sunucu alt sınır denetlemiyordu: akşam 00:00'da açılacak
+    kapanış listesi sabah 11:00'de doldurulabiliyordu. "Pencere içi
+    tamamlandı" ölçüsü (FR-1203) buna dayandığı için kural kesin.
+    """
+    planlar = MemoryPlanRepository()
+    sablonlar = MemoryTemplateRepository()
+    PlanService(planlar, MemoryOrganizationRepository(), sablonlar).generate_all()
+
+    kosu = next(r for r in planlar.runs() if r.status == "scheduled")
+    an = kosu.window_start - timedelta(minutes=30)
+    servis = ExecutionService(
+        MemoryAnswerRepository(), planlar, sablonlar, now=lambda: an, prep_minutes=15
+    )
+    surum = sablonlar.version(kosu.template_version_id)
+    assert surum is not None
+    madde = next(m for m in surum.items if m.scored and not m.critical)
+
+    def yaz(zaman: datetime) -> None:
+        nonlocal an
+        an = zaman
+        servis.write_answer(run_id=kosu.id, answer_id=uuid4(), item_id=madde.id, state="passed")
+
+    # Payın dışında: reddedilir.
+    with pytest.raises(WindowNotOpen):
+        yaz(kosu.window_start - timedelta(minutes=30))
+
+    # Payın tam ucunda bile henüz erken (pay 15 dk).
+    with pytest.raises(WindowNotOpen):
+        yaz(kosu.window_start - timedelta(minutes=16))
+
+    # Payın içinde: kabul.
+    yaz(kosu.window_start - timedelta(minutes=5))
+
+    # Pencere içinde: kabul.
+    yaz(kosu.window_start + timedelta(minutes=5))
+
+
+def test_hazirlik_payi_sifirken_pencere_tam_zamaninda_acilir() -> None:
+    """Pay 0 ise açılış tam pencere başlangıcı: bir saniye öncesi bile erken."""
+    planlar = MemoryPlanRepository()
+    sablonlar = MemoryTemplateRepository()
+    PlanService(planlar, MemoryOrganizationRepository(), sablonlar).generate_all()
+    kosu = next(r for r in planlar.runs() if r.status == "scheduled")
+
+    assert kosu.writable_from(0) == kosu.window_start
+    assert kosu.writable_from(15) == kosu.window_start - timedelta(minutes=15)

@@ -63,6 +63,19 @@ class WindowClosed(DomainError):
     kind: ErrorKind = "conflict"
 
 
+class WindowNotOpen(DomainError):
+    """Pencere henüz açılmadı (hazırlık payı dahil).
+
+    Üst sınır gibi bu da kesin: liste penceresinden önce doldurulabilseydi
+    \"pencere içi tamamlandı\" ölçüsü (FR-1203) ölçtüğünü iddia ettiği
+    şeyi ölçmezdi.
+    """
+
+    code = "pencere-acilmadi"
+    title = "Pencere henüz açılmadı"
+    kind: ErrorKind = "conflict"
+
+
 class ItemNotInTemplate(DomainError):
     code = "madde-bulunamadi"
     title = "Madde bu şablon sürümünde yok"
@@ -119,6 +132,7 @@ class ExecutionService:
         verified_evidence: Callable[[UUID], dict[UUID, int]] | None = None,
         audit: AuditService | None = None,
         now: Callable[[], datetime] = lambda: datetime.now(UTC),
+        prep_minutes: int = 0,
     ) -> None:
         self._answers = answers
         self._plans = plans
@@ -129,6 +143,14 @@ class ExecutionService:
         #: yürütme servisini kullanabilsin (FR-1301).
         self._izi = audit
         self._now = now
+        #: Pencere açılmadan önce yazmaya izin verilen pay (BR-02). Alan
+        #: testleri payı vermiyor: varsayılan 0, yani tam pencerede açılır.
+        self._prep_minutes = prep_minutes
+
+    @property
+    def prep_minutes(self) -> int:
+        """Hazırlık payı; senk manifesti de aynı değeri kullanmalı."""
+        return self._prep_minutes
 
     # --- okuma -------------------------------------------------------
 
@@ -350,6 +372,10 @@ class ExecutionService:
     def _ensure_open(self, run: Run, now: datetime) -> None:
         if run.status in ("submitted", "cancelled"):
             raise RunClosed(f"Durum: {run.status}")
+        acilis = run.writable_from(self._prep_minutes)
+        if now < acilis:
+            # Pencere daha açılmadı: hazırlık payından da önce.
+            raise WindowNotOpen(f"Açılış: {acilis.isoformat()}")
         if now >= run.tolerance_end:
             # Tolerans bittiyse yazma da gönderim de kapanır (BR-03).
             raise WindowClosed(f"Tolerans bitişi: {run.tolerance_end.isoformat()}")

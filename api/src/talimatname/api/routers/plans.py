@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends, Query, status
 from pydantic import BaseModel, Field, model_validator
 
 from talimatname.api.bagimliliklar import (
+    ayarlar,
     organizasyon_servisi,
     plan_servisi,
     sablon_servisi,
@@ -209,6 +210,9 @@ class CalistirmaOzet(BaseModel):
     window_start: datetime
     window_end: datetime
     tolerance_end: datetime
+    #: Yazmanın açıldığı an (pencere başlangıcı eksi hazırlık payı).
+    #: Saha istemcisi listeyi bundan önce doldurmaya davet etmemeli.
+    writable_from: datetime
     status: str
     late: bool = False
 
@@ -267,6 +271,7 @@ def _calistirma(run: Run, adlar: dict[UUID, str], simdi: datetime) -> Calistirma
         window_start=run.window_start,
         window_end=run.window_end,
         tolerance_end=run.tolerance_end,
+        writable_from=run.writable_from(ayarlar().run_prep_minutes),
         status=durum,
         late=gec,
     )

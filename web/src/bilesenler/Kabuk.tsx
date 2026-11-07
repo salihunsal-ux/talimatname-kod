@@ -13,17 +13,29 @@ import { TemaSecici } from './Tema';
  * Yerleşim CSS ızgarasıyla: dar ekranda yan menü yatay şeride iniyor
  * (`bilesenler.css`), çünkü şube müdürü paneli telefondan da açıyor.
  */
-const BOLUMLER: { anahtar: Bolum | null; ad: string; yonetim?: boolean }[] = [
+/**
+ * Menüdeki kapı sunucudaki kapıyla **birebir** olmalı: gösterilen her
+ * madde açılabilmeli. `yonetim` bölge müdürünü de içerir (sunucuda
+ * `Mudur`), `yalnizcaYonetici` içermez (sunucuda `Yonetici`). Tek bir
+ * bayrak kullanıldığında bölge müdürü Bildirimler ve Kurulum'u menüde
+ * görüyor ama 403 alıyordu.
+ */
+const BOLUMLER: {
+  anahtar: Bolum | null;
+  ad: string;
+  yonetim?: boolean;
+  yalnizcaYonetici?: boolean;
+}[] = [
   { anahtar: 'pano', ad: tr.gezinme.pano },
   { anahtar: 'subeler', ad: tr.gezinme.subeler },
   { anahtar: 'personel', ad: tr.gezinme.personel, yonetim: true },
   { anahtar: 'sablonlar', ad: tr.gezinme.sablonlar },
   { anahtar: 'planlar', ad: tr.gezinme.planlar },
   { anahtar: 'aksiyonlar', ad: tr.gezinme.aksiyonlar },
-  { anahtar: 'bildirimler', ad: tr.gezinme.bildirimler, yonetim: true },
+  { anahtar: 'bildirimler', ad: tr.gezinme.bildirimler, yalnizcaYonetici: true },
   { anahtar: 'raporlar', ad: tr.gezinme.raporlar },
   { anahtar: 'saha', ad: tr.gezinme.saha },
-  { anahtar: 'kurulum', ad: tr.gezinme.kurulum, yonetim: true },
+  { anahtar: 'kurulum', ad: tr.gezinme.kurulum, yalnizcaYonetici: true },
   { anahtar: 'sistem', ad: tr.sistem.baslik },
 ];
 
@@ -45,7 +57,9 @@ export function Kabuk({
   menusuz?: boolean;
 }) {
   // Açılamayacak bölüm menüde durmasın: 403 görmek bilgi değil, sürtünme.
-  const yonetim = rolVar(useBen(), 'admin', 'region_manager');
+  const ben = useBen();
+  const yonetim = rolVar(ben, 'admin', 'region_manager');
+  const yonetici = rolVar(ben, 'admin');
 
   return (
     <div className="kabuk">
@@ -76,7 +90,9 @@ export function Kabuk({
       <div className={menusuz ? 'kabuk-govde kabuk-govde--menusuz' : 'kabuk-govde'}>
         {!menusuz && (
           <nav aria-label={tr.gezinme.pano} className="kabuk-menu">
-            {BOLUMLER.filter((b) => !b.yonetim || yonetim).map(({ anahtar, ad }) => {
+            {BOLUMLER.filter(
+              (b) => (!b.yonetim || yonetim) && (!b.yalnizcaYonetici || yonetici),
+            ).map(({ anahtar, ad }) => {
               const etkin = anahtar !== null;
               return (
                 <button

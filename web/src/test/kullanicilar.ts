@@ -21,3 +21,17 @@ export const SUBE_MUDURU: Ben = {
     },
   ],
 };
+
+export const BOLGE_MUDURU: Ben = {
+  id: '00000000-0000-0000-0000-0000000000d1',
+  full_name: 'Test Bölge Müdürü',
+  phone: null,
+  roles: [
+    {
+      role: 'region_manager',
+      role_label: 'Bölge müdürü',
+      scope_type: 'region',
+      scope_id: '00000000-0000-0000-0000-0000000000e1',
+    },
+  ],
+};

@@ -71,14 +71,31 @@ describe('Bildirimler sayfası', () => {
     expect(uyari).toHaveTextContent('kimseye ulaşmıyor');
   });
 
-  it('başarısız gönderimi hata koduyla gösterir', async () => {
+  it('başarısız gönderimin sebebini Türkçe yazar, ham kodu değil', async () => {
+    // Eskiden satırda "surucu-yok" yazıyordu ve bu test onu doğruluyordu.
+    // Makine kodu kullanıcı metni değil (bağımsız test turu D-1): sunucu
+    // zaten Türkçe `error_detail` gönderiyor, kod `title`da duruyor.
     kur();
 
     expect(await screen.findByText('Günlük kapanış başladı')).toBeInTheDocument();
     // 'Gönderilemedi' hem süzgeç düğmesinde hem satırda geçiyor: satırdakine bakıyoruz.
     const satir = within(screen.getByRole('table'));
     expect(satir.getByText('Gönderilemedi')).toBeInTheDocument();
-    expect(satir.getByText('surucu-yok')).toBeInTheDocument();
+    expect(satir.getByText('push sürücüsü bağlı değil')).toBeInTheDocument();
+    expect(satir.queryByText('surucu-yok')).not.toBeInTheDocument();
+    expect(satir.getByTitle('surucu-yok')).toBeInTheDocument();
+  });
+
+  it('sunucu açıklama göndermezse kodun Türkçe karşılığını yazar', async () => {
+    // Yedek yol: eski kayıtlarda `error_detail` boş olabiliyor.
+    liste.mockResolvedValue([
+      { ...GONDERILEMEYEN, error_code: 'alici-pasif', error_detail: null },
+    ] as never);
+    kur();
+
+    const satir = within(await screen.findByRole('table'));
+    expect(satir.getByText('Alıcı pasif: bildirim gönderilmedi')).toBeInTheDocument();
+    expect(satir.queryByText('alici-pasif')).not.toBeInTheDocument();
   });
 
   it('kanal bağlandığında uyarı yerine kanal adı yazar', async () => {

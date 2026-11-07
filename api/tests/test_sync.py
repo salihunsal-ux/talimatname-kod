@@ -7,6 +7,7 @@ yok; test, mobilin güvenebileceği davranışın yazılı hali.
 from __future__ import annotations
 
 import hashlib
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from uuid import UUID, uuid4
@@ -15,6 +16,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from conftest import oturum_ac
+from talimatname.api import bagimliliklar
 from talimatname.api.app import create_app
 from talimatname.domain.answers import RunLock
 from talimatname.domain.sync import (
@@ -84,11 +86,22 @@ class Dunya:
             now=lambda: self.an,
         )
 
-        self.run = next(
-            r
-            for r in self.planlar.runs()
-            if r.branch_id == KADIKOY and r.tolerance_end > self.an and r.status == "scheduled"
+        # Çalıştırmanın penceresi **şu anı kapsayacak şekilde** kuruluyor.
+        # Eskiden yalnızca "toleransı dolmamış" aranıyordu; penceresi daha
+        # açılmamış olanlar da geçiyordu ve `pencere-acilmadi` kuralı
+        # gelince test günün saatine göre kırılır oldu. Saati ileri almak
+        # çözüm değil: kanıt belirteci `iat`i gelecekte kalıp
+        # doğrulanamıyor. O yüzden saat değil pencere oynatılıyor.
+        secilen = next(
+            r for r in self.planlar.runs() if r.branch_id == KADIKOY and r.status == "scheduled"
         )
+        self.run = replace(
+            secilen,
+            window_start=self.an - timedelta(minutes=5),
+            window_end=self.an + timedelta(minutes=60),
+            tolerance_end=self.an + timedelta(minutes=90),
+        )
+        self.planlar.save_run(self.run)
         surum = self.sablonlar.version(self.run.template_version_id)
         assert surum is not None
         self.madde = next(m for m in surum.items if m.scored and not m.critical)
@@ -413,6 +426,28 @@ def _istemci(tmp: Path) -> TestClient:
     )
 
 
+def _pencereyi_simdiye_cek(run_id: str) -> None:
+    """Verilen çalıştırmanın penceresini şu anı kapsayacak biçimde yazar.
+
+    Tohumun pencereleri sabit saatlerde; uç nokta testini günün saatine
+    bağlamamak gerekiyor. Saati ileri almak çözüm değil — kanıt belirteci
+    gerçek saate göre doğrulanıyor ve `iat` gelecekte kalıyor — o yüzden
+    saat değil pencere oynatılıyor.
+    """
+    an = datetime.now(UTC)
+    depo = bagimliliklar._plan_deposu()
+    kosu = next(r for r in depo.runs() if str(r.id) == run_id)
+    depo.save_run(
+        replace(
+            kosu,
+            status="scheduled",
+            window_start=an - timedelta(minutes=5),
+            window_end=an + timedelta(minutes=60),
+            tolerance_end=an + timedelta(minutes=90),
+        )
+    )
+
+
 def test_manifest_uc_noktasi_personelin_subesini_verir(tmp_path: Path) -> None:
     istemci = _istemci(tmp_path)
     # Cihaz saati başlıkta: sorgu dizesinde ISO zamanın "+00:00" eki
@@ -433,8 +468,18 @@ def test_manifest_uc_noktasi_personelin_subesini_verir(tmp_path: Path) -> None:
 
 def test_kuyruk_uc_noktasi_gorece_yukleme_adresi_dondurur(tmp_path: Path) -> None:
     istemci = _istemci(tmp_path)
+    _pencereyi_simdiye_cek(istemci.get("/api/v1/sync/manifest").json()["runs"][0]["run_id"])
     manifest = istemci.get("/api/v1/sync/manifest").json()
-    kosu = manifest["runs"][0]
+    # Manifest penceresi açılmamış çalıştırmayı da listeliyor (cihaz
+    # şablonu önceden indirsin diye); yazma denemesi için **şu an
+    # yazılabilir** olanı seçmek gerek.
+    simdi = datetime.now(UTC)
+    kosu = next(
+        k
+        for k in manifest["runs"]
+        if datetime.fromisoformat(k["writable_from"]) <= simdi
+        and datetime.fromisoformat(k["tolerance_end"]) > simdi
+    )
     surum = istemci.get(f"/api/v1/template-versions/{kosu['template_version_id']}").json()
     madde = next(
         m

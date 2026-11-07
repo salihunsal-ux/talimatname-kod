@@ -1587,8 +1587,10 @@ select.alan {
    Bir eylem değil bir ayar: açılır liste. Üst bantta koyu zemine göre
    yeniden renkleniyor — banttaki ikincil düğmeyle aynı kalıp. */
 
+/* Dokunma hedefi alt sınırı 44 px: saha istemcisi telefonda kullanılıyor
+   ve bu, 375 px'te sınırın altında kalan tek denetimdi (D-5). */
 .tema-secici {
-  min-height: 36px;
+  min-height: 44px;
   font-size: var(--meta);
 }
 
@@ -1736,6 +1738,24 @@ label.dugme:has(input:disabled) {
 .eksikler .madde-satiri-ad {
   font-size: var(--etiket);
   color: var(--renk-murekkep2);
+}
+
+/* --- alan hatası -----------------------------------------------------
+   Sunucunun reddettiği alanın hemen altında, `aria-describedby` ile
+   alana bağlı (D-4). Ortak hata kutusu (`bildiri--hata`) duruyor ama o
+   hangi alan olduğunu söylemiyor. */
+
+.alan-hatasi {
+  display: block;
+  margin-top: var(--bosluk-1);
+  color: var(--renk-kritik);
+  font-size: var(--meta);
+}
+
+.alan:invalid,
+.alan[aria-invalid='true'],
+[aria-invalid='true'].alan {
+  border-color: var(--renk-kritik);
 }
 
 /* --- yığın sıfırlaması — dosyanın sonunda olmalı ----------------------

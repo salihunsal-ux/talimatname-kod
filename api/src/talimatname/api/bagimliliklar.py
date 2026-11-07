@@ -344,6 +344,7 @@ def yurutme_servisi() -> ExecutionService:
         _aksiyon_deposu(),
         verified_evidence=lambda run_id: kanit_servisi().verified_counts(run_id),
         audit=izi_servisi(),
+        prep_minutes=ayarlar().run_prep_minutes,
     )
 
 

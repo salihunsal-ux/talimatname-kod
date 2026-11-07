@@ -140,7 +140,13 @@ export function BildirimlerSayfasi() {
                         metin={bildirim.status_label}
                       />
                       {bildirim.error_code && (
-                        <div className="hata-metni">{bildirim.error_code}</div>
+                        // Kullanıcıya cümle gösterilir, makine kodu değil.
+                        // Kod `title`da duruyor: destek konuşmasında lazım.
+                        <div className="hata-metni" title={bildirim.error_code}>
+                          {bildirim.error_detail ||
+                            tr.bildirim.hataSebepleri[bildirim.error_code] ||
+                            tr.bildirim.gonderilemedi}
+                        </div>
                       )}
                     </td>
                   </tr>

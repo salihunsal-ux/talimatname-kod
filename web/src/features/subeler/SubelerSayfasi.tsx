@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
-import { problemCoz } from '../../api/client';
+import { alanHatalari, problemCoz } from '../../api/client';
 import { subeAgaci, subeDetayi, subeEkle, subePasiflestir } from '../../api/subeler';
 import { useYonetici } from '../../api/yetki';
 import { tr } from '../../i18n/tr';
@@ -177,6 +177,8 @@ function SubeEkleFormu() {
   const kuyruk = useQueryClient();
   const [kod, setKod] = useState('');
   const [ad, setAd] = useState('');
+  const kodAlani = useRef<HTMLInputElement>(null);
+  const adAlani = useRef<HTMLInputElement>(null);
   const ekle = useMutation({
     // Saat dilimi şimdilik sabit: hesap varsayılanı modellenince (CAP-01)
     // forma seçici gelecek; zincirlerin çoğu tek saat diliminde.
@@ -189,6 +191,14 @@ function SubeEkleFormu() {
   });
 
   const problem = problemCoz(ekle.error);
+  const hatalar = alanHatalari(ekle.error);
+
+  // Sunucu bir alanı reddettiğinde odak oraya gider: kullanıcı hatayı
+  // okuyup düzeltmek için formu gözle aramasın (D-4).
+  useEffect(() => {
+    if (hatalar.code) kodAlani.current?.focus();
+    else if (hatalar.name) adAlani.current?.focus();
+  }, [hatalar.code, hatalar.name]);
 
   return (
     <form
@@ -204,22 +214,38 @@ function SubeEkleFormu() {
             <label className="alan-etiket">
               {tr.subeler.kod}
               <input
+                ref={kodAlani}
                 value={kod}
                 onChange={(olay) => setKod(olay.target.value)}
                 required
                 maxLength={16}
                 className="alan alan--dar"
+                aria-invalid={hatalar.code ? true : undefined}
+                aria-describedby={hatalar.code ? 'sube-kod-hata' : undefined}
               />
+              {hatalar.code && (
+                <span className="alan-hatasi" id="sube-kod-hata">
+                  {hatalar.code}
+                </span>
+              )}
             </label>
             <label className="alan-etiket">
               {tr.subeler.ad}
               <input
+                ref={adAlani}
                 value={ad}
                 onChange={(olay) => setAd(olay.target.value)}
                 required
                 maxLength={80}
                 className="alan alan--orta"
+                aria-invalid={hatalar.name ? true : undefined}
+                aria-describedby={hatalar.name ? 'sube-ad-hata' : undefined}
               />
+              {hatalar.name && (
+                <span className="alan-hatasi" id="sube-ad-hata">
+                  {hatalar.name}
+                </span>
+              )}
             </label>
             <Dugme type="submit" disabled={ekle.isPending}>
               {tr.subeler.ekle}

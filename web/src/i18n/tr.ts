@@ -6,6 +6,9 @@ export const tr = {
   uygulama: {
     ad: 'Talimatname',
     aciklama: 'Kanıtlı görev listesi',
+    /** Sekme başlığının ikinci parçası; iki kapı iki ad. */
+    panelBaslik: 'Yönetim paneli',
+    sahaBaslik: 'Saha',
   },
   gezinme: {
     pano: 'Pano',
@@ -166,6 +169,7 @@ export const tr = {
     uretilemedi: (sebep: string) => `Üretilemedi${sebep ? ` (${sebep})` : ''}`,
   },
   giris: {
+    baslik: 'Giriş',
     aciklama: 'Telefonunuza gelen kodla girin',
     suresiDoldu:
       'Oturum süresi doldu (30 dakika). Kaldığınız yerden devam etmek için yeniden girin.',
@@ -464,6 +468,9 @@ export const tr = {
     kalan: (dk: number) => (dk > 0 ? `${dk} dk kaldı` : `${Math.abs(dk)} dk geçti`),
     ac: 'Listeyi aç',
     gor: 'Listeyi gör',
+    acilmadi: (dk: number) =>
+      `Pencere henüz açılmadı: ${dk} dk sonra doldurulabilir. Şimdilik yalnızca okunur.`,
+    acilis: 'Açılış',
     kacirildi: 'Pencere ve tolerans geçti: bu liste kapandı, cevap yazılamaz.',
     geri: 'Listeye dön',
     ilerleme: (yapilan: number, toplam: number) => `${yapilan}/${toplam} madde`,
@@ -567,6 +574,13 @@ export const tr = {
     durum: 'Durum',
     bos: 'Bu süzgeçte kayıt yok.',
     surucuYok: 'Hiçbir bildirim kanalı bağlı değil.',
+    /** Gönderilemedi sebepleri. Ham kod ekrana basılmaz: kullanıcı
+        "surucu-yok" değil sebebi okur. Sunucu `error_detail` de
+        gönderiyor; o varsa önce o kullanılır, bu liste yedektir. */
+    hataSebepleri: {
+      'surucu-yok': 'Kanal sürücüsü bağlı değil',
+      'alici-pasif': 'Alıcı pasif: bildirim gönderilmedi',
+    } as Record<string, string>,
     surucuYokAciklama:
       'Hatırlatmalar kuyruğa giriyor ama kimseye ulaşmıyor; ' +
       'push (ST-046) ve SMS (ST-067) bağlanana kadar bu liste eksiklerin kaydıdır.',

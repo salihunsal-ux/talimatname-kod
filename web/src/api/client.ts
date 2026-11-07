@@ -53,6 +53,24 @@ api.use({
  * Hata nesnesinden problem gövdesini çıkarır. İstemci davranışı `type`
  * alanına bakar — Türkçe `title` metni değişebilir, `type` sözleşmedir.
  */
+/**
+ * Sunucunun alan hatalarını `{alan: sebep}` sözlüğüne çevirir.
+ *
+ * Form bunu alanın yanına yazıyor ve alanı `aria-invalid` yapıyor:
+ * ortak kutuda duran cümle hangi alana ait olduğunu söylemiyordu
+ * (bağımsız test turu D-4).
+ */
+export function alanHatalari(hata: unknown): Record<string, string> {
+  const problem = problemCoz(hata);
+  const cikti: Record<string, string> = {};
+  for (const alan of problem?.errors ?? []) {
+    // Aynı alandan birden çok sebep gelirse ilki yazılır: kullanıcıya
+    // tek cümle yeter, listenin tamamı ortak kutuda zaten var.
+    if (alan.alan && !(alan.alan in cikti)) cikti[alan.alan] = alan.sebep;
+  }
+  return cikti;
+}
+
 export function problemCoz(hata: unknown): Problem | null {
   if (typeof hata !== 'object' || hata === null) return null;
   // openapi-fetch hatayı doğrudan gövde olarak fırlatır; bazı sarmalayıcılar

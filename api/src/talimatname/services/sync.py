@@ -103,6 +103,11 @@ class ManifestRun:
     window_start: datetime
     window_end: datetime
     tolerance_end: datetime
+    #: Cihazın cevap yazmaya başlayabileceği an (pencere eksi hazırlık
+    #: payı). Manifest penceresi açılmamış çalıştırmayı da listeler —
+    #: cihaz şablonu önceden indirsin diye — ama doldurmaya o saatten
+    #: önce izin yok (`pencere-acilmadi`).
+    writable_from: datetime
 
 
 @dataclass(frozen=True, slots=True)
@@ -307,6 +312,7 @@ class SyncService:
                     business_day=run.business_day,
                     status=run.status,
                     window_start=run.window_start,
+                    writable_from=run.writable_from(self._execution.prep_minutes),
                     window_end=run.window_end,
                     tolerance_end=run.tolerance_end,
                 )

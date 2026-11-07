@@ -63,7 +63,7 @@ function Eksikler() {
           ] as const
         ).map(([baslik, liste, renk]) => (
           <section key={baslik}>
-            <h3 className="bolum-etiketi">{baslik}</h3>
+            <h2 className="bolum-etiketi">{baslik}</h2>
             <ul className="liste-yigin">
               {liste.map(([gereksinim, metin]) => (
                 <li key={gereksinim} className="madde-satiri">
@@ -106,7 +106,12 @@ function BugunListesi({ onAc }: { onAc: (runId: string) => void }) {
       <ul className="liste-yigin">
         {liste.data?.map((run) => {
           const kalan = dakika(run.tolerance_end);
-          const acilabilir = run.status === 'scheduled' || run.status === 'in_progress';
+          const acilisa = dakika(run.writable_from);
+          // "Açılabilir" = sunucunun cevap kabul edeceği aralık. Pencere
+          // açılmadan önce liste görülebilir ama doldurulamaz, o yüzden
+          // birincil düğme (davet) değil ikincil düğme (bak) gösterilir.
+          const acilabilir =
+            (run.status === 'scheduled' || run.status === 'in_progress') && acilisa <= 0;
           return (
             <li key={run.id} className="kart">
               <div className="yigin yigin--dar">
@@ -121,7 +126,9 @@ function BugunListesi({ onAc }: { onAc: (runId: string) => void }) {
                 </div>
                 <p className="meta">
                   {tr.saha.pencere}: {saat(run.window_start)}–{saat(run.window_end)} ·{' '}
-                  {tr.saha.kalan(kalan)}
+                  {acilisa > 0
+                    ? `${tr.saha.acilis} ${saat(run.writable_from)}`
+                    : tr.saha.kalan(kalan)}
                 </p>
                 <div className="eylemler">
                   {/* Kapanmış liste de açılıyor ama **okumak** için:
@@ -173,12 +180,21 @@ function ListeCalistirma({ runId, onKapat }: { runId: string; onKapat: () => voi
   if (gorunum.isError || !gorunum.data) return <Hata hata={gorunum.error} />;
 
   const veri = gorunum.data;
-  const maddeler = veri.sections.flatMap((b) => b.items);
-  const cevaplanan = maddeler.filter((m) => m.type === 'instruction' || m.answer !== null).length;
+  // Talimat satırı cevaplanmaz (sunucu da puanlamıyor), o yüzden ne paya
+  // ne paydaya girer. Eskiden ikisine de giriyordu: hiç dokunulmamış
+  // listede sayaç "1/8" yazıyordu.
+  const maddeler = veri.sections.flatMap((b) => b.items).filter((m) => m.type !== 'instruction');
+  const cevaplanan = maddeler.filter((m) => m.answer !== null).length;
   // Tolerans geçtiyse cevap yazılamaz: sunucu da reddeder, ekranın
   // denemeye davet etmesi anlamsız.
   const kacirildi = veri.status === 'missed';
-  const kapali = veri.status === 'submitted' || veri.status === 'cancelled' || kacirildi;
+  // Pencere (hazırlık payı dahil) daha açılmadıysa liste okunur ama
+  // yazılamaz: sunucu `pencere-acilmadi` ile reddediyor, ekran da
+  // doldurulamayacak bir listeyi doldurmaya davet etmemeli.
+  const acilisaKalan = dakika(veri.writable_from);
+  const acilmadi = acilisaKalan > 0;
+  const kapali =
+    veri.status === 'submitted' || veri.status === 'cancelled' || kacirildi || acilmadi;
   const gecikti = !kapali && new Date(veri.window_end).getTime() < Date.now();
   const problem = problemCoz(gonder.error);
 
@@ -209,8 +225,11 @@ function ListeCalistirma({ runId, onKapat }: { runId: string; onKapat: () => voi
         </div>
       </header>
 
+      {acilmadi && <p className="bildiri bildiri--uyari">{tr.saha.acilmadi(acilisaKalan)}</p>}
       {kacirildi && <p className="bildiri bildiri--uyari">{tr.saha.kacirildi}</p>}
-      {kapali && !kacirildi && <p className="bildiri bildiri--saglam">{tr.saha.kapandi}</p>}
+      {kapali && !kacirildi && !acilmadi && (
+        <p className="bildiri bildiri--saglam">{tr.saha.kapandi}</p>
+      )}
       {gecikti && <p className="bildiri bildiri--uyari">{tr.saha.pencereKapali}</p>}
 
       {veri.sections.map((bolum) => (

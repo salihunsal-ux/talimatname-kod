@@ -4227,6 +4227,11 @@
             "format": "date-time",
             "title": "Tolerance End"
           },
+          "writable_from": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Writable From"
+          },
           "submitted_at": {
             "anyOf": [
               {
@@ -4280,6 +4285,7 @@
           "window_start",
           "window_end",
           "tolerance_end",
+          "writable_from",
           "template_name",
           "sections",
           "blockers"
@@ -4327,6 +4333,11 @@
             "format": "date-time",
             "title": "Tolerance End"
           },
+          "writable_from": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Writable From"
+          },
           "status": {
             "type": "string",
             "title": "Status"
@@ -4347,6 +4358,7 @@
           "window_start",
           "window_end",
           "tolerance_end",
+          "writable_from",
           "status"
         ],
         "title": "CalistirmaOzet"
@@ -6600,6 +6612,11 @@
             "type": "string",
             "format": "date-time",
             "title": "Tolerance End"
+          },
+          "writable_from": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Writable From"
           }
         },
         "type": "object",
@@ -6615,7 +6632,8 @@
           "status",
           "window_start",
           "window_end",
-          "tolerance_end"
+          "tolerance_end",
+          "writable_from"
         ],
         "title": "ManifestCalistirmasi"
       },

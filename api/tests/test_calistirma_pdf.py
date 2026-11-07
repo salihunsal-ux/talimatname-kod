@@ -11,7 +11,8 @@ from __future__ import annotations
 import hashlib
 import io
 import itertools
-from datetime import UTC, datetime
+from dataclasses import replace
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from uuid import UUID, uuid4
 
@@ -106,16 +107,24 @@ class Dunya:
             self.izi,
             now=lambda: self.an,
         )
-        # Penceresi **açık** bir çalıştırma: tohumda kapanmış olanlar
-        # da var ve onlara cevap yazılamıyor (testi duvar saatine
-        # bağlamamak için durumdan seçiyoruz, sıradan değil).
-        self.run = next(
+        # Penceresi **açık** bir çalıştırma. Eskiden yalnızca tolerans
+        # bitişine bakılıyordu; penceresi daha açılmamış olan da "açık"
+        # sayılıyordu (sunucu izin verdiği için fark edilmemişti).
+        # `pencere-acilmadi` kuralından sonra pencere şu anı kapsayacak
+        # biçimde yazılıyor: saati oynatmak kanıt belirtecinin `iat`ini
+        # geleceğe atıp doğrulamayı bozardı.
+        secilen = next(
             r
             for r in self.planlar.runs()
-            if r.branch_id == KADIKOY
-            and r.status in ("scheduled", "in_progress")
-            and r.tolerance_end > self.an
+            if r.branch_id == KADIKOY and r.status in ("scheduled", "in_progress")
         )
+        self.run = replace(
+            secilen,
+            window_start=self.an - timedelta(minutes=5),
+            window_end=self.an + timedelta(minutes=60),
+            tolerance_end=self.an + timedelta(minutes=90),
+        )
+        self.planlar.save_run(self.run)
         kisi = self.kullanicilar.user_by_phone(PERSONEL)
         assert kisi is not None
         self.kisi = kisi

@@ -87,6 +87,9 @@ class ManifestCalistirmasi(BaseModel):
     window_start: datetime
     window_end: datetime
     tolerance_end: datetime
+    #: Cevap yazmanın açıldığı an; cihaz bundan önce doldurmaya
+    #: kalkmamalı (sunucu `pencere-acilmadi` ile reddeder).
+    writable_from: datetime
 
 
 class ManifestSurumu(BaseModel):
