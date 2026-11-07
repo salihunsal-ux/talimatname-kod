@@ -3,7 +3,12 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { personelDavet, personelListesi, personelMaskele } from '../../api/personel';
+import {
+  personelDavet,
+  personelDuzelt,
+  personelListesi,
+  personelMaskele,
+} from '../../api/personel';
 import { subeAgaci } from '../../api/subeler';
 import { Oturumlu } from '../../test/oturum';
 import { PersonelSayfasi } from './PersonelSayfasi';
@@ -13,6 +18,7 @@ vi.mock('../../api/subeler');
 const liste = vi.mocked(personelListesi);
 const davet = vi.mocked(personelDavet);
 const maskele = vi.mocked(personelMaskele);
+const duzelt = vi.mocked(personelDuzelt);
 const agac = vi.mocked(subeAgaci);
 
 const AYSE = {
@@ -103,6 +109,58 @@ describe('Personel sayfası', () => {
     const bildirim = await screen.findByRole('status');
     expect(bildirim).toHaveTextContent('Davet SMS');
     expect(bildirim).not.toHaveTextContent('gönderildi.');
+  });
+
+  it('yanlış yazılmış ad satırın içinde düzeltilir', async () => {
+    // Ad yalnızca toplu içe aktarmayla güncellenebiliyordu; isim cevap
+    // satırlarında ve imzalı raporlarda göründüğü için satır içinde
+    // düzeltilebilmeli.
+    liste.mockResolvedValue([{ ...AYSE, full_name: 'Ayse Sube' }]);
+    duzelt.mockResolvedValue({ ...AYSE, full_name: 'Ayşe Şube' });
+
+    kur();
+    await screen.findByText('Ayse Sube');
+    await userEvent.click(screen.getByRole('button', { name: 'Adı düzelt' }));
+
+    const alan = screen.getByLabelText('Adı düzelt');
+    expect(alan).toHaveValue('Ayse Sube');
+    await userEvent.clear(alan);
+    await userEvent.type(alan, 'Ayşe Şube');
+    await userEvent.click(screen.getByRole('button', { name: 'Kaydet' }));
+
+    expect(duzelt).toHaveBeenCalledWith('u-1', { full_name: 'Ayşe Şube' });
+  });
+
+  it('boş ad kaydedilemez', async () => {
+    kur();
+    await screen.findByText('Ayşe Şube');
+    await userEvent.click(screen.getByRole('button', { name: 'Adı düzelt' }));
+    await userEvent.clear(screen.getByLabelText('Adı düzelt'));
+
+    expect(screen.getByRole('button', { name: 'Kaydet' })).toBeDisabled();
+  });
+
+  it('vazgeçince ad eski hâline döner, istek gitmez', async () => {
+    kur();
+    await screen.findByText('Ayşe Şube');
+    await userEvent.click(screen.getByRole('button', { name: 'Adı düzelt' }));
+    await userEvent.type(screen.getByLabelText('Adı düzelt'), ' yanlış');
+    await userEvent.click(screen.getByRole('button', { name: 'Vazgeç' }));
+
+    expect(duzelt).not.toHaveBeenCalled();
+    expect(screen.getByRole('row', { name: /Ayşe Şube/ })).toBeInTheDocument();
+  });
+
+  it('maskeli kayıtta düzeltme düğmesi çıkmaz', async () => {
+    // BR-22: maskeleme geri alınamaz, takma etiket yeniden adlandırılamaz.
+    liste.mockResolvedValue([
+      { ...AYSE, full_name: 'Eski personel #4821', status: 'masked', phone: null },
+    ]);
+
+    kur();
+    await screen.findByText('Eski personel #4821');
+
+    expect(screen.queryByRole('button', { name: 'Adı düzelt' })).not.toBeInTheDocument();
   });
 
   it('maskeleme iki adımda onaylanır', async () => {

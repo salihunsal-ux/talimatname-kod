@@ -19,10 +19,12 @@ from talimatname.domain.users import (
 )
 from talimatname.domain.validation import ValidationError
 from talimatname.infra.memory import (
+    MemoryAuditRepository,
     MemoryOrganizationRepository,
     MemoryUserRepository,
     sabit_id,
 )
+from talimatname.services.audit import AuditService
 from talimatname.services.users import (
     MaskedUserImmutable,
     PhoneTaken,
@@ -265,3 +267,120 @@ def test_uc_nokta_maskeleme(istemci: TestClient) -> None:
     assert yanit.status_code == 200
     assert yanit.json()["status"] == "masked"
     assert yanit.json()["phone"] is None
+
+
+# --- ad düzeltme (PATCH /users/{id}) ---------------------------------
+
+
+def _kisi_ekle(istemci: TestClient, ad: str, telefon: str) -> dict[str, object]:
+    yanit = istemci.post(
+        "/api/v1/users",
+        json={
+            "full_name": ad,
+            "phone": telefon,
+            "assignments": [{"role": "staff", "scope_id": str(KADIKOY)}],
+        },
+    )
+    assert yanit.status_code == 201
+    return yanit.json()["user"]  # type: ignore[no-any-return]
+
+
+def test_uc_nokta_yanlis_yazilan_ad_duzeltilir(istemci: TestClient) -> None:
+    """Ad yalnızca toplu içe aktarmayla güncellenebiliyordu.
+
+    İsim cevap satırlarında ve imzalı PDF raporlarında görünüyor; bir
+    harf hatasını düzeltmek için Excel'e dönmek gerekmemeli.
+    """
+    kisi = _kisi_ekle(istemci, "Ayse Sube", "0532 999 00 21")
+
+    yanit = istemci.patch(f"/api/v1/users/{kisi['id']}", json={"full_name": "Ayşe Şube"})
+
+    assert yanit.status_code == 200
+    assert yanit.json()["full_name"] == "Ayşe Şube"
+    assert yanit.json()["phone"] == "+905329990021"
+    assert istemci.get(f"/api/v1/users/{kisi['id']}").json()["full_name"] == "Ayşe Şube"
+
+
+def test_uc_nokta_gonderilmeyen_alan_degismez(istemci: TestClient) -> None:
+    kisi = _kisi_ekle(istemci, "Eposta Sahibi", "0532 999 00 22")
+    istemci.patch(f"/api/v1/users/{kisi['id']}", json={"email": "kisi@ornek.com"})
+
+    yanit = istemci.patch(f"/api/v1/users/{kisi['id']}", json={"full_name": "Yeni Ad"})
+
+    assert yanit.json()["full_name"] == "Yeni Ad"
+    assert yanit.json()["email"] == "kisi@ornek.com"
+    assert yanit.json()["assignments"][0]["role"] == "staff"
+
+
+def test_uc_nokta_eposta_bosaltilabilir(istemci: TestClient) -> None:
+    kisi = _kisi_ekle(istemci, "Eposta Silinecek", "0532 999 00 23")
+    istemci.patch(f"/api/v1/users/{kisi['id']}", json={"email": "sil@ornek.com"})
+
+    yanit = istemci.patch(f"/api/v1/users/{kisi['id']}", json={"email": None})
+
+    assert yanit.status_code == 200
+    assert yanit.json()["email"] is None
+
+
+def test_uc_nokta_bos_govde_reddedilir(istemci: TestClient) -> None:
+    kisi = _kisi_ekle(istemci, "Degismeyecek", "0532 999 00 24")
+
+    yanit = istemci.patch(f"/api/v1/users/{kisi['id']}", json={})
+
+    assert yanit.status_code == 422
+    assert yanit.json()["errors"][0]["alan"] == "full_name"
+
+
+def test_uc_nokta_bos_ad_reddedilir(istemci: TestClient) -> None:
+    kisi = _kisi_ekle(istemci, "Degismeyecek 2", "0532 999 00 25")
+
+    yanit = istemci.patch(f"/api/v1/users/{kisi['id']}", json={"full_name": "   "})
+
+    assert yanit.status_code == 422
+    assert istemci.get(f"/api/v1/users/{kisi['id']}").json()["full_name"] == "Degismeyecek 2"
+
+
+def test_uc_nokta_telefon_bu_uctan_degistirilemez(istemci: TestClient) -> None:
+    """Numara kişinin kimliği: giriş anahtarı ve içe aktarmanın eşleştirme
+    anahtarı. Gövdeye yazılsa bile yok sayılır, kayıt başka birine bağlanmaz."""
+    kisi = _kisi_ekle(istemci, "Numara Sabit", "0532 999 00 26")
+
+    yanit = istemci.patch(
+        f"/api/v1/users/{kisi['id']}",
+        json={"full_name": "Numara Sabit", "phone": "0532 999 00 99"},
+    )
+
+    assert yanit.status_code == 200
+    assert yanit.json()["phone"] == "+905329990026"
+
+
+def test_uc_nokta_maskeli_kullanici_duzeltilemez(istemci: TestClient) -> None:
+    """BR-22: maskeleme geri alınamaz, takma etiket yeniden adlandırılamaz."""
+    kisi = _kisi_ekle(istemci, "Maskelenecek", "0532 999 00 27")
+    istemci.post(f"/api/v1/users/{kisi['id']}/mask")
+
+    yanit = istemci.patch(f"/api/v1/users/{kisi['id']}", json={"full_name": "Geri Gelsin"})
+
+    assert yanit.status_code == 409
+    assert yanit.json()["type"].endswith("maskeli-kullanici")
+
+
+def test_ad_duzeltmesi_gunluge_deger_yazmaz() -> None:
+    """BR-21: denetim 'ad değişti' der, 'Ayşe Şube oldu' demez.
+
+    İsim düzeltmesi de sıradan bir güncelleme: olay günlüğe girer ama
+    eski ya da yeni ad girmez, yalnızca hangi alanın değiştiği.
+    """
+    depo = MemoryAuditRepository()
+    iz = AuditService(depo, now=lambda: datetime(2026, 11, 2, 9, 0, tzinfo=UTC))
+    servis = UserService(MemoryUserRepository(), MemoryOrganizationRepository(), iz)
+    kisi = servis.invite(_kullanici(full_name="Ayse Sube"))
+
+    servis.update(kisi.id, full_name="Ayşe Şube")
+
+    olaylar = depo.events()
+    guncelleme = next(o for o in olaylar if o.event_type == "personel.guncellendi")
+    assert guncelleme.after is not None
+    assert guncelleme.after["degisen"] == "ad"
+    assert "Ayşe Şube" not in str(olaylar)
+    assert "Ayse Sube" not in str(olaylar)

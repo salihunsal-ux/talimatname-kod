@@ -271,6 +271,10 @@ export const tr = {
     davet: 'Davet et',
     davetKuyrukta: "Kayıt açıldı. Davet SMS'i, sağlayıcı bağlanınca gönderilecek (ST-044).",
     bilinmeyenKapsam: 'kapsam bulunamadı',
+    adiDuzelt: 'Adı düzelt',
+    adKaydet: 'Kaydet',
+    adVazgec: 'Vazgeç',
+    adBos: 'Ad boş bırakılamaz.',
   },
   sablon: {
     baslik: 'Şablonlar',

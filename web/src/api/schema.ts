@@ -215,7 +215,20 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        patch?: never;
+        /**
+         * Ad ya da e-postayı düzelt
+         * @description Yanlış yazılmış bir adı tek kullanıcı üzerinden düzeltir.
+         *
+         *     Bu uç yoktu: ad yalnızca **toplu personel içe aktarmasıyla**
+         *     güncellenebiliyordu (`/setup/staff/import` telefona göre eşleyip
+         *     `full_name` yazar). İsim cevap satırlarında ve imzalı PDF
+         *     raporlarında görünüyor, yani bir harf hatası kalıcı kayda düşüyor;
+         *     bunu düzeltmek için Excel'e dönmek gerekmemeli.
+         *
+         *     Gönderilmeyen alan değişmez; `email: null` e-postayı siler.
+         *     Maskelenmiş kullanıcı değiştirilemez (BR-22) — servis 409 verir.
+         */
+        patch: operations["personel_duzelt_api_v1_users__user_id__patch"];
         trace?: never;
     };
     "/api/v1/users/{user_id}/roles": {
@@ -2509,6 +2522,23 @@ export interface components {
              */
             dev_code?: string | null;
         };
+        /**
+         * KullaniciDuzeltmeGirdisi
+         * @description Ad ya da e-posta düzeltmesi. Gönderilmeyen alan değişmez.
+         *
+         *     **Telefon burada yok:** numara kişinin kimliği (giriş anahtarı ve
+         *     içe aktarmanın eşleştirme anahtarı), değiştirmek kaydı başka bir
+         *     kişiye bağlamak demek. Numara değişecekse yeni kayıt açılır, eskisi
+         *     pasifleştirilir. **Roller de burada değil:** `PATCH
+         *     /users/{user_id}/roles` ayrı duruyor, çünkü yetki değişikliği
+         *     denetimde ayrı aranıyor.
+         */
+        KullaniciDuzeltmeGirdisi: {
+            /** Full Name */
+            full_name?: string | null;
+            /** Email */
+            email?: string | null;
+        };
         /** KullaniciGirdisi */
         KullaniciGirdisi: {
             /**
@@ -4172,6 +4202,41 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KullaniciOzet"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    personel_duzelt_api_v1_users__user_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["KullaniciDuzeltmeGirdisi"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { problemCoz } from '../../api/client';
 import {
   personelDavet,
+  personelDuzelt,
   personelMaskele,
   personelPasiflestir,
   personelListesi,
@@ -157,6 +158,10 @@ function PersonelSatiri({
 }) {
   const kuyruk = useQueryClient();
   const [maskeOnayi, setMaskeOnayi] = useState(false);
+  // Ad düzeltmesi satırın içinde: yanlış yazılmış bir isim cevap
+  // satırlarında ve imzalı raporlarda görünüyor, düzeltmek için toplu
+  // içe aktarmaya dönmek gerekmemeli.
+  const [duzenlenen, setDuzenlenen] = useState<string | null>(null);
 
   const tazele = async () => {
     await kuyruk.invalidateQueries({ queryKey: ['personel'] });
@@ -166,11 +171,54 @@ function PersonelSatiri({
     onSuccess: tazele,
   });
   const maskele = useMutation({ mutationFn: () => personelMaskele(kisi.id), onSuccess: tazele });
+  const duzelt = useMutation({
+    mutationFn: (ad: string) => personelDuzelt(kisi.id, { full_name: ad }),
+    onSuccess: async () => {
+      setDuzenlenen(null);
+      await tazele();
+    },
+  });
+  const duzeltmeProblemi = problemCoz(duzelt.error);
+  const yeniAd = (duzenlenen ?? '').trim();
 
   return (
     <tr>
       <th scope="row">
-        {kisi.full_name}
+        {duzenlenen !== null ? (
+          <form
+            className="satir-eylem"
+            onSubmit={(olay) => {
+              olay.preventDefault();
+              if (yeniAd) duzelt.mutate(yeniAd);
+            }}
+          >
+            <input
+              value={duzenlenen}
+              onChange={(o) => setDuzenlenen(o.target.value)}
+              aria-label={tr.personel.adiDuzelt}
+              autoFocus
+              className="alan alan--orta"
+            />
+            <Dugme boyut="kucuk" type="submit" disabled={!yeniAd || duzelt.isPending}>
+              {tr.personel.adKaydet}
+            </Dugme>
+            <Dugme
+              gorunum="ikincil"
+              boyut="kucuk"
+              type="button"
+              onClick={() => setDuzenlenen(null)}
+            >
+              {tr.personel.adVazgec}
+            </Dugme>
+          </form>
+        ) : (
+          kisi.full_name
+        )}
+        {duzelt.isError && (
+          <p role="alert" className="meta meta--hata">
+            {duzeltmeProblemi?.title ?? tr.hata.genel}
+          </p>
+        )}
         {kisi.status === 'inactive' && (
           <>
             {' '}
@@ -201,6 +249,16 @@ function PersonelSatiri({
       <td className="sayisal">{kisi.phone ?? '—'}</td>
       <td className="eylem">
         <div className="satir-eylem">
+          {kisi.status !== 'masked' && duzenlenen === null && (
+            <Dugme
+              gorunum="ikincil"
+              boyut="kucuk"
+              type="button"
+              onClick={() => setDuzenlenen(kisi.full_name)}
+            >
+              {tr.personel.adiDuzelt}
+            </Dugme>
+          )}
           {kisi.status === 'active' && (
             <Dugme
               gorunum="ikincil"

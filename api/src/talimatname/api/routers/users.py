@@ -15,6 +15,7 @@ from talimatname.api.guvenlik import (
     YoneticiVeyaBolge,
 )
 from talimatname.domain.users import ROLE_LABELS, Role, RoleAssignment, User
+from talimatname.domain.validation import ValidationError
 from talimatname.services.organization import (
     OrganizationService,
     erisilebilir_sube_idleri,
@@ -58,6 +59,21 @@ class KullaniciGirdisi(BaseModel):
     phone: str = Field(examples=["0532 111 00 08"], description="E.164'e çevrilir")
     email: str | None = None
     assignments: list[RolGirdisi] = Field(min_length=1)
+
+
+class KullaniciDuzeltmeGirdisi(BaseModel):
+    """Ad ya da e-posta düzeltmesi. Gönderilmeyen alan değişmez.
+
+    **Telefon burada yok:** numara kişinin kimliği (giriş anahtarı ve
+    içe aktarmanın eşleştirme anahtarı), değiştirmek kaydı başka bir
+    kişiye bağlamak demek. Numara değişecekse yeni kayıt açılır, eskisi
+    pasifleştirilir. **Roller de burada değil:** `PATCH
+    /users/{user_id}/roles` ayrı duruyor, çünkü yetki değişikliği
+    denetimde ayrı aranıyor.
+    """
+
+    full_name: str | None = Field(default=None, min_length=1, max_length=80)
+    email: str | None = None
 
 
 class DavetYaniti(BaseModel):
@@ -140,6 +156,27 @@ def personel_davet(girdi: KullaniciGirdisi, servis: Servis, _: Yonetici) -> Dave
         )
     )
     return DavetYaniti(user=_ozet(kullanici))
+
+
+@router.patch("/users/{user_id}", summary="Ad ya da e-postayı düzelt")
+def personel_duzelt(
+    user_id: UUID, girdi: KullaniciDuzeltmeGirdisi, servis: Servis, _: Yonetici
+) -> KullaniciOzet:
+    """Yanlış yazılmış bir adı tek kullanıcı üzerinden düzeltir.
+
+    Bu uç yoktu: ad yalnızca **toplu personel içe aktarmasıyla**
+    güncellenebiliyordu (`/setup/staff/import` telefona göre eşleyip
+    `full_name` yazar). İsim cevap satırlarında ve imzalı PDF
+    raporlarında görünüyor, yani bir harf hatası kalıcı kayda düşüyor;
+    bunu düzeltmek için Excel'e dönmek gerekmemeli.
+
+    Gönderilmeyen alan değişmez; `email: null` e-postayı siler.
+    Maskelenmiş kullanıcı değiştirilemez (BR-22) — servis 409 verir.
+    """
+    degisiklik = girdi.model_dump(exclude_unset=True)
+    if not degisiklik:
+        raise ValidationError("full_name", "Düzeltilecek bir alan gönderin")
+    return _ozet(servis.update(user_id, **degisiklik))
 
 
 @router.patch("/users/{user_id}/roles", summary="Rolleri değiştir")

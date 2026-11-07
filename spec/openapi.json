@@ -568,6 +568,58 @@
             }
           }
         }
+      },
+      "patch": {
+        "tags": [
+          "personel"
+        ],
+        "summary": "Ad ya da e-postayı düzelt",
+        "description": "Yanlış yazılmış bir adı tek kullanıcı üzerinden düzeltir.\n\nBu uç yoktu: ad yalnızca **toplu personel içe aktarmasıyla**\ngüncellenebiliyordu (`/setup/staff/import` telefona göre eşleyip\n`full_name` yazar). İsim cevap satırlarında ve imzalı PDF\nraporlarında görünüyor, yani bir harf hatası kalıcı kayda düşüyor;\nbunu düzeltmek için Excel'e dönmek gerekmemeli.\n\nGönderilmeyen alan değişmez; `email: null` e-postayı siler.\nMaskelenmiş kullanıcı değiştirilemez (BR-22) — servis 409 verir.",
+        "operationId": "personel_duzelt_api_v1_users__user_id__patch",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "User Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KullaniciDuzeltmeGirdisi"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KullaniciOzet"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/users/{user_id}/roles": {
@@ -5760,6 +5812,37 @@
           "phone"
         ],
         "title": "KodYaniti"
+      },
+      "KullaniciDuzeltmeGirdisi": {
+        "properties": {
+          "full_name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 80,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Full Name"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          }
+        },
+        "type": "object",
+        "title": "KullaniciDuzeltmeGirdisi",
+        "description": "Ad ya da e-posta düzeltmesi. Gönderilmeyen alan değişmez.\n\n**Telefon burada yok:** numara kişinin kimliği (giriş anahtarı ve\niçe aktarmanın eşleştirme anahtarı), değiştirmek kaydı başka bir\nkişiye bağlamak demek. Numara değişecekse yeni kayıt açılır, eskisi\npasifleştirilir. **Roller de burada değil:** `PATCH\n/users/{user_id}/roles` ayrı duruyor, çünkü yetki değişikliği\ndenetimde ayrı aranıyor."
       },
       "KullaniciGirdisi": {
         "properties": {
