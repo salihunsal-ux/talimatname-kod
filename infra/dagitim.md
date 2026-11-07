@@ -54,7 +54,7 @@ yedeklenmeli ve depoya **girmemeli** (`.gitignore`'da).
 ```bash
 docker compose build
 docker compose up -d postgres minio
-docker compose run --rm goc        # şema
+docker compose run --rm --build goc  # şema (--build şart, aşağıya bakın)
 docker compose run --rm tohum      # örnek veri — YALNIZCA staging
 docker compose up -d api zamanlayici web
 ```
@@ -165,7 +165,7 @@ turda açar (`sync_from_runs`, kimlik çalıştırmadan türüyor).
 ```bash
 git pull
 docker compose build
-docker compose run --rm goc        # göç önce: yeni kod eski şemayı görmesin
+docker compose run --rm --build goc  # göç önce: yeni kod eski şemayı görmesin
 docker compose up -d api zamanlayici web
 ```
 
@@ -173,6 +173,17 @@ Göç **elle ve ayrı**: uygulama açılışında otomatik göç, iki kapsayıc�
 aynı anda kalktığında yarışır ve geri alınamaz bir şemayı sessizce
 uygular (ADR-0014 md.11). Göçler ileri ve geri çalışıyor; CI her
 koşuda ileri → geri → ileri sınıyor.
+
+**`--build` olmadan göç sessizce atlanır.** `docker compose run` imajı
+kendiliğinden kurmuyor: yalnızca `api` ve `web` yeniden kurulan bir
+dağıtımda `goc` eski imajla koşar, yeni göç dosyasını hiç görmez ve
+**çıkış kodu 0 verir** — başarılı görünür. 8 Kasım 2026'da tam bu oldu:
+`goc` sorunsuz döndü, `alembic current` hâlâ `0010` diyordu, yeni uç
+nokta "relation does not exist" veriyordu. Göçten sonra sürümü doğrula:
+
+```bash
+docker compose exec -T api python -m alembic current   # "0011 (head)" demeli
+```
 
 ## Yedek ve geri yükleme
 

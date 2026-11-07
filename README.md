@@ -366,7 +366,7 @@ Kuyruk sınırlarını (500 kanıt / 72 saat, FR-0706) sunucu **söyler**, cihaz
 ```bash
 cp infra/.env.ornek .env     # dört değer: iki parola, iki anahtar
 docker compose build
-docker compose run --rm goc  # şema
+docker compose run --rm --build goc  # şema
 docker compose up -d
 ```
 
@@ -376,7 +376,9 @@ Ayrıntı: [infra/dagitim.md](infra/dagitim.md).
 
 **Zamanlayıcı ayrı bir servis ve kapatılamaz.** Pencere açılışı, hatırlatma, eskalasyon, sabah özeti ve kanıt damgası orada: ayakta değilse ürünün zamana bağlı yarısı çalışmıyor demektir. Uykuya geçen ücretsiz katmanlar bu yüzden uygun değil.
 
-**Göç elle ve ayrı** (`docker compose run --rm goc`): açılışta otomatik göç, iki kapsayıcı aynı anda kalktığında yarışır ve geri alınamaz bir şemayı sessizce uygular.
+**Göç elle ve ayrı** (`docker compose run --rm --build goc`): açılışta otomatik göç, iki kapsayıcı aynı anda kalktığında yarışır ve geri alınamaz bir şemayı sessizce uygular.
+
+`--build` **şart**: `run` kendiliğinden imaj kurmuyor. Yalnızca `api` ve `web` yeniden kurulan bir dağıtımda `goc` eski imajla koşar, yeni göç dosyasını hiç görmez ve **çıkış kodu 0 verir** — yani başarılı görünür. 8 Kasım'da tam bu oldu: `alembic current` hâlâ bir önceki sürümü gösteriyordu.
 
 **Yazı tipi imajın içinde.** Damga Türkçe harf çiziyor ve Pillow'un gömülü yazı tipinde ş, ğ, İ yok; ince bir imajda damga sessizce basılmaz hâle gelirdi.
 

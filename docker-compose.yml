@@ -7,7 +7,7 @@
 #
 #   cp infra/.env.ornek .env && nano .env
 #   docker compose up -d --build
-#   docker compose run --rm goc           # göçler
+#   docker compose run --rm --build goc   # göçler (--build şart: run kurmaz)
 #   docker compose run --rm tohum         # örnek veri (yalnızca staging)
 #
 # Üretimde (Türkiye) `minio` kaldırılır ve OBJECT_STORE_* değerleri
