@@ -109,6 +109,10 @@ def kanit_yukle(
     yazılıyor — demoda olan tam olarak bu ve kayıt da bunu söylüyor.
     """
     _, kanit = saat_kurulu_servisler(datetime.now(UTC))
+    # Betik yarıda kalmış olabilir: aynı maddeye ikinci kez yüklemek
+    # `DuplicateEvidence` veriyor. Zaten doğrulanmış kanıt varsa geç.
+    if kanit.verified_counts(run_id).get(item_id, 0) > 0:
+        return
     baytlar = yer_tutucu_png(f"{run_id}:{item_id}")
     kayit, belirtec = kanit.start(
         run_id=run_id,
