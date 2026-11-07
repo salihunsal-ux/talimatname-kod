@@ -23,6 +23,7 @@ from uuid import UUID, uuid4
 import structlog
 
 from talimatname.domain.errors import DomainError, ErrorKind
+from talimatname.domain.escalation_gaps import escalation_gaps
 from talimatname.domain.organization import Branch, Region
 from talimatname.domain.plans import Plan
 from talimatname.domain.setup import (
@@ -130,6 +131,9 @@ class SetupService:
             published_template_count=yayinda,
             active_plan_count=etkin,
             staff_count=len(self._users.users()),
+            branches_without_manager=len(
+                escalation_gaps(self._org.branches(), self._users.users())
+            ),
         )
         return replace(durum, completed_at=ayar.completed_at if ayar else None)
 

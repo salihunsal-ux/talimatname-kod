@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 
-import { panoGetir, type Hucre } from '../../api/pano';
+import { panoGetir, type Hucre, type PanoYaniti } from '../../api/pano';
 import { CalistirmaDetayi } from '../calistirma/CalistirmaDetayi';
 import { bugunIso } from '../../tarih';
 import { tr } from '../../i18n/tr';
@@ -138,6 +138,8 @@ export function PanoSayfasi() {
           </>
         )}
 
+        {veri && veri.escalation_gaps.length > 0 && <EskalasyonBosluklari veri={veri} />}
+
         {veri && <Gostergeler veri={veri} />}
 
         {veri && veri.rows.length === 0 && <p className="bos-durum">{tr.pano.gunBos}</p>}
@@ -219,6 +221,43 @@ export function PanoSayfasi() {
           satirlar.length > 0 && <p className="bos-durum">{tr.pano.detayIpucu}</p>
         )}
       </div>
+    </div>
+  );
+}
+
+/**
+ * Uyarı kime gidiyor (BR-11 · FR-0915).
+ *
+ * Eskalasyon merdiveni şube müdüründen bölge müdürüne, oradan
+ * yöneticiye çıkıyor. Atlanan basamak yalnızca sunucu günlüğüne
+ * yazılıyordu: 7 Kasım'da demoda dört şube müdürsüzdü ve bunu kimse
+ * bilmiyordu. Kimsenin görmediği bir uyarı, uyarı değildir.
+ */
+function EskalasyonBosluklari({ veri }: { veri: PanoYaniti }) {
+  const bosluklar = veri.escalation_gaps;
+  const kritik = bosluklar.filter((b) => b.critical);
+  const { bosluk } = tr.pano;
+
+  return (
+    <div
+      role="status"
+      className={kritik.length > 0 ? 'bildiri bildiri--hata' : 'bildiri bildiri--uyari'}
+    >
+      <strong>
+        {kritik.length > 0 ? bosluk.kritikBaslik(kritik.length) : bosluk.baslik(bosluklar.length)}
+      </strong>
+      <ul className="ikincil-metin">
+        {bosluklar.map((b) => (
+          <li key={b.branch_id}>
+            {b.critical
+              ? bosluk.kritikSatir(b.branch_name)
+              : bosluk.satir(b.branch_name, b.missing.join(' ve '), b.reached_label)}
+          </li>
+        ))}
+      </ul>
+      <p className="durum-metni">
+        {bosluk.aciklama} {bosluk.cozum}
+      </p>
     </div>
   );
 }

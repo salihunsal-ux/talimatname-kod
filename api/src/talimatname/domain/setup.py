@@ -134,6 +134,14 @@ class SetupProgress:
         return sum(1 for adim in self.steps if adim.done)
 
 
+def _personel_detayi(staff_count: int, mudursuz: int) -> str:
+    if not staff_count:
+        return "Davet gönderilmedi (atlanabilir)"
+    if mudursuz:
+        return f"{staff_count} kullanıcı · {mudursuz} şubede müdür yok"
+    return f"{staff_count} kullanıcı"
+
+
 def progress(
     *,
     settings: AccountSettings | None,
@@ -141,6 +149,7 @@ def progress(
     published_template_count: int,
     active_plan_count: int,
     staff_count: int,
+    branches_without_manager: int = 0,
 ) -> SetupProgress:
     """Adımların durumunu veriden okur (sayaç yok, bkz. modül başlığı)."""
     durumlar = (
@@ -173,8 +182,12 @@ def progress(
         StepState(
             "staff",
             STEP_LABELS["staff"],
-            staff_count > 0,
-            f"{staff_count} kullanıcı" if staff_count else "Davet gönderilmedi (atlanabilir)",
+            # Müdürsüz şube varken adım **bitmiş sayılmıyor**: kaçırılan
+            # liste uyarısı o şubede şube müdürüne gidemez, bölge
+            # müdürüne ya da yöneticiye düşer (BR-11). Sihirbazı
+            # kapatmayı engellemiyor — zorlamak değil, görünür kılmak.
+            staff_count > 0 and branches_without_manager == 0,
+            _personel_detayi(staff_count, branches_without_manager),
         ),
         StepState("review", STEP_LABELS["review"], False, "Özeti gözden geçirip yayınlayın"),
     )

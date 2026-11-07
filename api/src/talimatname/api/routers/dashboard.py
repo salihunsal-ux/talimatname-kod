@@ -10,24 +10,28 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 
 from talimatname.api.bagimliliklar import (
+    kullanici_servisi,
     kurulum_servisi,
     organizasyon_servisi,
     pano_servisi,
 )
 from talimatname.api.guvenlik import Mudur
 from talimatname.api.is_gunu import bugun
+from talimatname.domain.escalation_gaps import STEP_LABELS, EscalationGap, escalation_gaps
 from talimatname.services.dashboard import Board, DashboardService
 from talimatname.services.organization import (
     OrganizationService,
     erisilebilir_sube_idleri,
 )
 from talimatname.services.setup import SetupService
+from talimatname.services.users import UserService
 
 router = APIRouter(tags=["pano"])
 
 Servis = Annotated[DashboardService, Depends(pano_servisi)]
 OrgServis = Annotated[OrganizationService, Depends(organizasyon_servisi)]
 KurulumServis = Annotated[SetupService, Depends(kurulum_servisi)]
+KisiServis = Annotated[UserService, Depends(kullanici_servisi)]
 
 
 class Hucre(BaseModel):
@@ -77,9 +81,28 @@ class PanoYaniti(BaseModel):
     rows: list[Satir]
     exception_row_count: int
     kpi: Gostergeler
+    escalation_gaps: list[EskalasyonBoslugu] = Field(
+        description="Uyarının şube müdürüne ulaşmadığı şubeler (BR-11, FR-0915)"
+    )
 
 
-def _yanit(board: Board) -> PanoYaniti:
+class EskalasyonBoslugu(BaseModel):
+    """Bu şubede uyarı kime gidiyor.
+
+    Eskalasyon merdiveni atlanan basamağı yalnızca günlüğe yazıyordu;
+    kimsenin görmediği bir uyarı, uyarı değildir.
+    """
+
+    branch_id: UUID
+    branch_code: str
+    branch_name: str
+    missing: list[str] = Field(description="Bulunamayan basamakların Türkçe adı")
+    reached: str = Field(description="Uyarının gerçekte ulaştığı basamak")
+    reached_label: str
+    critical: bool = Field(description="Hiç kimseye ulaşmıyor")
+
+
+def _yanit(board: Board, bosluklar: list[EscalationGap]) -> PanoYaniti:
     return PanoYaniti(
         business_day=date.fromisoformat(board.business_day),
         plans=[PlanSutunu(id=pid, name=ad) for pid, ad in board.plans],
@@ -115,6 +138,18 @@ def _yanit(board: Board) -> PanoYaniti:
             completion_percent=board.kpi.completion_percent,
             all_clear=board.kpi.all_clear,
         ),
+        escalation_gaps=[
+            EskalasyonBoslugu(
+                branch_id=b.branch_id,
+                branch_code=b.branch_code,
+                branch_name=b.branch_name,
+                missing=[STEP_LABELS[a] for a in b.missing],
+                reached=b.reached,
+                reached_label=STEP_LABELS[b.reached],
+                critical=b.critical,
+            )
+            for b in bosluklar
+        ],
     )
 
 
@@ -124,6 +159,7 @@ def pano(
     org: OrgServis,
     kullanici: Mudur,
     kurulum: KurulumServis,
+    kisiler: KisiServis,
     business_day: date | None = None,
 ) -> PanoYaniti:
     """Izgara kullanıcının kapsamıyla sınırlı (FR-0205).
@@ -132,5 +168,9 @@ def pano(
     bölgesinin tamamlanma oranını görür, zincirin değil.
     """
     gun = business_day or bugun(kurulum)
-    tahta = servis.board(gun, datetime.now(UTC), erisilebilir_sube_idleri(kullanici, org))
-    return _yanit(tahta)
+    kapsam = erisilebilir_sube_idleri(kullanici, org)
+    tahta = servis.board(gun, datetime.now(UTC), kapsam)
+    # Eskalasyon boşlukları da kapsamla sınırlı: bölge müdürü kendi
+    # bölgesinin eksiğini görür, zincirin tamamını değil (FR-0205).
+    subeler = [s for dugum in org.tree() for s in dugum.branches if s.id in kapsam]
+    return _yanit(tahta, escalation_gaps(subeler, kisiler.list_users(include_inactive=True)))

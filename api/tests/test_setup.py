@@ -967,9 +967,27 @@ def test_personel_adimi_veriden_isaretlenir(servis: SetupService) -> None:
     servis.import_branches(_dosya([_sube("KDK", "Kadıköy")]))
     assert {a.step: a.done for a in servis.progress().steps}["staff"] is False
 
-    servis.import_staff(_personel_dosyasi([_kisi("Emre Yılmaz", "0532 111 22 33")]))
+    servis.import_staff(
+        _personel_dosyasi([_kisi("Deniz Yılmaz", "0532 111 22 34", rol="Şube müdürü")])
+    )
 
     assert {a.step: a.done for a in servis.progress().steps}["staff"] is True
+
+
+def test_mudursuz_sube_personel_adimini_bitirmiyor(servis: SetupService) -> None:
+    """Yalnızca personel yetmez: kaçırılan liste uyarısı şube müdürüne gider.
+
+    Müdür yoksa uyarı bölge müdürüne ya da yöneticiye düşüyor (BR-11)
+    ve bunu kimse bilmiyordu. Adım bitmemiş sayılıyor; sihirbazı
+    kapatmak yine de engellenmiyor.
+    """
+    servis.import_branches(_dosya([_sube("KDK", "Kadıköy")]))
+
+    servis.import_staff(_personel_dosyasi([_kisi("Emre Yılmaz", "0532 111 22 33")]))
+
+    adim = {a.step: a for a in servis.progress().steps}["staff"]
+    assert adim.done is False
+    assert "şubede müdür yok" in adim.detail
 
 
 def test_uc_nokta_personel_sablonu_sube_kodlarini_tasir(tmp_path: Path) -> None:

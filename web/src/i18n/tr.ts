@@ -391,6 +391,15 @@ export const tr = {
     yenileniyor: 'yenileniyor…',
     gunBos: 'Bu iş gününde çalıştırma yok.',
     herSeyYolunda: 'Her şey yolunda',
+    bosluk: {
+      baslik: (sayi: number) => `${sayi} şubede uyarı şube müdürüne ulaşmıyor`,
+      kritikBaslik: (sayi: number) => `${sayi} şubede uyarı hiç kimseye ulaşmıyor`,
+      satir: (sube: string, eksik: string, ulasan: string) =>
+        `${sube}: ${eksik} yok — uyarı ${ulasan.toLocaleLowerCase('tr')} gidiyor.`,
+      kritikSatir: (sube: string) => `${sube}: zincirde kimse yok — uyarı kayboluyor.`,
+      aciklama: 'Kaçırılan liste ve kritik madde uyarıları bu merdivenden iniyor (BR-11).',
+      cozum: 'Personel ekranından şubeye müdür atayın.',
+    },
     herSeyYolundaAlt: 'Bu iş gününde kaçırılan ya da geç tamamlanan liste yok.',
     henuzSorunYok: 'Şimdilik sorun yok',
     bekleyen: 'liste penceresi hâlâ açık.',

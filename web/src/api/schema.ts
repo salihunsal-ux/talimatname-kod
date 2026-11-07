@@ -2335,6 +2335,41 @@ export interface components {
             /** Assignee User Id */
             assignee_user_id?: string | null;
         };
+        /**
+         * EskalasyonBoslugu
+         * @description Bu şubede uyarı kime gidiyor.
+         *
+         *     Eskalasyon merdiveni atlanan basamağı yalnızca günlüğe yazıyordu;
+         *     kimsenin görmediği bir uyarı, uyarı değildir.
+         */
+        EskalasyonBoslugu: {
+            /**
+             * Branch Id
+             * Format: uuid
+             */
+            branch_id: string;
+            /** Branch Code */
+            branch_code: string;
+            /** Branch Name */
+            branch_name: string;
+            /**
+             * Missing
+             * @description Bulunamayan basamakların Türkçe adı
+             */
+            missing: string[];
+            /**
+             * Reached
+             * @description Uyarının gerçekte ulaştığı basamak
+             */
+            reached: string;
+            /** Reached Label */
+            reached_label: string;
+            /**
+             * Critical
+             * @description Hiç kimseye ulaşmıyor
+             */
+            critical: boolean;
+        };
         /** GaleriKanidi */
         GaleriKanidi: {
             /**
@@ -3303,6 +3338,11 @@ export interface components {
             /** Exception Row Count */
             exception_row_count: number;
             kpi: components["schemas"]["Gostergeler"];
+            /**
+             * Escalation Gaps
+             * @description Uyarının şube müdürüne ulaşmadığı şubeler (BR-11, FR-0915)
+             */
+            escalation_gaps: components["schemas"]["EskalasyonBoslugu"][];
         };
         /** PlanGirdisi */
         PlanGirdisi: {

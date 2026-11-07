@@ -5315,6 +5315,57 @@
         ],
         "title": "ElleAksiyonGirdisi"
       },
+      "EskalasyonBoslugu": {
+        "properties": {
+          "branch_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Branch Id"
+          },
+          "branch_code": {
+            "type": "string",
+            "title": "Branch Code"
+          },
+          "branch_name": {
+            "type": "string",
+            "title": "Branch Name"
+          },
+          "missing": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Missing",
+            "description": "Bulunamayan basamakların Türkçe adı"
+          },
+          "reached": {
+            "type": "string",
+            "title": "Reached",
+            "description": "Uyarının gerçekte ulaştığı basamak"
+          },
+          "reached_label": {
+            "type": "string",
+            "title": "Reached Label"
+          },
+          "critical": {
+            "type": "boolean",
+            "title": "Critical",
+            "description": "Hiç kimseye ulaşmıyor"
+          }
+        },
+        "type": "object",
+        "required": [
+          "branch_id",
+          "branch_code",
+          "branch_name",
+          "missing",
+          "reached",
+          "reached_label",
+          "critical"
+        ],
+        "title": "EskalasyonBoslugu",
+        "description": "Bu şubede uyarı kime gidiyor.\n\nEskalasyon merdiveni atlanan basamağı yalnızca günlüğe yazıyordu;\nkimsenin görmediği bir uyarı, uyarı değildir."
+      },
       "GaleriKanidi": {
         "properties": {
           "id": {
@@ -7472,6 +7523,14 @@
           },
           "kpi": {
             "$ref": "#/components/schemas/Gostergeler"
+          },
+          "escalation_gaps": {
+            "items": {
+              "$ref": "#/components/schemas/EskalasyonBoslugu"
+            },
+            "type": "array",
+            "title": "Escalation Gaps",
+            "description": "Uyarının şube müdürüne ulaşmadığı şubeler (BR-11, FR-0915)"
           }
         },
         "type": "object",
@@ -7480,7 +7539,8 @@
           "plans",
           "rows",
           "exception_row_count",
-          "kpi"
+          "kpi",
+          "escalation_gaps"
         ],
         "title": "PanoYaniti",
         "description": "Şube × liste ızgarası.\n\nİstisna süzgeci **istemcide** uygulanır: sunucu her satırı `exception`\nbayrağıyla gönderir, panel varsayılanda yalnızca bayraklıları gösterir\nve \"tümünü göster\" dediğinde ikinci istek atmaz (FR-1219)."

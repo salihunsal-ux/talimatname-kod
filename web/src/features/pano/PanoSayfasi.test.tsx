@@ -18,6 +18,7 @@ const HUCRE = {
 
 const PANO: PanoYaniti = {
   business_day: '2026-11-02',
+  escalation_gaps: [],
   plans: [{ id: 'p-1', name: 'Günlük kapanış' }],
   rows: [
     {
@@ -173,5 +174,59 @@ describe('Pano', () => {
 
     const hucre = await screen.findByRole('button', { name: /Planlı/ });
     expect(hucre.getAttribute('title')).toMatch(/03[./]11/);
+  });
+});
+
+describe('eskalasyon boşlukları (BR-11 · FR-0915)', () => {
+  // Atlanan basamak yalnızca sunucu günlüğüne yazılıyordu: demoda dört
+  // şube müdürsüzdü ve kimse bilmiyordu.
+
+  function boslukla(bosluklar: PanoYaniti['escalation_gaps']) {
+    getir.mockResolvedValue({ ...PANO, escalation_gaps: bosluklar });
+  }
+
+  it('müdürsüz şubeyi ve uyarının kime gittiğini yazıyor', async () => {
+    boslukla([
+      {
+        branch_id: 'b-9',
+        branch_code: 'SSL',
+        branch_name: 'Şişli',
+        missing: ['Şube müdürü', 'Bölge müdürü'],
+        reached: 'admin',
+        reached_label: 'Yönetici',
+        critical: false,
+      },
+    ]);
+
+    kur();
+
+    expect(await screen.findByText(/1 şubede uyarı şube müdürüne ulaşmıyor/)).toBeInTheDocument();
+    expect(screen.getByText(/Şişli: Şube müdürü ve Bölge müdürü yok/)).toBeInTheDocument();
+  });
+
+  it('zincirde kimse yoksa bunu ayrıca söylüyor', async () => {
+    boslukla([
+      {
+        branch_id: 'b-9',
+        branch_code: 'ZTB',
+        branch_name: 'Zeytinburnu',
+        missing: ['Şube müdürü', 'Bölge müdürü', 'Yönetici'],
+        reached: 'hicbiri',
+        reached_label: 'Hiç kimse',
+        critical: true,
+      },
+    ]);
+
+    kur();
+
+    expect(await screen.findByText(/hiç kimseye ulaşmıyor/)).toBeInTheDocument();
+    expect(screen.getByText(/uyarı kayboluyor/)).toBeInTheDocument();
+  });
+
+  it('boşluk yoksa şerit çıkmıyor', async () => {
+    kur();
+    await screen.findByText(/Günlük kapanış/);
+
+    expect(screen.queryByText(/ulaşmıyor/)).not.toBeInTheDocument();
   });
 });

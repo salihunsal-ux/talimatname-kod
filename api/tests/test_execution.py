@@ -1086,7 +1086,11 @@ def test_kilit_catismasinda_isim_gorunuyor(istemci: TestClient) -> None:
     BR-26 "diğerleri **X yapıyor** görür" diyor; ham kimlik bunu
     karşılamıyor (7 Kasım canlı turunda çıktı).
     """
-    run = _simdi_yazilabilir(oturum_ac(istemci, "staff"))
+    # Kadıköy şube müdürüyle hazırlanıyor: personel /branches
+    # çağıramıyor (Müdür kapısı) ve yöneticiyle hazırlamak başka bir
+    # şubenin çalıştırmasını seçip personele 403 verdiriyordu.
+    run = _acik_calistirma(oturum_ac(istemci, "branch_manager"))
+    oturum_ac(istemci, "staff")
     istemci.post(f"/api/v1/runs/{run['id']}/claim")
 
     ikinci = oturum_ac(istemci, "staff2")
@@ -1099,7 +1103,11 @@ def test_kilit_catismasinda_isim_gorunuyor(istemci: TestClient) -> None:
 
 
 def test_gorunum_kilit_sahibinin_adini_tasiyor(istemci: TestClient) -> None:
-    run = _simdi_yazilabilir(oturum_ac(istemci, "staff"))
+    # Kadıköy şube müdürüyle hazırlanıyor: personel /branches
+    # çağıramıyor (Müdür kapısı) ve yöneticiyle hazırlamak başka bir
+    # şubenin çalıştırmasını seçip personele 403 verdiriyordu.
+    run = _acik_calistirma(oturum_ac(istemci, "branch_manager"))
+    oturum_ac(istemci, "staff")
 
     govde = istemci.post(f"/api/v1/runs/{run['id']}/claim").json()
 
@@ -1107,7 +1115,11 @@ def test_gorunum_kilit_sahibinin_adini_tasiyor(istemci: TestClient) -> None:
 
 
 def test_sahibi_kilidi_birakinca_serbest_kaliyor(istemci: TestClient) -> None:
-    run = _simdi_yazilabilir(oturum_ac(istemci, "staff"))
+    # Kadıköy şube müdürüyle hazırlanıyor: personel /branches
+    # çağıramıyor (Müdür kapısı) ve yöneticiyle hazırlamak başka bir
+    # şubenin çalıştırmasını seçip personele 403 verdiriyordu.
+    run = _acik_calistirma(oturum_ac(istemci, "branch_manager"))
+    oturum_ac(istemci, "staff")
     istemci.post(f"/api/v1/runs/{run['id']}/claim")
 
     birak = istemci.post(f"/api/v1/runs/{run['id']}/release")
@@ -1119,7 +1131,11 @@ def test_sahibi_kilidi_birakinca_serbest_kaliyor(istemci: TestClient) -> None:
 
 
 def test_personel_baskasinin_kilidini_kaldiramaz(istemci: TestClient) -> None:
-    run = _simdi_yazilabilir(oturum_ac(istemci, "staff"))
+    # Kadıköy şube müdürüyle hazırlanıyor: personel /branches
+    # çağıramıyor (Müdür kapısı) ve yöneticiyle hazırlamak başka bir
+    # şubenin çalıştırmasını seçip personele 403 verdiriyordu.
+    run = _acik_calistirma(oturum_ac(istemci, "branch_manager"))
+    oturum_ac(istemci, "staff")
     istemci.post(f"/api/v1/runs/{run['id']}/claim")
 
     ikinci = oturum_ac(istemci, "staff2")
@@ -1132,7 +1148,11 @@ def test_personel_baskasinin_kilidini_kaldiramaz(istemci: TestClient) -> None:
 def test_mudur_kilidi_kaldirabiliyor(istemci: TestClient) -> None:
     """Tek çıkış yolu 30 dakika beklemekti: personel eve gidince
     müdür listeyi kurtaramıyordu (BR-26)."""
-    run = _simdi_yazilabilir(oturum_ac(istemci, "staff"))
+    # Kadıköy şube müdürüyle hazırlanıyor: personel /branches
+    # çağıramıyor (Müdür kapısı) ve yöneticiyle hazırlamak başka bir
+    # şubenin çalıştırmasını seçip personele 403 verdiriyordu.
+    run = _acik_calistirma(oturum_ac(istemci, "branch_manager"))
+    oturum_ac(istemci, "staff")
     istemci.post(f"/api/v1/runs/{run['id']}/claim")
 
     mudur = oturum_ac(istemci, "admin")
@@ -1147,7 +1167,11 @@ def test_kilit_olaylari_gunluge_yaziliyor(istemci: TestClient) -> None:
     from talimatname.api import bagimliliklar
 
     depo = bagimliliklar._izi_deposu()
-    run = _simdi_yazilabilir(oturum_ac(istemci, "staff"))
+    # Kadıköy şube müdürüyle hazırlanıyor: personel /branches
+    # çağıramıyor (Müdür kapısı) ve yöneticiyle hazırlamak başka bir
+    # şubenin çalıştırmasını seçip personele 403 verdiriyordu.
+    run = _acik_calistirma(oturum_ac(istemci, "branch_manager"))
+    oturum_ac(istemci, "staff")
     once = len(depo.events(limit=2000))
 
     istemci.post(f"/api/v1/runs/{run['id']}/claim")
