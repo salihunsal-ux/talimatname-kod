@@ -99,3 +99,26 @@ def test_tohum_maskeli_kullaniciyi_diriltmiyor() -> None:
     assert korunur(None) is False
     assert korunur(normal) is False
     assert korunur(normal.masked(datetime.now(UTC), 4821)) is True
+
+
+@pytest.mark.db
+def test_tohum_var_olan_surumun_uzerine_yazmiyor() -> None:
+    """Yayınlanan sürüm bir daha değişmez (BR-18); çalıştırmalar ona bağlı.
+
+    Tohum sürümü her koşuda yeniden yazıyordu: maddeleri silip
+    kuruyordu. Cevabı olan bir veritabanında bu yabancı anahtar
+    hatasıyla düşüyor (8 Kasım'da demoda oldu); düşmeseydi daha kötüsü
+    olurdu — geçmiş cevapların bağlı olduğu soru değişirdi.
+
+    Geliştirme kiracısında koşuyor: tohum zaten oranın verisi ve
+    idempotent. Ayrı kiracı denenemiyor, bölge kimlikleri sabit.
+    """
+    from talimatname.seed import seed
+    from talimatname.settings import get_settings
+
+    if not get_settings().database_url:
+        pytest.skip("veritabanı yok")
+
+    sayilar = seed()
+
+    assert sayilar["mevcut_surum_atlandi"] > 0, "sürümler yeniden yazılıyor"

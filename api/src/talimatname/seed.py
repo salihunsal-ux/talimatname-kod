@@ -121,9 +121,18 @@ def seed(tenant_id: UUID = DEV_TENANT) -> dict[str, int]:
             continue
         kullanicilar.save_user(kullanici)
 
+    # Var olan sürümün **üzerine yazılmaz**: yayınlanan sürüm bir daha
+    # değişmez (BR-18) ve çalıştırmalar ona bağlı. Üzerine yazmak maddeleri
+    # silip yeniden kuruyordu; cevabı olan bir demoda bu yabancı anahtar
+    # hatasıyla düşüyor, düşmeseydi geçmiş cevapların bağlı olduğu
+    # soruyu değiştirirdi — daha kötüsü.
+    atlanan_surum = 0
     for sablon in sablon_kaynak.templates():
         sablonlar.save_template(sablon)
         for surum in sablon_kaynak.versions(sablon.id):
+            if sablonlar.version(surum.id) is not None:
+                atlanan_surum += 1
+                continue
             sablonlar.save_version(surum)
 
     for plan in plan_kaynak.plans():
@@ -134,6 +143,7 @@ def seed(tenant_id: UUID = DEV_TENANT) -> dict[str, int]:
         "sube": len(org_kaynak.branches()),
         "kullanici": len(kullanici_kaynak.users()) - maskeli,
         "maskeli_atlandi": maskeli,
+        "mevcut_surum_atlandi": atlanan_surum,
         "sablon": len(sablon_kaynak.templates()),
         "plan": len(plan_kaynak.plans()),
     }
