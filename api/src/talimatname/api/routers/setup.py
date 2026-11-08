@@ -315,6 +315,20 @@ class YayinSonucu(BaseModel):
     status: DurumCiktisi
 
 
+#: Tekrarın insan dilindeki karşılığı. Kütüphanede yalnızca günlük
+#: şablon varken "Günlük" sabit yazılıydı; aylık denetim şablonu
+#: gelince ekran "Günlük · …" demeye devam etti, yani yalan söyledi.
+TEKRAR_ADI: dict[str, str] = {
+    "FREQ=DAILY": "Günlük",
+    "FREQ=WEEKLY": "Haftalık",
+    "FREQ=MONTHLY": "Aylık",
+}
+
+
+def _tekrar_adi(recurrence: str) -> str:
+    return TEKRAR_ADI.get(recurrence.strip().upper(), recurrence)
+
+
 def _pencere_ozeti(kural: WindowRule) -> str:
     """Planın penceresini insan diliyle: "kapanıştan 60 dk önce…"."""
     assert kural.anchor is not None
@@ -322,7 +336,7 @@ def _pencere_ozeti(kural: WindowRule) -> str:
     dakika = abs(kural.anchor.offset_minutes)
     once = "önce" if kural.anchor.offset_minutes < 0 else "sonra"
     return (
-        f"Günlük · şube {yon} saatinden {dakika} dk {once} başlar · "
+        f"{_tekrar_adi(kural.recurrence)} · şube {yon} saatinden {dakika} dk {once} başlar · "
         f"{kural.duration_minutes} dk pencere · {kural.tolerance_minutes} dk tolerans"
     )
 
@@ -332,7 +346,7 @@ def _pencere_metni(sablon: LibraryTemplate) -> str:
     dakika = abs(sablon.plan.anchor.offset_minutes)
     once = "önce" if sablon.plan.anchor.offset_minutes < 0 else "sonra"
     return (
-        f"Günlük · şube {yon} saatinden {dakika} dk {once} başlar · "
+        f"{_tekrar_adi(sablon.plan.recurrence)} · şube {yon} saatinden {dakika} dk {once} başlar · "
         f"{sablon.plan.duration_minutes} dk pencere · "
         f"{sablon.plan.tolerance_minutes} dk tolerans"
     )

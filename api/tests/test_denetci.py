@@ -154,3 +154,19 @@ def test_denetci_elle_aksiyon_acabiliyor(denetci: TestClient) -> None:
     )
 
     assert yanit.status_code in (200, 201)
+
+
+def test_kutuphane_penceresi_tekrari_dogru_yaziyor() -> None:
+    """Aylık şablon "Günlük · …" diyordu: kütüphanede yalnızca günlük
+    şablon varken sabit yazılmıştı."""
+    from talimatname.api.routers.setup import _pencere_metni
+
+    assert _pencere_metni(DENETIM).startswith("Aylık ·")
+
+
+def test_uc_nokta_kutuphanede_denetim_aylik_gorunuyor(denetci: TestClient) -> None:
+    yanit = oturum_ac(denetci, "admin").get("/api/v1/setup/library")
+
+    denetim = next(s for s in yanit.json() if s["key"] == "sube-denetimi")
+    assert denetim["window"].startswith("Aylık ·")
+    assert denetim["item_count"] == 16
