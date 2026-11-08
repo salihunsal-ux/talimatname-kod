@@ -52,6 +52,7 @@ TELEFON = {
     "staff": "+905321110005",  # Kadıköy
     # Aynı şubede ikinci personel: çalıştırma kilidi iki kişi ister.
     "staff2": "+905321110006",  # Kadıköy
+    "auditor": "+905321110009",  # Anadolu bölgesi denetçisi
 }
 
 

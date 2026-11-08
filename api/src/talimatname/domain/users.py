@@ -2,8 +2,8 @@
 
 Yetki modeli iki parçadır ve ikisi de burada saf olarak durur:
 
-* **Rol** ne yapabileceğini söyler (Yönetici, Bölge müdürü, Şube müdürü,
-  Personel).
+* **Rol** ne yapabileceğini söyler (Yönetici, Bölge müdürü, Denetçi,
+  Şube müdürü, Personel).
 * **Kapsam** nerede yapabileceğini söyler (hesap, bölge, şube).
 
 `can_access` bu ikisinin birleşimidir ve yetki denetiminin tek kaynağıdır:
@@ -21,17 +21,23 @@ from uuid import UUID
 from talimatname.domain.organization import Branch
 from talimatname.domain.validation import ValidationError, clean_name
 
-Role = Literal["admin", "region_manager", "branch_manager", "staff"]
+Role = Literal["admin", "region_manager", "auditor", "branch_manager", "staff"]
 ScopeType = Literal["tenant", "region", "branch"]
 UserStatus = Literal["active", "inactive", "masked"]
 
-ROLES: tuple[Role, ...] = ("admin", "region_manager", "branch_manager", "staff")
+ROLES: tuple[Role, ...] = ("admin", "region_manager", "auditor", "branch_manager", "staff")
 
 # Rolün hangi kapsamda anlamlı olduğu. Yönetici hesabın tamamını görür;
 # şube müdürü ve personel bir şubeye bağlıdır.
 ROLE_SCOPE: dict[Role, ScopeType] = {
     "admin": "tenant",
     "region_manager": "region",
+    # Denetçi bölgeye bağlı: şubeye gidip denetim listesini **kendisi**
+    # dolduruyor, ama şubeyi yönetmiyor — plan yayınlamaz, personel
+    # açmaz, listeyi "yapılmayacak" diye kapatamaz. Zincirin tamamını
+    # denetleyen biri her bölge için bir atama alır; tek atamayla
+    # zincir kapsamı v1.1 (bkz. rol matrisi).
+    "auditor": "region",
     "branch_manager": "branch",
     "staff": "branch",
 }
@@ -39,6 +45,7 @@ ROLE_SCOPE: dict[Role, ScopeType] = {
 ROLE_LABELS: dict[Role, str] = {
     "admin": "Yönetici",
     "region_manager": "Bölge müdürü",
+    "auditor": "Denetçi",
     "branch_manager": "Şube müdürü",
     "staff": "Personel",
 }
@@ -153,7 +160,11 @@ def can_access(user: User, branch: Branch, *, region_of: UUID | None = None) -> 
     for atama in user.assignments:
         if atama.role == "admin":
             return True
-        if atama.role == "region_manager" and bolge is not None and atama.scope_id == bolge:
+        if (
+            atama.role in ("region_manager", "auditor")
+            and bolge is not None
+            and atama.scope_id == bolge
+        ):
             return True
         if atama.role in ("branch_manager", "staff") and atama.scope_id == branch.id:
             return True

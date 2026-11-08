@@ -22,6 +22,8 @@ import { IskeletTablo } from '../../bilesenler/Iskelet';
 const ROLLER: { deger: Rol; etiket: string; kapsam: 'yok' | 'bolge' | 'sube' }[] = [
   { deger: 'admin', etiket: 'Yönetici', kapsam: 'yok' },
   { deger: 'region_manager', etiket: 'Bölge müdürü', kapsam: 'bolge' },
+  // Denetçi de bölge kapsamlı: şubeye gider ama şubeye bağlı değil.
+  { deger: 'auditor', etiket: 'Denetçi', kapsam: 'bolge' },
   { deger: 'branch_manager', etiket: 'Şube müdürü', kapsam: 'sube' },
   { deger: 'staff', etiket: 'Personel', kapsam: 'sube' },
 ];

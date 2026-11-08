@@ -175,3 +175,20 @@ describe('Personel sayfası', () => {
     expect(maskele).toHaveBeenCalledWith('u-1');
   });
 });
+
+describe('denetçi rolü', () => {
+  it('rol listesinde var ve bölge kapsamı istiyor', async () => {
+    // Denetçi şubeye gider ama şubeye bağlı değil: kapsamı bölge.
+    kur();
+    await screen.findByText('Ayşe Şube');
+    const rolSecicileri = screen.getAllByLabelText('Rol');
+    const davetRolu = rolSecicileri[rolSecicileri.length - 1];
+
+    await userEvent.selectOptions(davetRolu, 'auditor');
+
+    // Rol seçicileri birden fazla (süzgeç + davet formu): davet
+    // formundakine bakıyoruz.
+    expect(davetRolu).toHaveValue('auditor');
+    expect(screen.getByLabelText('Bölge')).toBeInTheDocument();
+  });
+});

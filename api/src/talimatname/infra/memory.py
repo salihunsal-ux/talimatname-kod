@@ -184,6 +184,12 @@ def _tohum_kullanicilar() -> list[User]:
             [RoleAssignment("branch_manager", sabit_id("sube:KDK"))],
         ),
         (
+            "Burak Denetçi",
+            "+905321110009",
+            None,
+            [RoleAssignment("auditor", sabit_id("bolge:anadolu"))],
+        ),
+        (
             "Deniz Şube",
             "+905321110004",
             None,

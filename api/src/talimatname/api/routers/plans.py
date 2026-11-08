@@ -17,7 +17,7 @@ from talimatname.api.bagimliliklar import (
     sablon_servisi,
     zamanlayici_servisi,
 )
-from talimatname.api.guvenlik import Kullanici, Mudur, Yonetici
+from talimatname.api.guvenlik import Gozlemci, Kullanici, Yonetici
 from talimatname.api.is_gunu import bugun
 from talimatname.domain.plans import Assignment, Plan, Run
 from talimatname.domain.window import (
@@ -325,7 +325,7 @@ def plan_listesi(
     servis: Servis,
     sablonlar: SablonServis,
     org: OrgServis,
-    kullanici: Mudur,
+    kullanici: Gozlemci,
     include_inactive: bool = False,
 ) -> list[PlanOzet]:
     """Kullanıcının kapsamına **dokunan** planlar.

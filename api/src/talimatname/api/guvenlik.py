@@ -101,6 +101,17 @@ YoneticiVeyaBolge = Annotated[User, Depends(rol_gerekir("admin", "region_manager
 #: `/runs`, cevaplar, kanıt ve gönderim personele açık.
 Mudur = Annotated[User, Depends(rol_gerekir("admin", "region_manager", "branch_manager"))]
 
+#: Okuma ekranları + elle aksiyon: müdürler **ve denetçi**.
+#:
+#: Denetçi şubeye gidip denetim listesini kendisi dolduruyor, bu yüzden
+#: şube ağacını, panoyu, şablonları ve raporları görmesi gerekiyor.
+#: Karar verme yetkisi yok: listeyi "yapılmayacak" diye kapatmak,
+#: plan yayınlamak, personel açmak ve kurulum `Mudur`/`Yonetici`de
+#: kaldı — denetçi **gözlemler ve kaydeder**, yönetmez.
+Gozlemci = Annotated[
+    User, Depends(rol_gerekir("admin", "region_manager", "branch_manager", "auditor"))
+]
+
 
 def gorebildigi_subeler(kullanici: User, subeler: Iterable[Branch]) -> list[Branch]:
     return [s for s in subeler if can_access(kullanici, s)]

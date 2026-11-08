@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, status
 from pydantic import BaseModel, Field
 
 from talimatname.api.bagimliliklar import sablon_servisi
-from talimatname.api.guvenlik import Kullanici, Mudur, Yonetici
+from talimatname.api.guvenlik import Gozlemci, Kullanici, Yonetici
 from talimatname.domain.templates import (
     ITEM_TYPE_LABELS,
     ChoiceOption,
@@ -187,7 +187,7 @@ def _bolumler(girdi: list[BolumGirdisi]) -> tuple[Section, ...]:
 
 
 @router.get("/templates", summary="Şablon listesi (sürümleriyle)")
-def sablon_listesi(servis: Servis, _: Mudur) -> list[SablonOzet]:
+def sablon_listesi(servis: Servis, _: Gozlemci) -> list[SablonOzet]:
     return [
         SablonOzet(
             id=sablon.id,

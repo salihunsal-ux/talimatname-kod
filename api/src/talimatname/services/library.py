@@ -328,7 +328,170 @@ ACILIS = LibraryTemplate(
 )
 
 
-CATALOG: tuple[LibraryTemplate, ...] = (KAPANIS, ACILIS)
+#: Denetçinin şubeye girmeden önce okuduğu protokol. Maddelerin kendisi
+#: değil, **nasıl denetleneceği**: sıra, habersizlik ve kapanış görüşmesi.
+#: Talimat satırı cevaplanmaz (BR-08a) — kural olduğu için listede, puanı
+#: etkilemediği için puanlanmaz.
+DENETIM_PROTOKOLU = (
+    "Habersiz gel: ziyareti önceden haber verme, şube müdürünü arama.",
+    "Önce gözlem: içeri girdiğinde 5 dakika hiçbir şey sorma, bak ve fotoğrafla.",
+    "Sıra: dış cephe → salon → tuvalet → mutfak → depo → belgeler → görüşme.",
+    "Ölçümü kendin yap: dolap göstergesini okuma, prob ile ölç.",
+    "Başarısız maddede fotoğraf ve not zorunlu — sebebi değil, **gördüğünü** yaz.",
+    "Bitirince şube müdürüyle konuş: bulguları yüz yüze söyle, sonra gönder.",
+)
+
+
+DENETIM = LibraryTemplate(
+    key="sube-denetimi",
+    name="Şube denetimi",
+    category="Denetim",
+    summary=(
+        "Denetçinin şube ziyaretinde uyguladığı standart liste: hijyen, gıda "
+        "güvenliği, görünüm, belge ve personel. Hedef süre 12–15 dk."
+    ),
+    # 02-urun/07 §9: aylık, iş günü 09:00–19:00, tolerans 0. Habersiz
+    # ziyaret için tek seferlik liste kurulur (FR-0512).
+    plan=PlanDefaults(
+        anchor=Anchor("open", 0),
+        duration_minutes=600,
+        tolerance_minutes=0,
+        recurrence="FREQ=MONTHLY",
+    ),
+    sections=(
+        Section(
+            id=uuid4(),
+            order=1,
+            title="Denetim protokolü",
+            items=tuple(
+                _madde(sira, "instruction", metin, zorunlu=False)
+                for sira, metin in enumerate(DENETIM_PROTOKOLU, start=1)
+            ),
+        ),
+        Section(
+            id=uuid4(),
+            order=2,
+            title="Dış görünüm ve salon",
+            items=(
+                _madde(
+                    1,
+                    "photo",
+                    "Giriş, vitrin ve tabela: temiz, aydınlatma çalışıyor, kampanya görseli güncel",
+                    foto=True,
+                ),
+                _madde(
+                    2,
+                    "photo",
+                    "Salon ve müşteri alanı düzeni (masa, sandalye, servis istasyonu)",
+                    foto=True,
+                ),
+                _madde(
+                    3,
+                    "choice",
+                    "Tuvalet: temizlik, sarf malzeme, kontrol çizelgesi dolu",
+                    secenekler=EVET_HAYIR,
+                ),
+            ),
+        ),
+        Section(
+            id=uuid4(),
+            order=3,
+            title="Personel ve hijyen",
+            items=(
+                _madde(
+                    1,
+                    "choice",
+                    "Personel kıyafeti, bone/eldiven, kişisel hijyen",
+                    secenekler=EVET_HAYIR,
+                ),
+                _madde(2, "confirm", "El yıkama istasyonu: sabun, kâğıt, sıcak su"),
+            ),
+        ),
+        Section(
+            id=uuid4(),
+            order=4,
+            title="Gıda güvenliği",
+            items=(
+                _madde(
+                    1,
+                    "temperature",
+                    "Soğutucu sıcaklığı (örnek dolap)",
+                    kritik=True,
+                    alt=0,
+                    ust=4,
+                    birim="°C",
+                ),
+                _madde(
+                    2,
+                    "temperature",
+                    "Dondurucu sıcaklığı",
+                    kritik=True,
+                    alt=-30,
+                    ust=-18,
+                    birim="°C",
+                ),
+                _madde(
+                    3,
+                    "choice",
+                    "Açık ürün etiketleme ve SKT kontrolü (rastgele 5 ürün)",
+                    kritik=True,
+                    secenekler=EVET_HAYIR,
+                ),
+                _madde(4, "photo", "Depo düzeni ve FIFO; yerden yükseklik", foto=True),
+            ),
+        ),
+        Section(
+            id=uuid4(),
+            order=5,
+            title="Belge ve ekipman",
+            items=(
+                _madde(
+                    1,
+                    "choice",
+                    "Haşere izi yok; ilaçlama belgesi güncel",
+                    secenekler=EVET_HAYIR,
+                ),
+                _madde(
+                    2,
+                    "choice",
+                    "Yasal belgeler yerinde ve geçerli (ruhsat, hijyen eğitimi, "
+                    "ilaçlama, yangın tüpü)",
+                    secenekler=EVET_HAYIR,
+                ),
+                _madde(
+                    3,
+                    "photo",
+                    "Mutfak ekipmanı çalışıyor; davlumbaz ve filtre temiz",
+                    foto=True,
+                ),
+            ),
+        ),
+        Section(
+            id=uuid4(),
+            order=6,
+            title="Kayıt ve kapanış görüşmesi",
+            items=(
+                _madde(
+                    1,
+                    "choice",
+                    "Son 7 günün kapanış listeleri tamamlanmış (uygulamadan kontrol)",
+                    secenekler=EVET_HAYIR,
+                ),
+                _madde(
+                    2,
+                    "choice",
+                    "Kasa ve fiyat kontrolü: menü fiyatları merkez listesiyle aynı",
+                    secenekler=EVET_HAYIR,
+                ),
+                _madde(3, "text", "Şube müdürüyle görüşme: açık sorunlar ve ihtiyaçlar"),
+                _madde(4, "photo", "Genel değerlendirme fotoğrafı (mutfak genel)", foto=True),
+            ),
+        ),
+    ),
+)
+
+
+CATALOG: tuple[LibraryTemplate, ...] = (KAPANIS, ACILIS, DENETIM)
 
 
 def find(key: str) -> LibraryTemplate | None:

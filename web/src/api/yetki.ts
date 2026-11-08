@@ -9,7 +9,7 @@ import { createContext, use } from 'react';
 
 import type { Ben } from './oturum';
 
-export type Rol = 'admin' | 'region_manager' | 'branch_manager' | 'staff';
+export type Rol = 'admin' | 'region_manager' | 'auditor' | 'branch_manager' | 'staff';
 
 export const OturumBaglami = createContext<Ben | null>(null);
 
@@ -29,12 +29,16 @@ export function rolVar(ben: Ben | null, ...aranan: Rol[]): boolean {
 /**
  * Panelin okuma ekranlarını açabilen roller.
  *
- * Sunucu da aynı kümeyi istiyor (`guvenlik.Mudur`); burada tutmanın
+ * Sunucu da aynı kümeyi istiyor (`guvenlik.Gozlemci`); burada tutmanın
  * sebebi personele kapalı kapıyı göstermemek. Personelin ekranı mobil
  * uygulamada (ADR-0013 Faz B).
+ *
+ * Denetçi listede: şubeye gidip denetim listesini kendisi dolduruyor,
+ * bunun için şube ağacını, panoyu ve raporları görmesi gerekiyor.
+ * Karar verme yetkisi ayrı (`yoneticiMi`).
  */
 export function mudurMu(ben: Ben | null): boolean {
-  return rolVar(ben, 'admin', 'region_manager', 'branch_manager');
+  return rolVar(ben, 'admin', 'region_manager', 'branch_manager', 'auditor');
 }
 
 /** Yazma yetkisi olan tek rol: yönetici (ST-005). */

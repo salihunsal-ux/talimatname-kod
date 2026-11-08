@@ -310,18 +310,29 @@ def _simdi_acik_calistirma_kur(istemci: TestClient) -> dict[str, object]:
     # Şube **çağıranın kapsamından** seçilir: yöneticiye çevirip ilk
     # şubeyi almak, şube müdürünü kendi göremediği bir çalıştırmayla
     # bırakıyordu (403).
-    sube = next(s for d in istemci.get("/api/v1/branches").json() for s in d["branches"])
+    #
+    # Şubeler **sırayla** deneniyor: ilkini körlemesine almak testi
+    # şubenin çalışma takvimine bağlıyordu. Haftada 6 gün açık bir şube
+    # (tohumda Ataşehir ve Bornova) kapalı gününde çalıştırma üretmez
+    # (BR-17) ve plan kurulsa bile liste boş dönerdi — süit yalnızca
+    # pazar günleri kırmızı yanardı.
+    subeler = [s for d in istemci.get("/api/v1/branches").json() for s in d["branches"]]
     cagiranin_belirteci = istemci.headers.get("Authorization")
-    oturum_ac(istemci, "admin")
-    try:
-        _yazilabilir_plan_kur(istemci, sube["id"])
-    finally:
-        if cagiranin_belirteci is not None:
-            istemci.headers["Authorization"] = cagiranin_belirteci
-    return _simdi_yazilabilir(istemci)
+    for sira, sube in enumerate(subeler):
+        oturum_ac(istemci, "admin")
+        try:
+            _yazilabilir_plan_kur(istemci, sube["id"], sira)
+        finally:
+            if cagiranin_belirteci is not None:
+                istemci.headers["Authorization"] = cagiranin_belirteci
+        acik = _yazilabilir_varsa(istemci)
+        if acik is not None:
+            return acik
+    raise AssertionError("hiçbir şubede yazılabilir çalıştırma kurulamadı (hepsi kapalı mı?)")
 
 
-def _simdi_yazilabilir(istemci: TestClient) -> dict[str, object]:
+def _yazilabilir_varsa(istemci: TestClient) -> dict[str, object] | None:
+    """Şu an yazılabilir çalıştırma; yoksa None (çağıran başka şube dener)."""
     simdi = datetime.now(UTC)
     acik = [
         k
@@ -330,11 +341,10 @@ def _simdi_yazilabilir(istemci: TestClient) -> dict[str, object]:
         and datetime.fromisoformat(k["tolerance_end"]) > simdi
         and k["status"] in ("scheduled", "in_progress")
     ]
-    assert acik, "kurulan plandan yazılabilir çalıştırma çıkmadı"
-    return acik[0]  # type: ignore[no-any-return]
+    return acik[0] if acik else None  # type: ignore[no-any-return]
 
 
-def _yazilabilir_plan_kur(istemci: TestClient, sube_id: str) -> None:
+def _yazilabilir_plan_kur(istemci: TestClient, sube_id: str, sira: int = 0) -> None:
     surum = next(
         v
         for t in istemci.get("/api/v1/templates").json()
@@ -347,7 +357,7 @@ def _yazilabilir_plan_kur(istemci: TestClient, sube_id: str) -> None:
     plan = istemci.post(
         "/api/v1/plans",
         json={
-            "name": "Yazılabilir pencere (test)",
+            "name": f"Yazılabilir pencere (test {sira})",
             "template_version_id": surum["id"],
             "branch_ids": [sube_id],
             "schedule": {
@@ -1031,7 +1041,14 @@ def test_gece_yarisini_asan_calistirma_ertesi_gun_listede_kaliyor(istemci: TestC
     günü ertesi gündür ama liste hâlâ açıktır. `GET /runs` yalnızca
     bugünü döndürdüğünde kart, personel doldururken ekrandan siliniyordu.
     """
-    sube = next(s for d in istemci.get("/api/v1/branches").json() for s in d["branches"])
+    # Her gün açık bir şube: haftada 6 gün açık olan şube kapalı gününde
+    # çalıştırma üretmez (BR-17) ve test o gün kırmızı yanardı.
+    sube = next(
+        s
+        for d in istemci.get("/api/v1/branches").json()
+        for s in d["branches"]
+        if s["open_days"] == 7
+    )
     yerel = datetime.now(ZoneInfo("Europe/Istanbul"))
     # Dün 23:00'te başlayan, bugün devam eden bir pencere.
     basla = (yerel - timedelta(hours=2)).replace(second=0, microsecond=0)

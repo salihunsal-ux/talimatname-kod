@@ -670,7 +670,7 @@ def test_uc_nokta_kutuphane_listelenir(tmp_path: Path) -> None:
 
     assert yanit.status_code == 200
     govde = yanit.json()
-    assert {s["key"] for s in govde} == {"kapanis-kafe", "acilis-kafe"}
+    assert {s["key"] for s in govde} == {"kapanis-kafe", "acilis-kafe", "sube-denetimi"}
     kapanis = next(s for s in govde if s["key"] == "kapanis-kafe")
     assert kapanis["item_count"] == 15
     assert "kapanış saatinden 60 dk önce" in kapanis["window"]

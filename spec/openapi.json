@@ -591,6 +591,7 @@
                   "enum": [
                     "admin",
                     "region_manager",
+                    "auditor",
                     "branch_manager",
                     "staff"
                   ],
@@ -7814,6 +7815,7 @@
             "enum": [
               "admin",
               "region_manager",
+              "auditor",
               "branch_manager",
               "staff"
             ],
@@ -7896,6 +7898,7 @@
             "enum": [
               "admin",
               "region_manager",
+              "auditor",
               "branch_manager",
               "staff"
             ],

@@ -3461,7 +3461,7 @@ export interface components {
              * Role
              * @enum {string}
              */
-            role: "admin" | "region_manager" | "branch_manager" | "staff";
+            role: "admin" | "region_manager" | "auditor" | "branch_manager" | "staff";
             /**
              * Role Label
              * @description Rolün Türkçe adı; arayüz bunu gösterir
@@ -3495,7 +3495,7 @@ export interface components {
              * Role
              * @enum {string}
              */
-            role: "admin" | "region_manager" | "branch_manager" | "staff";
+            role: "admin" | "region_manager" | "auditor" | "branch_manager" | "staff";
             /** Scope Id */
             scope_id?: string | null;
         };
@@ -4511,7 +4511,7 @@ export interface operations {
         parameters: {
             query?: {
                 branch_id?: string | null;
-                role?: ("admin" | "region_manager" | "branch_manager" | "staff") | null;
+                role?: ("admin" | "region_manager" | "auditor" | "branch_manager" | "staff") | null;
                 include_inactive?: boolean;
             };
             header?: never;

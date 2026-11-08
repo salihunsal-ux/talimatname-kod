@@ -25,7 +25,7 @@ from fastapi import APIRouter, Depends, Response
 from pydantic import BaseModel, Field
 
 from talimatname.api.bagimliliklar import cikti_servisi
-from talimatname.api.guvenlik import Mudur
+from talimatname.api.guvenlik import Gozlemci
 from talimatname.domain.exports import ExportJob, file_name
 from talimatname.services.export_jobs import ExportJobService
 
@@ -75,13 +75,13 @@ def cikti_ciktisi(is_kaydi: ExportJob) -> CiktiIsi:
 
 
 @router.get("/reports/exports", summary="Arka plan çıktılarım (FR-1217)")
-def ciktilarim(servis: Servis, kullanici: Mudur) -> list[CiktiIsi]:
+def ciktilarim(servis: Servis, kullanici: Gozlemci) -> list[CiktiIsi]:
     """Yalnızca **kendi** istekleri: çıktı isteyenin kapsamıyla üretiliyor."""
     return [cikti_ciktisi(i) for i in servis.jobs_for(kullanici.id)]
 
 
 @router.get("/reports/exports/{job_id}", summary="Çıktı isteğinin durumu")
-def cikti(job_id: UUID, servis: Servis, kullanici: Mudur) -> CiktiIsi:
+def cikti(job_id: UUID, servis: Servis, kullanici: Gozlemci) -> CiktiIsi:
     return cikti_ciktisi(servis.job_for(kullanici.id, job_id))
 
 
@@ -91,7 +91,7 @@ def cikti(job_id: UUID, servis: Servis, kullanici: Mudur) -> CiktiIsi:
     response_class=Response,
     responses={200: {"content": {"application/pdf": {}}, "description": "PDF"}},
 )
-def cikti_dosyasi(job_id: UUID, servis: Servis, kullanici: Mudur) -> Response:
+def cikti_dosyasi(job_id: UUID, servis: Servis, kullanici: Gozlemci) -> Response:
     is_kaydi, icerik = servis.file(kullanici.id, job_id)
     return Response(
         content=icerik,

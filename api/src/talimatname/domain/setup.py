@@ -422,6 +422,8 @@ BULK_ROLES: dict[str, str] = {
     "staff": "Personel",
     "branch_manager": "Şube müdürü",
     "region_manager": "Bölge müdürü",
+    # Denetçi de bölge kapsamlı: şubeye gider ama şubeye bağlı değil.
+    "auditor": "Denetçi",
 }
 
 #: Kapsamı şube olan roller. Bölge müdürünün kapsamı bölge.
@@ -523,7 +525,9 @@ def _kapsam_hatalari(
 
     if rol in BRANCH_SCOPED_ROLES:
         if bolge:
-            return [RowError(row, "bolge", "Bölge yalnızca bölge müdürü satırında doldurulur")]
+            return [
+                RowError(row, "bolge", "Bölge yalnızca bölge müdürü ve denetçi satırında dolar")
+            ]
         if not kod:
             return [RowError(row, "sube_kodu", "Şube kodu zorunlu")]
         if kod not in branch_codes:
@@ -531,9 +535,9 @@ def _kapsam_hatalari(
         return []
 
     if kod:
-        return [RowError(row, "sube_kodu", "Bölge müdürü satırında şube kodu boş bırakılır")]
+        return [RowError(row, "sube_kodu", "Bölge kapsamlı rolde şube kodu boş bırakılır")]
     if not bolge:
-        return [RowError(row, "bolge", "Bölge müdürü için bölge adı zorunlu")]
+        return [RowError(row, "bolge", "Bölge kapsamlı rol için bölge adı zorunlu")]
     if bolge not in region_names:
         return [RowError(row, "bolge", f"Bu adla bölge yok: {bolge}")]
     return []

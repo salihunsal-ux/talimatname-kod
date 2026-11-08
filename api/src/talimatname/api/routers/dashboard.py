@@ -15,7 +15,7 @@ from talimatname.api.bagimliliklar import (
     organizasyon_servisi,
     pano_servisi,
 )
-from talimatname.api.guvenlik import Mudur
+from talimatname.api.guvenlik import Gozlemci
 from talimatname.api.is_gunu import bugun
 from talimatname.domain.escalation_gaps import STEP_LABELS, EscalationGap, escalation_gaps
 from talimatname.services.dashboard import Board, DashboardService
@@ -157,7 +157,7 @@ def _yanit(board: Board, bosluklar: list[EscalationGap]) -> PanoYaniti:
 def pano(
     servis: Servis,
     org: OrgServis,
-    kullanici: Mudur,
+    kullanici: Gozlemci,
     kurulum: KurulumServis,
     kisiler: KisiServis,
     business_day: date | None = None,
