@@ -210,3 +210,55 @@ def test_kapatilmis_aksiyon_yeniden_acilmiyor() -> None:
     kapali = next(a for a in aksiyonlar.actions() if a.source_id == kaynak)
     assert kapali.status == "closed"
     assert "2 kez" not in kapali.title
+
+
+def test_kutuphane_plan_ekraniyla_ayni_siniri_uyguluyor() -> None:
+    """Kurulum sihirbazı `PlanGirdisi` doğrulamasından geçmiyor.
+
+    Kütüphane buradan denetlenmezse ekranda kurulamayan bir planı
+    önerir; saatlik şablon eklenirken tam bu oldu (7 pencere, sınır 6).
+    """
+    from talimatname.api.routers.plans import MAX_GUNLUK_PENCERE as EKRAN
+    from talimatname.services.library import MAX_GUNLUK_PENCERE as KUTUPHANE
+    from talimatname.services.library import PlanDefaults
+
+    assert EKRAN == KUTUPHANE
+
+    with pytest.raises(ValueError, match="en çok"):
+        PlanDefaults(
+            anchor=None,
+            start_time=time(0, 0),
+            every_hours=1,
+            until_time=time(23, 0),  # 24 pencere
+            duration_minutes=15,
+            tolerance_minutes=0,
+        )
+
+
+def test_saatlik_tur_urun_belgesinin_istedigi_kadar_pencereye_yetiyor() -> None:
+    """Hızlı serviste "her saat": 10:00–22:00 = 13 pencere.
+
+    Sınır 6 idi ve ürün belgesinin kendi şablonunu engelliyordu.
+    """
+    from talimatname.services.library import PlanDefaults
+
+    hizli = PlanDefaults(
+        anchor=None,
+        start_time=time(10, 0),
+        every_hours=1,
+        until_time=time(22, 0),
+        duration_minutes=15,
+        tolerance_minutes=0,
+    )
+
+    assert len(hizli.saatler()) == 13
+
+
+def test_cok_pencereli_kural_sutuna_sigiyor() -> None:
+    """Yedi pencerelik kural 265 karakter; sütun 200 idi ve yazma
+    düşüyordu (göç 0013)."""
+    from sqlalchemy import Text
+
+    from talimatname.infra.db import models
+
+    assert isinstance(models.Plan.__table__.c.recurrence.type, Text)

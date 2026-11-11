@@ -49,7 +49,13 @@ GUN_KISA = ("MO", "TU", "WE", "TH", "FR", "SA", "SU")
 #: dizgesi veritabanında 200 karakter ve her saat bir satır yazıyor.
 #: Altı pencere, "her 2 saat, 08:00–18:00" gibi gerçek bir kuralı
 #: karşılıyor.
-MAX_GUNLUK_PENCERE = 6
+#: Gün içinde açılabilen en çok pencere. 6 idi ve ürün belgesinin
+#: kendi şablonunu engelliyordu: saatlik tuvalet turu hızlı serviste
+#: "her saat" diyor (10:00–22:00 = 13 pencere), iki saatte bir bile 7
+#: ediyor. Sınır çalıştırma hacmini bağlamak için var — 16'da kalıyor:
+#: 8 şubede günde 128 çalıştırma, zamanlayıcının 7 günlük ufkuyla
+#: yaklaşık 900 satır.
+MAX_GUNLUK_PENCERE = 16
 
 
 class Zamanlama(BaseModel):

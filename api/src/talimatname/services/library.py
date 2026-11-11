@@ -39,6 +39,10 @@ EVET_HAYIR = (("Evet", True), ("Hayır", False), ("Uygun değil", True))
 #: RRULE satırları arasındaki ayraç (RFC 5545).
 SATIR_SONU = chr(10)
 
+#: Plan ekranındaki sınırın aynısı; iki yer ayrışırsa kütüphane
+#: kurulamayan bir plan önerir.
+MAX_GUNLUK_PENCERE = 16
+
 
 @dataclass(frozen=True, slots=True)
 class PlanDefaults:
@@ -67,6 +71,11 @@ class PlanDefaults:
             raise ValueError("anchor ya da start_time verilmeli; ikisi birlikte olmaz")
         if self.every_hours is not None and (self.start_time is None or self.until_time is None):
             raise ValueError("'her N saat' kuralı başlangıç ve bitiş saati ister")
+        # Plan ekranıyla **aynı** sınır: kurulum sihirbazı `PlanGirdisi`
+        # doğrulamasından geçmiyor, yani kütüphane buradan denetlenmezse
+        # ekranda kurulamayan bir planı önerebilir.
+        if len(self.saatler()) > MAX_GUNLUK_PENCERE:
+            raise ValueError(f"Gün içinde en çok {MAX_GUNLUK_PENCERE} pencere açılabilir")
 
     def saatler(self) -> list[time]:
         """Gün içindeki pencere başlangıçları; tek pencerede boş liste.

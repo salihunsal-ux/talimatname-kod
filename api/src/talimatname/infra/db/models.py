@@ -263,7 +263,9 @@ class Plan(Base):
     active: Mapped[bool] = mapped_column(Boolean, default=True)
     #: Kapsam: şube kimlikleri (v1'de grup yok)
     branch_ids: Mapped[list[str]] = mapped_column(JSONB, default=list)
-    recurrence: Mapped[str] = mapped_column(String(200))
+    #: Gün içinde çok pencereli kuralda satır başına bir RRULE yazılıyor;
+    #: 200 karakter altı pencerede doluyordu (göç 0013).
+    recurrence: Mapped[str] = mapped_column(Text)
     starts_on: Mapped[date] = mapped_column(Date)
     start_time: Mapped[str | None] = mapped_column(String(8))
     anchor_reference: Mapped[str | None] = mapped_column(String(8))
