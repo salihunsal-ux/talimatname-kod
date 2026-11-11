@@ -249,6 +249,8 @@ class Item(Base):
     min_value: Mapped[float | None] = mapped_column(Float)
     max_value: Mapped[float | None] = mapped_column(Float)
     unit: Mapped[str | None] = mapped_column(String(16))
+    #: Başarısızsa aksiyon açılsın mı, hangi öncelikle (BR-10, göç 0012).
+    action_priority: Mapped[str | None] = mapped_column(String(8))
 
 
 class Plan(Base):

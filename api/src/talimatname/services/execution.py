@@ -18,7 +18,7 @@ from datetime import UTC, datetime
 from typing import Protocol
 from uuid import UUID
 
-from talimatname.domain.actions import from_critical_item, from_not_done
+from talimatname.domain.actions import from_critical_item, from_failed_item, from_not_done
 from talimatname.domain.answers import (
     Answer,
     Missing,
@@ -351,6 +351,21 @@ class ExecutionService:
                 branch_id=run.branch_id,
                 item_title=madde.title,
                 plan_name=plan_adi,
+                now=an,
+            )
+        elif madde.opens_action_on_fail and cevap.state == "failed":
+            # Kritik olmayan ama şablonda takip işaretli madde (BR-10).
+            # Olmadığında bulgu kayda geçip kimseye gitmiyordu: BR-07
+            # gereği çalıştırmayı da başarısız yapmıyor, yani panoda da
+            # görünmüyordu (8 Kasım denetim turu).
+            assert madde.action_priority is not None
+            aksiyon = from_failed_item(
+                run_id=run.id,
+                item_id=madde.id,
+                branch_id=run.branch_id,
+                item_title=madde.title,
+                plan_name=plan_adi,
+                priority=madde.action_priority,
                 now=an,
             )
         elif cevap.state == "not_done":

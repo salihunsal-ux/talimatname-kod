@@ -1197,3 +1197,92 @@ def test_kilit_olaylari_gunluge_yaziliyor(istemci: TestClient) -> None:
     turler = [o.event_type for o in depo.events(limit=2000)[once:]]
     assert "calistirma.kilit_alindi" in turler
     assert "calistirma.kilit_kaldirildi" in turler
+
+
+# --- takip işaretli başarısız madde (BR-10) ---------------------------
+
+
+def test_isaretli_madde_basarisizsa_aksiyon_aciliyor() -> None:
+    """Kritik olmayan bulgu da takip edilebilmeli.
+
+    BR-07 gereği çalıştırmayı başarısız yapmıyor; işaret olmasa bulgu
+    kayda geçip kimseye gitmiyordu (8 Kasım denetim turu).
+    """
+    from talimatname.domain.actions import failed_item_source
+    from talimatname.infra.memory import (
+        MemoryActionRepository,
+        MemoryAnswerRepository,
+        MemoryPlanRepository,
+        MemoryTemplateRepository,
+    )
+
+    aksiyonlar = MemoryActionRepository()
+    planlar = MemoryPlanRepository()
+    sablonlar = MemoryTemplateRepository()
+    run = next(r for r in planlar.runs() if r.status in ("scheduled", "in_progress"))
+    surum = sablonlar.version(run.template_version_id)
+    assert surum is not None
+    madde = next(m for m in surum.items if m.type == "confirm" and not m.critical)
+
+    # Şablondaki maddeyi takip işaretli yapıyoruz: kütüphane şablonunda
+    # yalnızca denetim maddesinde var, burada kuralı sınıyoruz.
+    from dataclasses import replace as _replace
+
+    isaretli = _replace(madde, action_priority="high")
+    sablonlar.save_version(
+        _replace(
+            surum,
+            sections=tuple(
+                _replace(b, items=tuple(isaretli if i.id == madde.id else i for i in b.items))
+                for b in surum.sections
+            ),
+        )
+    )
+
+    servis = ExecutionService(
+        MemoryAnswerRepository(),
+        planlar,
+        sablonlar,
+        aksiyonlar,
+        now=lambda: run.window_start + timedelta(minutes=5),
+    )
+    servis.write_answer(
+        run_id=run.id, answer_id=uuid4(), item_id=madde.id, state="failed", note="bozuk"
+    )
+
+    acilan = [a for a in aksiyonlar.actions() if a.source == "failed_item"]
+    assert len(acilan) == 1
+    assert acilan[0].priority == "high"
+    assert acilan[0].source_id == failed_item_source(run.id, madde.id)
+    assert madde.title in acilan[0].title
+
+
+def test_isaretsiz_madde_basarisizsa_aksiyon_acmiyor() -> None:
+    """Varsayılan davranış değişmedi: işaret şablonu yazanın kararı."""
+    from talimatname.infra.memory import (
+        MemoryActionRepository,
+        MemoryAnswerRepository,
+        MemoryPlanRepository,
+        MemoryTemplateRepository,
+    )
+
+    aksiyonlar = MemoryActionRepository()
+    planlar = MemoryPlanRepository()
+    sablonlar = MemoryTemplateRepository()
+    run = next(r for r in planlar.runs() if r.status in ("scheduled", "in_progress"))
+    surum = sablonlar.version(run.template_version_id)
+    assert surum is not None
+    madde = next(m for m in surum.items if m.type == "confirm" and not m.critical)
+
+    servis = ExecutionService(
+        MemoryAnswerRepository(),
+        planlar,
+        sablonlar,
+        aksiyonlar,
+        now=lambda: run.window_start + timedelta(minutes=5),
+    )
+    servis.write_answer(
+        run_id=run.id, answer_id=uuid4(), item_id=madde.id, state="failed", note="bozuk"
+    )
+
+    assert [a for a in aksiyonlar.actions() if a.source == "failed_item"] == []

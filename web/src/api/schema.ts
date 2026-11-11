@@ -1655,7 +1655,7 @@ export interface components {
              * Source
              * @enum {string}
              */
-            source: "missed_run" | "critical_item" | "not_done" | "issue" | "manual";
+            source: "missed_run" | "critical_item" | "failed_item" | "not_done" | "issue" | "manual";
             /** Source Label */
             source_label: string;
             /**
@@ -3001,6 +3001,11 @@ export interface components {
             max_value?: number | null;
             /** Unit */
             unit?: string | null;
+            /**
+             * Action Priority
+             * @description Başarısızsa bu öncelikle aksiyon aç (BR-10); kritik maddede kullanılmaz
+             */
+            action_priority?: ("critical" | "high" | "normal") | null;
             /** Type Label */
             type_label: string;
             /** Scored */
@@ -3075,6 +3080,11 @@ export interface components {
             max_value?: number | null;
             /** Unit */
             unit?: string | null;
+            /**
+             * Action Priority
+             * @description Başarısızsa bu öncelikle aksiyon aç (BR-10); kritik maddede kullanılmaz
+             */
+            action_priority?: ("critical" | "high" | "normal") | null;
         };
         /** ManifestCalistirmasi */
         ManifestCalistirmasi: {

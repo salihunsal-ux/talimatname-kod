@@ -34,7 +34,7 @@ class AksiyonOzet(BaseModel):
     branch_name: str
     title: str
     description: str | None = None
-    source: Literal["missed_run", "critical_item", "not_done", "issue", "manual"]
+    source: Literal["missed_run", "critical_item", "failed_item", "not_done", "issue", "manual"]
     source_label: str
     priority: Priority
     priority_label: str

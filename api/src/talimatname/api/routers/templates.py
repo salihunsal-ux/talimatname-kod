@@ -44,6 +44,10 @@ class MaddeGirdisi(BaseModel):
     min_value: float | None = None
     max_value: float | None = None
     unit: str | None = None
+    action_priority: Literal["critical", "high", "normal"] | None = Field(
+        default=None,
+        description="Başarısızsa bu öncelikle aksiyon aç (BR-10); kritik maddede kullanılmaz",
+    )
 
 
 class BolumGirdisi(BaseModel):
@@ -119,6 +123,7 @@ def _madde_ciktisi(madde: Item) -> MaddeCiktisi:
         min_value=madde.min_value,
         max_value=madde.max_value,
         unit=madde.unit,
+        action_priority=madde.action_priority,
         scored=madde.scored,
     )
 
@@ -178,6 +183,7 @@ def _bolumler(girdi: list[BolumGirdisi]) -> tuple[Section, ...]:
                     min_value=madde.min_value,
                     max_value=madde.max_value,
                     unit=madde.unit,
+                    action_priority=madde.action_priority,
                 )
                 for madde_sira, madde in enumerate(bolum.items, start=1)
             ),

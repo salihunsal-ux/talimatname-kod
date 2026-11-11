@@ -5,7 +5,8 @@ yorum dizisi ve onaylı kapanış v1.1'dedir (ADR-0008). Bunun yerine üç
 şey var ve üçü de zorunlu:
 
 * **Kaynak** — aksiyon kendiliğinden doğmaz: kaçırılan çalıştırma,
-  kritik başarısızlık, yapılamadı ya da bildirilen sorun.
+  kritik başarısızlık, **takip işaretli başarısız madde**, yapılamadı
+  ya da bildirilen sorun.
 * **Vade** — önceliğe göre sabit (BR-10): kritik 4 saat, yüksek 24,
   normal 72. v1'de ayarlanabilir değil.
 * **Kapanış notu** — not olmadan kapatılamaz (FR-0904). "Kapattım"
@@ -23,7 +24,7 @@ from talimatname.domain.validation import ValidationError, clean_name
 
 Priority = Literal["critical", "high", "normal"]
 ActionStatus = Literal["open", "closed"]
-ActionSource = Literal["missed_run", "critical_item", "not_done", "issue", "manual"]
+ActionSource = Literal["missed_run", "critical_item", "failed_item", "not_done", "issue", "manual"]
 
 #: Önceliğe göre sabit vade (BR-10). Saat cinsinden.
 DUE_HOURS: dict[Priority, int] = {"critical": 4, "high": 24, "normal": 72}
@@ -37,6 +38,7 @@ PRIORITY_LABELS: dict[Priority, str] = {
 SOURCE_LABELS: dict[ActionSource, str] = {
     "missed_run": "Kaçırılan liste",
     "critical_item": "Kritik madde",
+    "failed_item": "Başarısız madde",
     "not_done": "Yapılamadı",
     "issue": "Sorun bildirimi",
     "manual": "Elle açıldı",
@@ -135,6 +137,43 @@ def from_critical_item(
         opened_at=now,
         due_at=due_at("critical", now),
         description=f"{plan_name} listesinde kritik madde geçmedi.",
+    ).validated()
+
+
+def failed_item_source(run_id: UUID, item_id: UUID) -> UUID:
+    """Takip işaretli başarısız maddenin kaynak kimliği: (çalıştırma, madde)."""
+    return uuid5(ACTION_NAMESPACE, f"basarisiz:{run_id}:{item_id}")
+
+
+def from_failed_item(
+    *,
+    run_id: UUID,
+    item_id: UUID,
+    branch_id: UUID,
+    item_title: str,
+    plan_name: str,
+    priority: Priority,
+    now: datetime,
+) -> Action:
+    """Şablonda takip işaretli, **kritik olmayan** başarısız madde (BR-10).
+
+    Kritik madde kendi kuralıyla zaten aksiyon açıyor. Bu, aradaki
+    boşluk içindi: denetimde "ilaçlama belgesinin süresi dolmuş"
+    kritik değildir — çalıştırmayı başarısız yapmaz (BR-07) — ama
+    takip edilmezse kayda geçip kimseye gitmez. Önceliği **şablon**
+    söylüyor, vade ondan türüyor.
+    """
+    kaynak = failed_item_source(run_id, item_id)
+    return Action(
+        id=action_id("failed_item", kaynak),
+        branch_id=branch_id,
+        title=f"Denetim bulgusu: {item_title}",
+        source="failed_item",
+        source_id=kaynak,
+        priority=priority,
+        opened_at=now,
+        due_at=due_at(priority, now),
+        description=f"{plan_name} listesinde bu madde geçmedi; takip işaretli.",
     ).validated()
 
 

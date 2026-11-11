@@ -8,6 +8,8 @@ kaydeder — yönetmez.
 
 from __future__ import annotations
 
+from uuid import uuid4
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -170,3 +172,55 @@ def test_uc_nokta_kutuphanede_denetim_aylik_gorunuyor(denetci: TestClient) -> No
     denetim = next(s for s in yanit.json() if s["key"] == "sube-denetimi")
     assert denetim["window"].startswith("Aylık ·")
     assert denetim["item_count"] == 16
+
+
+# --- madde başına aksiyon işareti (BR-10) -----------------------------
+
+
+def test_denetim_sablonunda_ilaclama_maddesi_takip_isaretli() -> None:
+    """02-urun/07 §9: "Hayır → aksiyon (24 sa)" — yüksek öncelik."""
+    madde = next(m for b in DENETIM.sections for m in b.items if m.title.startswith("Haşere izi"))
+
+    assert madde.critical is False
+    assert madde.action_priority == "high"
+    assert madde.opens_action_on_fail
+
+
+def test_kritik_madde_isaretli_olsa_da_ikinci_aksiyon_acmiyor() -> None:
+    """Kritik kuralı zaten 4 saatlik aksiyon açıyor; iki kayıt çıkmasın."""
+    from talimatname.domain.templates import Item
+
+    kritik = Item(
+        id=uuid4(),
+        order=1,
+        type="choice",
+        title="Gaz vanası",
+        critical=True,
+        action_priority="normal",
+    )
+
+    assert kritik.opens_action_on_fail is False
+
+
+def test_isaretsiz_madde_aksiyon_acmiyor() -> None:
+    """Varsayılan davranış değişmiyor: işaret şablonu yazanın kararı."""
+    from talimatname.domain.templates import Item
+
+    sade = Item(id=uuid4(), order=1, type="confirm", title="Tezgâh silindi")
+
+    assert sade.action_priority is None
+    assert sade.opens_action_on_fail is False
+
+
+def test_bilinmeyen_oncelik_reddediliyor() -> None:
+    from talimatname.domain.templates import Item
+    from talimatname.domain.validation import ValidationError
+
+    with pytest.raises(ValidationError):
+        Item(
+            id=uuid4(),
+            order=1,
+            type="confirm",
+            title="Madde",
+            action_priority="acil",  # type: ignore[arg-type]
+        ).validated()

@@ -20,6 +20,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from uuid import uuid4
 
+from talimatname.domain.actions import Priority
 from talimatname.domain.templates import (
     ChoiceOption,
     Item,
@@ -133,6 +134,7 @@ def _madde(
     ust: float | None = None,
     birim: str | None = None,
     zorunlu: bool = True,
+    aksiyon: Priority | None = None,
 ) -> Item:
     return Item(
         id=uuid4(),
@@ -146,6 +148,7 @@ def _madde(
         min_value=alt,
         max_value=ust,
         unit=birim,
+        action_priority=aksiyon,
     )
 
 
@@ -445,11 +448,15 @@ DENETIM = LibraryTemplate(
             order=5,
             title="Belge ve ekipman",
             items=(
+                # 02-urun/07 §9: "Hayır → aksiyon (24 sa)". Kritik
+                # değil — çalıştırmayı başarısız yapmaz (BR-07) — ama
+                # takip edilmezse kayda geçip kimseye gitmez.
                 _madde(
                     1,
                     "choice",
                     "Haşere izi yok; ilaçlama belgesi güncel",
                     secenekler=EVET_HAYIR,
+                    aksiyon="high",
                 ),
                 _madde(
                     2,

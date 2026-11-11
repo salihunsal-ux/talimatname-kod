@@ -3760,6 +3760,7 @@
             "enum": [
               "missed_run",
               "critical_item",
+              "failed_item",
               "not_done",
               "issue",
               "manual"
@@ -6758,6 +6759,23 @@
             ],
             "title": "Unit"
           },
+          "action_priority": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "critical",
+                  "high",
+                  "normal"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Action Priority",
+            "description": "Başarısızsa bu öncelikle aksiyon aç (BR-10); kritik maddede kullanılmaz"
+          },
           "type_label": {
             "type": "string",
             "title": "Type Label"
@@ -6964,6 +6982,23 @@
               }
             ],
             "title": "Unit"
+          },
+          "action_priority": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "critical",
+                  "high",
+                  "normal"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Action Priority",
+            "description": "Başarısızsa bu öncelikle aksiyon aç (BR-10); kritik maddede kullanılmaz"
           }
         },
         "type": "object",

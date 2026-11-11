@@ -327,6 +327,7 @@ class SqlTemplateRepository(_TenantRepository):
                             min_value=madde.min_value,
                             max_value=madde.max_value,
                             unit=madde.unit,
+                            action_priority=madde.action_priority,
                         )
                     )
 
@@ -361,6 +362,7 @@ class SqlTemplateRepository(_TenantRepository):
                             min_value=i.min_value,
                             max_value=i.max_value,
                             unit=i.unit,
+                            action_priority=i.action_priority,
                         )
                         for i in maddeler
                     ),

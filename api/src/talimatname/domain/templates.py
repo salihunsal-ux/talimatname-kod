@@ -16,6 +16,7 @@ from datetime import datetime
 from typing import Literal
 from uuid import UUID
 
+from talimatname.domain.actions import DUE_HOURS, Priority
 from talimatname.domain.validation import ValidationError, clean_name
 
 ItemType = Literal[
@@ -75,11 +76,31 @@ class Item:
     min_value: float | None = None
     max_value: float | None = None
     unit: str | None = None
+    #: Bu madde başarısız olursa aksiyon açılsın mı, hangi öncelikle
+    #: (BR-10). `None`: açılmaz.
+    #:
+    #: Kritik maddede **kullanılmaz**: kritik kuralı zaten 4 saatlik bir
+    #: aksiyon açıyor (BR-06) ve ikisi birden iki kayıt doğururdu.
+    #: Bu bayrak kritik olmayan bulgular için: denetimde "ilaçlama
+    #: belgesi güncel değil" kritik değildir ama takip edilmelidir —
+    #: yoksa kayda geçer, kimseye gitmez.
+    action_priority: Priority | None = None
 
     def validated(self) -> Item:
         if self.type not in ITEM_TYPE_LABELS:
             raise ValidationError("type", f"Bilinmeyen madde türü: {self.type}")
+        if self.action_priority is not None and self.action_priority not in DUE_HOURS:
+            raise ValidationError("action_priority", f"Bilinmeyen öncelik: {self.action_priority}")
         return replace(self, title=clean_name(self.title, "title", max_length=160))
+
+    @property
+    def opens_action_on_fail(self) -> bool:
+        """Başarısız cevabı aksiyon doğuruyor mu?
+
+        Kritik madde zaten doğuruyor; bayrak yalnızca kritik olmayanı
+        kapsıyor, iki kayıt çıkmasın.
+        """
+        return not self.critical and self.action_priority is not None
 
     @property
     def scored(self) -> bool:
