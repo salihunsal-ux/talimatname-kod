@@ -21,7 +21,11 @@ def test_tc020_puan_yuzdesi() -> None:
         ]
     )
     assert sonuc.score_percent == 75
-    assert sonuc.result == "failed"  # puan geçse de bir madde başarısız
+    # Kritik olmayan bir madde başarısızsa sonuç **başarısız değil**
+    # (BR-07): eksik puana yansır. Eskiden burası "failed" diyordu ve
+    # "Başarısız" etiketi anlamını yitiriyordu — 16 maddelik denetimde
+    # bir belge eksiği ile bozuk dondurucu aynı kırmızıyı veriyordu.
+    assert sonuc.result == "passed"
     assert sonuc.scored_item_count == 4
 
 
@@ -49,7 +53,13 @@ def test_uygun_degil_puani_dusurmez() -> None:
     assert sonuc.result == "passed"
 
 
-def test_yapilamadi_basarisiz_sayilir() -> None:
+def test_yapilamadi_puani_dusuruyor() -> None:
+    """Yapılamadı geçmemiş sayılır: puanı düşürür.
+
+    Sonucu **belirlemez** (BR-07): kritik maddede zaten "yapılamadı"
+    denemiyor (BR-09), kritik olmayanda ise eksik puanda duruyor ve
+    aksiyon açılıyor (BR-10) — ikisi de kayboluyor değil.
+    """
     sonuc = evaluate(
         [
             ItemOutcome("m1", "passed"),
@@ -57,7 +67,20 @@ def test_yapilamadi_basarisiz_sayilir() -> None:
         ]
     )
     assert sonuc.score_percent == 50
+    assert sonuc.result == "passed"
+
+
+def test_kritik_yapilamadi_sonucu_basarisiz_yapiyor() -> None:
+    """Kritik maddede "yapılamadı" uç noktada engelli (BR-09); alan
+    katmanı yine de geçmemiş sayar."""
+    sonuc = evaluate(
+        [
+            ItemOutcome("m1", "passed"),
+            ItemOutcome("gaz_vanasi", "not_done", critical=True),
+        ]
+    )
     assert sonuc.result == "failed"
+    assert sonuc.failed_critical_items == ("gaz_vanasi",)
 
 
 def test_tc023_kritik_madde_sonucu_belirler() -> None:

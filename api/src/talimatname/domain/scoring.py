@@ -51,18 +51,27 @@ def evaluate(outcomes: Sequence[ItemOutcome]) -> Evaluation:
 
     * Puan = geçen / puanlanan × 100, en yakın tam sayıya yuvarlanır.
       Puanlanan madde yoksa puan `None`'dır (sıfır değil: "hesaplanamaz").
-    * `not_done` (yapılamadı) puanlanır ve **başarısız** sayılır: iş
-      yapılmadıysa liste tam değildir.
+    * `not_done` (yapılamadı) puanlanır ve geçmemiş sayılır: iş
+      yapılmadıysa liste tam değildir. Puanı düşürür.
     * `not_applicable` puanlanmaz, puanı aşağı çekmez.
-    * Kritik madde `passed` değilse çalıştırma puandan bağımsız
-      **failed**'dir (FR-0307).
+    * Sonuç **yalnızca kritik maddeyle** belirlenir (BR-07, FR-0307):
+      kritik bir madde `passed` değilse çalıştırma puandan bağımsız
+      `failed`'dir; değilse `passed`'dir ve eksik puana yansır.
+
+    Eskiden herhangi bir başarısız madde çalıştırmayı `failed` yapıyordu.
+    Bu, etiketi anlamsızlaştırıyordu: 16 maddelik bir denetimde ilaçlama
+    belgesinin süresinin dolmuş olması ile dondurucunun bozuk olması
+    panoda aynı kırmızıyı veriyordu (8 Kasım denetim turu). Hep kırmızı
+    bir bayrak, bayrak değildir; "kritik" işaretinin bir anlamı olması
+    için ayrımın sonuca yansıması gerekiyor. Eksik, puanda duruyor —
+    bilgi kaybolmuyor, alarm alarmlık olana kalıyor.
     """
     scored = [o for o in outcomes if o.scored and o.state != "not_applicable"]
     passed = [o for o in scored if o.state == "passed"]
     failed_critical = tuple(o.item_id for o in outcomes if o.critical and o.state != "passed")
 
     score = round(len(passed) / len(scored) * 100) if scored else None
-    result: Result = "failed" if failed_critical or len(passed) != len(scored) else "passed"
+    result: Result = "failed" if failed_critical else "passed"
 
     return Evaluation(
         score_percent=score,
