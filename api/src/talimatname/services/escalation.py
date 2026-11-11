@@ -38,9 +38,10 @@ from uuid import UUID
 
 import structlog
 
-from talimatname.domain.actions import Action
+from talimatname.domain.actions import Action, missed_run_source
 from talimatname.domain.notifications import Notification
 from talimatname.domain.organization import Branch
+from talimatname.domain.plans import Run
 from talimatname.domain.users import User
 from talimatname.services.actions import ActionRepository
 from talimatname.services.audit import AuditService
@@ -105,24 +106,46 @@ class EscalationService:
     # --- tetikler -----------------------------------------------------
 
     def _kacirilan_listeler(self, an: datetime) -> int:
-        """Kaçırılan liste → şube müdürüne anında (BR-11)."""
+        """Kaçırılan liste → şube müdürüne anında (BR-11).
+
+        Konu **çalıştırma değil, (şube, plan, iş günü)**: aynı gün
+        birden çok pencere kaçırılırsa tek bildirim gider. Saatlik
+        tuvalet turunda bu yedi push demekti ve yedisi de aynı şeyi
+        söylüyordu; aksiyon listesinde çözdüğümüz gürültü bildirimde
+        duruyordu — orası daha acıtıcı, çünkü listeye bakmayı seçersin,
+        bildirimi seçemezsin.
+
+        Sayı bildirimde **yazmıyor**: ilk kaçırmada gidiyor ve o anda
+        sayı 1. Gün içinde kaçının kaçırıldığı aksiyon satırında
+        güncelleniyor ("bugün 7 kez yapılmadı"), bildirim onu kovalamaz.
+
+        Pencere açılış hatırlatması ayrı ve **kısılmadı**: saatlik turun
+        mekanizması odur, hatırlatılmayan kontrol yapılmaz.
+        """
         subeler = {s.id: s for s in self._org.branches()}
         planlar = {p.id: p.name for p in self._plans.plans()}
-        sayac = 0
+        gruplar: dict[tuple[UUID, UUID, object], Run] = {}
         for run in self._plans.runs():
             if run.status != "missed" or run.tolerance_end < an - LOOKBACK:
                 continue
-            sube = subeler.get(run.branch_id)
+            anahtar = (run.branch_id, run.plan_id, run.business_day)
+            ilk = gruplar.get(anahtar)
+            if ilk is None or run.window_start < ilk.window_start:
+                gruplar[anahtar] = run
+
+        sayac = 0
+        for (sube_id, plan_id, gun), run in gruplar.items():
+            sube = subeler.get(sube_id)
             if sube is None:
                 continue
-            ad = planlar.get(run.plan_id, "Liste")
+            ad = planlar.get(plan_id, "Liste")
             sayac += self._gonder(
                 basamak=self._sube_adimi(sube),
                 kind="run_missed",
-                subject_id=run.id,
+                subject_id=missed_run_source(sube_id, plan_id, gun),
                 slot="kacirildi",
                 title=f"{ad} yapılmadı",
-                body=f"{sube.name} · {run.business_day} penceresi kapandı",
+                body=f"{sube.name} · {gun} penceresi kapandı",
                 send_at=an,
                 sube=sube,
                 run_id=run.id,

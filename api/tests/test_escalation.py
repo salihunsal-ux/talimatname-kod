@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
+from uuid import uuid4
 from zoneinfo import ZoneInfo
 
 from talimatname.domain.actions import from_critical_item
@@ -83,6 +84,26 @@ class Dunya:
                 )
                 return
         raise AssertionError("Kadıköy çalıştırması bulunamadı")
+
+    def ayni_gun_kacir(self, adet: int) -> None:
+        """Kadıköy'ün aynı gündeki `adet` penceresini kaçırılmış yapar.
+
+        Saatlik liste böyle çalışıyor: gün içinde çok pencere, hepsi
+        aynı plana ve aynı iş gününe ait.
+        """
+        hedef = [r for r in self.planlar.runs() if r.branch_id == KADIKOY][:1]
+        assert hedef, "Kadıköy çalıştırması bulunamadı"
+        ornek = hedef[0]
+        for sira in range(adet):
+            self.planlar.save_run(
+                replace(
+                    ornek,
+                    id=uuid4(),
+                    status="missed",
+                    window_start=ornek.window_start + timedelta(hours=2 * sira),
+                    tolerance_end=self.an - timedelta(minutes=5 + sira),
+                )
+            )
 
     def kritik_aksiyon(self) -> object:
         run = next(r for r in self.planlar.runs() if r.branch_id == KADIKOY)
@@ -339,3 +360,36 @@ def test_saati_gecmis_ozet_sonradan_gonderilmez() -> None:
     """Dünkü sabah özeti bugün öğlen gelirse okunmaz."""
     dunya = Dunya(_an())  # yerel öğlen
     assert dunya.ozet.schedule() == 0
+
+
+def test_ayni_gun_cok_kacirma_tek_bildirim() -> None:
+    """Saatlik turda yedi pencere kaçırılınca yedi push gidiyordu.
+
+    Hepsi aynı şeyi söylüyordu ve müdür ilkinden sonrakilerden bir şey
+    öğrenmiyordu. Aksiyon listesinde çözülen gürültü bildirimde
+    duruyordu — orası daha acıtıcı, çünkü listeye bakmayı seçersin,
+    bildirimi seçemezsin.
+    """
+    dunya = Dunya(_an())
+    dunya.ayni_gun_kacir(7)
+
+    dunya.eskalasyon.run()
+
+    kacirma = [b for b in dunya.bildirim.list_notifications() if b.kind == "run_missed"]
+    assert len(kacirma) == 1
+    assert kacirma[0].user_id == AYSE
+
+
+def test_farkli_gun_ayri_bildirim() -> None:
+    """Gruplama gün bazında: ertesi gün yeniden haber verilir."""
+    dunya = Dunya(_an())
+    dunya.ayni_gun_kacir(2)
+    dunya.eskalasyon.run()
+    once = len([b for b in dunya.bildirim.list_notifications() if b.kind == "run_missed"])
+
+    dunya.kacir(gun=date(2026, 3, 1))
+    dunya.eskalasyon.run()
+
+    sonra = len([b for b in dunya.bildirim.list_notifications() if b.kind == "run_missed"])
+    assert once == 1
+    assert sonra == 2
