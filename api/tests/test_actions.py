@@ -10,7 +10,14 @@ from fastapi.testclient import TestClient
 
 from conftest import oturum_ac
 from talimatname.api.app import create_app
-from talimatname.domain.actions import DUE_HOURS, Action, action_id, due_at, from_missed_run
+from talimatname.domain.actions import (
+    DUE_HOURS,
+    Action,
+    action_id,
+    due_at,
+    from_missed_runs,
+    missed_run_source,
+)
 from talimatname.domain.validation import ValidationError
 from talimatname.infra.memory import (
     MemoryActionRepository,
@@ -93,20 +100,43 @@ def test_kapali_aksiyon_gecikmis_sayilmaz() -> None:
 
 def test_kaynakli_aksiyonun_kimligi_kaynaktan_turer() -> None:
     """FR-0903: aynı kaynak iki aksiyon açmaz."""
-    run = uuid4()
-    ilk = from_missed_run(
-        run_id=run, branch_id=KADIKOY, plan_name="Kapanış", business_day="2026-11-02", now=AN
-    )
-    ikinci = from_missed_run(
-        run_id=run,
-        branch_id=KADIKOY,
-        plan_name="Kapanış",
-        business_day="2026-11-02",
-        now=AN + timedelta(hours=5),
+    plan = uuid4()
+    ortak = {"branch_id": KADIKOY, "plan_id": plan, "plan_name": "Kapanış"}
+    ilk = from_missed_runs(**ortak, business_day="2026-11-02", count=1, now=AN)
+    ikinci = from_missed_runs(
+        **ortak, business_day="2026-11-02", count=1, now=AN + timedelta(hours=5)
     )
 
-    assert ilk.id == ikinci.id == action_id("missed_run", run)
+    kaynak = missed_run_source(KADIKOY, plan, "2026-11-02")
+    assert ilk.id == ikinci.id == action_id("missed_run", kaynak)
     assert ilk.priority == "high"  # BR-10: kaçırma yüksek öncelikli
+
+
+def test_ayni_gunun_ikinci_kacirmasi_yeni_aksiyon_acmaz() -> None:
+    """Saatlik listede bir öğleden sonra 4–6 aksiyon üretiyordu.
+
+    Kimlik (şube, plan, iş günü) üçlüsünden türüyor: sayı başlığa
+    yazılıyor, satır çoğalmıyor.
+    """
+    plan = uuid4()
+    ortak = {"branch_id": KADIKOY, "plan_id": plan, "plan_name": "Tuvalet kontrolü"}
+
+    bir = from_missed_runs(**ortak, business_day="2026-11-02", count=1, now=AN)
+    uc = from_missed_runs(**ortak, business_day="2026-11-02", count=3, now=AN)
+
+    assert bir.id == uc.id
+    assert "3 kez yapılmadı" in uc.title
+    assert "3 kez" not in bir.title
+
+
+def test_farkli_gun_ayri_aksiyon() -> None:
+    plan = uuid4()
+    ortak = {"branch_id": KADIKOY, "plan_id": plan, "plan_name": "Tuvalet kontrolü", "count": 1}
+
+    assert (
+        from_missed_runs(**ortak, business_day="2026-11-02", now=AN).id
+        != from_missed_runs(**ortak, business_day="2026-11-03", now=AN).id
+    )
 
 
 def test_kaynaksiz_sistem_aksiyonu_olmaz() -> None:

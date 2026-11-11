@@ -7716,16 +7716,42 @@
             "title": "Recurrence"
           },
           "anchor_reference": {
-            "type": "string",
-            "enum": [
-              "open",
-              "close"
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "open",
+                  "close"
+                ]
+              },
+              {
+                "type": "null"
+              }
             ],
             "title": "Anchor Reference"
           },
           "anchor_offset_minutes": {
-            "type": "integer",
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Anchor Offset Minutes"
+          },
+          "start_time": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Time"
           },
           "duration_minutes": {
             "type": "integer",
@@ -7747,8 +7773,6 @@
           "template_version_id",
           "branch_ids",
           "recurrence",
-          "anchor_reference",
-          "anchor_offset_minutes",
           "duration_minutes",
           "tolerance_minutes",
           "window"

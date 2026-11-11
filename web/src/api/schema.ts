@@ -3408,13 +3408,12 @@ export interface components {
             branch_ids: string[];
             /** Recurrence */
             recurrence: string;
-            /**
-             * Anchor Reference
-             * @enum {string}
-             */
-            anchor_reference: "open" | "close";
+            /** Anchor Reference */
+            anchor_reference?: ("open" | "close") | null;
             /** Anchor Offset Minutes */
-            anchor_offset_minutes: number;
+            anchor_offset_minutes?: number | null;
+            /** Start Time */
+            start_time?: string | null;
             /** Duration Minutes */
             duration_minutes: number;
             /** Tolerance Minutes */

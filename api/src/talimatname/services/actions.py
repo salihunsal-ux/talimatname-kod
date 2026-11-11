@@ -8,11 +8,18 @@ tek aksiyon açılır (FR-0903).
 from __future__ import annotations
 
 from collections.abc import Callable
+from dataclasses import replace
 from datetime import UTC, datetime
 from typing import Protocol
 from uuid import UUID, uuid4
 
-from talimatname.domain.actions import Action, ActionSource, Priority, due_at, from_missed_run
+from talimatname.domain.actions import (
+    Action,
+    ActionSource,
+    Priority,
+    due_at,
+    from_missed_runs,
+)
 from talimatname.domain.errors import DomainError, ErrorKind
 from talimatname.services.organization import OrganizationRepository
 from talimatname.services.plans import PlanRepository
@@ -134,30 +141,51 @@ class ActionService:
         return kapali
 
     def sync_from_runs(self) -> int:
-        """Kaçırılan çalıştırmalar için aksiyon açar; açılan sayısını döner.
+        """Kaçırılan çalıştırmalar için aksiyon açar; **açılan** sayısını döner.
 
-        Zamanlayıcı her turda çağırır. Kimlik çalıştırmadan türediği için
-        tekrar çağrı yeni aksiyon üretmez (FR-0903).
+        Zamanlayıcı her turda çağırır. Kimlik (şube, plan, iş günü)
+        üçlüsünden türediği için tekrar çağrı yeni aksiyon üretmez
+        (FR-0903) ve aynı gün ikinci kaçırma **yeni satır açmaz**:
+        var olan aksiyonun başlığı güncellenir ("bugün 3 kez
+        yapılmadı"). Saatlik liste olmadan da doğruydu; saatlikle
+        birlikte şart oldu — bir öğleden sonrayı atlayan şube tek bir
+        ihmal için 4–6 aksiyon üretirdi.
+
+        Vade **ilk** kaçırmadan sayılıyor: ikinci kaçırma vadeyi
+        uzatmamalı. Kapatılmış aksiyon yeniden açılmıyor; müdür
+        kapattıysa o gün için karar verilmiş demektir.
         """
         plan_adlari = {p.id: p.name for p in self._plans.plans()}
-        mevcut = {a.id for a in self._repo.actions()}
-        an = self._now()
-        acilan = 0
+        gruplar: dict[tuple[UUID, UUID, object], int] = {}
         for run in self._plans.runs():
             if run.status != "missed":
                 continue
-            aksiyon = from_missed_run(
-                run_id=run.id,
-                branch_id=run.branch_id,
-                plan_name=plan_adlari.get(run.plan_id, "Liste"),
-                business_day=run.business_day,
+            anahtar = (run.branch_id, run.plan_id, run.business_day)
+            gruplar[anahtar] = gruplar.get(anahtar, 0) + 1
+
+        mevcut = {a.id: a for a in self._repo.actions()}
+        an = self._now()
+        acilan = 0
+        for (sube_id, plan_id, gun), sayi in gruplar.items():
+            aksiyon = from_missed_runs(
+                branch_id=sube_id,
+                plan_id=plan_id,
+                plan_name=plan_adlari.get(plan_id, "Liste"),
+                business_day=gun,
+                count=sayi,
                 now=an,
             )
-            if aksiyon.id in mevcut:
-                continue
-            self._repo.save_action(aksiyon)
-            mevcut.add(aksiyon.id)
-            acilan += 1
+            eski = mevcut.get(aksiyon.id)
+            if eski is None:
+                self._repo.save_action(aksiyon)
+                mevcut[aksiyon.id] = aksiyon
+                acilan += 1
+            elif eski.status == "open" and eski.title != aksiyon.title:
+                # Sayı arttı: satır çoğalmıyor, başlık güncelleniyor.
+                # Vade ve açılış ilk kaçırmadan kalıyor.
+                guncel = replace(eski, title=aksiyon.title)
+                self._repo.save_action(guncel)
+                mevcut[aksiyon.id] = guncel
         return acilan
 
     @staticmethod

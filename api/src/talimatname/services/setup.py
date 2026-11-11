@@ -381,10 +381,13 @@ class SetupService:
             template_version_id=version_id,
             branch_ids=tuple(subeler),
             rule=WindowRule(
-                recurrence=sablon.plan.recurrence,
+                # Gün içinde tekrarlayan listede `rrule()` saat başına bir
+                # satır üretiyor; tek pencerede tekrar dizgesi olduğu gibi.
+                recurrence=sablon.plan.rrule(),
                 starts_on=self._now().date(),
                 duration_minutes=sablon.plan.duration_minutes,
                 anchor=sablon.plan.anchor,
+                start_time=sablon.plan.start_time,
                 tolerance_minutes=sablon.plan.tolerance_minutes,
             ),
         ).validated()

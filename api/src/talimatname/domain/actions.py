@@ -218,25 +218,47 @@ def from_not_done(
     ).validated()
 
 
-def from_missed_run(
+def missed_run_source(branch_id: UUID, plan_id: UUID, business_day: object) -> UUID:
+    """Kaçırma aksiyonunun kaynak kimliği: (şube, plan, iş günü).
+
+    Eskiden **çalıştırmadan** türüyordu, yani her kaçırılan pencere ayrı
+    bir aksiyon açıyordu. Günde iki listede bu katlanılabilirdi; saatlik
+    listede değil: bir öğleden sonrayı atlayan şube tek bir ihmal için
+    4–6 aksiyon üretiyor ve aksiyon listesi okunamaz hâle geliyor.
+    Okunmayan liste, liste değildir.
+
+    Gün bazında grupluyoruz: "bugün 3 kez yapılmadı" bir satır. Sayı
+    arttıkça aksiyon çoğalmıyor, başlığı güncelleniyor.
+    """
+    return uuid5(ACTION_NAMESPACE, f"kacirildi:{branch_id}:{plan_id}:{business_day}")
+
+
+def from_missed_runs(
     *,
-    run_id: UUID,
     branch_id: UUID,
+    plan_id: UUID,
     plan_name: str,
     business_day: object,
+    count: int,
     now: datetime,
 ) -> Action:
-    """Kaçırılan çalıştırmadan doğan aksiyon (FR-0902, BR-10: yüksek öncelik).
+    """Bir şubenin bir gündeki kaçırılan çalıştırmaları (FR-0902, BR-10).
 
-    Kimlik çalıştırmadan türetildiği için zamanlayıcı kaç kez koşarsa
-    koşsun tek aksiyon açılır.
+    Öncelik yüksek, vade **ilk** kaçırmadan sayılır: aynı gün ikinci
+    kaçırma vadeyi uzatmamalı.
     """
+    kaynak = missed_run_source(branch_id, plan_id, business_day)
+    baslik = (
+        f"{plan_name} yapılmadı ({business_day})"
+        if count <= 1
+        else f"{plan_name}: {business_day} günü {count} kez yapılmadı"
+    )
     return Action(
-        id=action_id("missed_run", run_id),
+        id=action_id("missed_run", kaynak),
         branch_id=branch_id,
-        title=f"{plan_name} yapılmadı ({business_day})",
+        title=baslik,
         source="missed_run",
-        source_id=run_id,
+        source_id=kaynak,
         priority="high",
         opened_at=now,
         due_at=due_at("high", now),

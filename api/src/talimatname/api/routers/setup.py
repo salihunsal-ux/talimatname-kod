@@ -288,8 +288,11 @@ class PlanOnerisi(BaseModel):
     template_version_id: UUID
     branch_ids: list[UUID]
     recurrence: str
-    anchor_reference: Literal["open", "close"]
-    anchor_offset_minutes: int
+    #: Gün içinde tekrarlayan listede **boş**: açılış/kapanış günde bir
+    #: kez olur, saatlik kontrol sabit saatlerde yürür.
+    anchor_reference: Literal["open", "close"] | None = None
+    anchor_offset_minutes: int | None = None
+    start_time: time | None = None
     duration_minutes: int
     tolerance_minutes: int
     window: str = Field(description="Pencerenin insan diliyle özeti")
@@ -331,7 +334,14 @@ def _tekrar_adi(recurrence: str) -> str:
 
 def _pencere_ozeti(kural: WindowRule) -> str:
     """Planın penceresini insan diliyle: "kapanıştan 60 dk önce…"."""
-    assert kural.anchor is not None
+    if kural.anchor is None:
+        assert kural.start_time is not None
+        pencere_sayisi = len([s for s in kural.recurrence.splitlines() if s.startswith("RRULE:")])
+        kac = f" · gün içinde {pencere_sayisi} pencere" if pencere_sayisi > 1 else ""
+        return (
+            f"{_tekrar_adi(kural.recurrence)} · {kural.start_time.strftime('%H:%M')}{kac} · "
+            f"{kural.duration_minutes} dk pencere · {kural.tolerance_minutes} dk tolerans"
+        )
     yon = "açılış" if kural.anchor.reference == "open" else "kapanış"
     dakika = abs(kural.anchor.offset_minutes)
     once = "önce" if kural.anchor.offset_minutes < 0 else "sonra"
@@ -342,13 +352,26 @@ def _pencere_ozeti(kural: WindowRule) -> str:
 
 
 def _pencere_metni(sablon: LibraryTemplate) -> str:
-    yon = "açılış" if sablon.plan.anchor.reference == "open" else "kapanış"
-    dakika = abs(sablon.plan.anchor.offset_minutes)
-    once = "önce" if sablon.plan.anchor.offset_minutes < 0 else "sonra"
+    plan = sablon.plan
+    tekrar = _tekrar_adi(plan.recurrence)
+    if plan.anchor is None:
+        # Gün içinde tekrarlayan liste: şube saatine bağlanamıyor,
+        # çünkü açılış/kapanış günde bir kez olur (plan kuralı ikisini
+        # birlikte kabul etmiyor). Sabit saatlerde yürüyor.
+        assert plan.start_time is not None
+        ne_zaman = plan.start_time.strftime("%H:%M")
+        if plan.every_hours is not None and plan.until_time is not None:
+            ne_zaman += f"–{plan.until_time.strftime('%H:%M')} arası her {plan.every_hours} saat"
+        return (
+            f"{tekrar} · {ne_zaman} · {plan.duration_minutes} dk pencere · "
+            f"{plan.tolerance_minutes} dk tolerans"
+        )
+    yon = "açılış" if plan.anchor.reference == "open" else "kapanış"
+    dakika = abs(plan.anchor.offset_minutes)
+    once = "önce" if plan.anchor.offset_minutes < 0 else "sonra"
     return (
-        f"{_tekrar_adi(sablon.plan.recurrence)} · şube {yon} saatinden {dakika} dk {once} başlar · "
-        f"{sablon.plan.duration_minutes} dk pencere · "
-        f"{sablon.plan.tolerance_minutes} dk tolerans"
+        f"{tekrar} · şube {yon} saatinden {dakika} dk {once} başlar · "
+        f"{plan.duration_minutes} dk pencere · {plan.tolerance_minutes} dk tolerans"
     )
 
 
@@ -388,14 +411,15 @@ def plan_onerisi(
     seçilir: sihirbaz "hangi şablonu seçmiştim" diye durum tutmuyor.
     """
     plan = servis.plan_proposal(version_id)
-    assert plan.rule.anchor is not None
+    capa = plan.rule.anchor
     return PlanOnerisi(
         name=plan.name,
         template_version_id=plan.template_version_id,
         branch_ids=list(plan.branch_ids),
         recurrence=plan.rule.recurrence,
-        anchor_reference=plan.rule.anchor.reference,
-        anchor_offset_minutes=plan.rule.anchor.offset_minutes,
+        anchor_reference=capa.reference if capa else None,
+        anchor_offset_minutes=capa.offset_minutes if capa else None,
+        start_time=plan.rule.start_time,
         duration_minutes=plan.rule.duration_minutes,
         tolerance_minutes=plan.rule.tolerance_minutes,
         window=_pencere_ozeti(plan.rule),

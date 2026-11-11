@@ -18,6 +18,7 @@ saatine göre tanımlıyor ("kapanıştan 60 dk önce"), bu yüzden öneri
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
+from datetime import date, datetime, time, timedelta
 from uuid import uuid4
 
 from talimatname.domain.actions import Priority
@@ -35,6 +36,9 @@ from talimatname.domain.window import Anchor
 #: "Hayır" → fotoğraf + not zorunlu; "Uygun değil" = bu şubede yok.
 EVET_HAYIR = (("Evet", True), ("Hayır", False), ("Uygun değil", True))
 
+#: RRULE satırları arasındaki ayraç (RFC 5545).
+SATIR_SONU = chr(10)
+
 
 @dataclass(frozen=True, slots=True)
 class PlanDefaults:
@@ -45,11 +49,49 @@ class PlanDefaults:
     şube aynı planı paylaşamazdı.
     """
 
-    anchor: Anchor
+    #: Şube saatine bağlı pencere. Gün içinde tekrarlayan listede
+    #: `None`: açılış/kapanış günde bir kez olur, saatlik kontrol
+    #: sabit saatlerde yürür (plan kuralı ikisini birlikte kabul etmiyor).
+    anchor: Anchor | None
     duration_minutes: int
     tolerance_minutes: int
     #: RRULE (ADR-0005): "günlük" demiyoruz, takvim standardını yazıyoruz.
     recurrence: str = "FREQ=DAILY"
+    #: Sabit başlangıç (anchor yoksa zorunlu) ve gün içi tekrar.
+    start_time: time | None = None
+    every_hours: int | None = None
+    until_time: time | None = None
+
+    def __post_init__(self) -> None:
+        if (self.anchor is None) == (self.start_time is None):
+            raise ValueError("anchor ya da start_time verilmeli; ikisi birlikte olmaz")
+        if self.every_hours is not None and (self.start_time is None or self.until_time is None):
+            raise ValueError("'her N saat' kuralı başlangıç ve bitiş saati ister")
+
+    def saatler(self) -> list[time]:
+        """Gün içindeki pencere başlangıçları; tek pencerede boş liste.
+
+        Plan ekranındaki `_saatler` ile **aynı** kuralı uyguluyor:
+        ikisi ayrışırsa kütüphanenin önerdiği plan, elle kurulan plandan
+        başka pencereler üretir.
+        """
+        if self.every_hours is None or self.start_time is None or self.until_time is None:
+            return []
+        saatler: list[time] = []
+        an = datetime.combine(date.min, self.start_time)
+        son = datetime.combine(date.min, self.until_time)
+        while an <= son:
+            saatler.append(an.time())
+            an += timedelta(hours=self.every_hours)
+        return saatler
+
+    def rrule(self) -> str:
+        """Gün içinde birden çok pencere varsa saat başına bir satır."""
+        saatler = self.saatler()
+        if len(saatler) <= 1:
+            return self.recurrence
+        satirlar = (f"RRULE:{self.recurrence};BYHOUR={s.hour};BYMINUTE={s.minute}" for s in saatler)
+        return chr(10).join(satirlar)
 
 
 @dataclass(frozen=True, slots=True)
@@ -490,7 +532,64 @@ DENETIM = LibraryTemplate(
 )
 
 
-CATALOG: tuple[LibraryTemplate, ...] = (KAPANIS, ACILIS, DENETIM)
+TUVALET = LibraryTemplate(
+    key="tuvalet-hijyen",
+    name="Saatlik tuvalet ve hijyen kontrolü",
+    category="Hijyen turu",
+    summary=(
+        "Gün içinde müşteri alanının ve el hijyeninin sürekliliği. "
+        "Hedef süre 1–2 dk; kritik madde yok."
+    ),
+    # 02-urun/07 §3: 10:00–22:00 arası her 2 saat, pencere 15 dk,
+    # tolerans 0. Şube saatine **bağlanamıyor**: açılış/kapanış günde
+    # bir kez olur, gün içi tekrar sabit saat ister (plan kuralı ikisini
+    # birlikte kabul etmiyor). Hızlı servis her saate çekebilir.
+    plan=PlanDefaults(
+        anchor=None,
+        start_time=time(10, 0),
+        every_hours=2,
+        until_time=time(22, 0),
+        duration_minutes=15,
+        tolerance_minutes=0,
+    ),
+    sections=(
+        Section(
+            id=uuid4(),
+            order=1,
+            title="Tuvalet",
+            items=(
+                _madde(1, "choice", "Klozet, lavabo ve ayna temiz", secenekler=EVET_HAYIR),
+                _madde(
+                    2,
+                    "choice",
+                    "Sabun, kâğıt havlu / el kurutma, tuvalet kâğıdı dolu",
+                    secenekler=EVET_HAYIR,
+                ),
+                _madde(3, "choice", "Zemin kuru, çöp kovası boş", secenekler=EVET_HAYIR),
+                _madde(4, "choice", "Koku ve havalandırma uygun", secenekler=EVET_HAYIR),
+                # İsteğe bağlı: 1–2 dakikalık bir turda fotoğrafı zorunlu
+                # kılmak listeyi iki katına çıkarırdı.
+                _madde(5, "photo", "Genel görünüm", zorunlu=False),
+            ),
+        ),
+        Section(
+            id=uuid4(),
+            order=2,
+            title="Salon ve el hijyeni",
+            items=(
+                _madde(1, "confirm", "El yıkama ve eldiven değişimi yapıldı"),
+                _madde(
+                    2,
+                    "confirm",
+                    "Salon masaları ve servis istasyonu temiz; şeker, peçete, karıştırıcı dolu",
+                ),
+            ),
+        ),
+    ),
+)
+
+
+CATALOG: tuple[LibraryTemplate, ...] = (KAPANIS, ACILIS, TUVALET, DENETIM)
 
 
 def find(key: str) -> LibraryTemplate | None:
