@@ -329,7 +329,15 @@ TEKRAR_ADI: dict[str, str] = {
 
 
 def _tekrar_adi(recurrence: str) -> str:
-    return TEKRAR_ADI.get(recurrence.strip().upper(), recurrence)
+    """Tekrarın adı. Gün içinde çok pencereli kuralda **satır başına bir
+    RRULE** yazılıyor; dizgenin tamamını etiket sanmamak için ilk
+    satırdan `FREQ` okunuyor.
+    """
+    ilk = recurrence.strip().splitlines()[0] if recurrence.strip() else ""
+    for parca in ilk.removeprefix("RRULE:").split(";"):
+        if parca.upper().startswith("FREQ="):
+            return TEKRAR_ADI.get(parca.strip().upper(), parca)
+    return TEKRAR_ADI.get(ilk.upper(), ilk)
 
 
 def _pencere_ozeti(kural: WindowRule) -> str:

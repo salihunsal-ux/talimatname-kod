@@ -97,7 +97,17 @@ def test_uc_nokta_oneri_saatlik_cikiyor(tmp_path: Path) -> None:
     assert oneri["anchor_reference"] is None
     assert oneri["start_time"].startswith("10:00")
     assert len(oneri["recurrence"].splitlines()) == 7
-    assert "gün içinde 7 pencere" in oneri["window"]
+    assert oneri["window"].startswith("Günlük · 10:00 · gün içinde 7 pencere")
+
+
+def test_tekrar_adi_cok_satirli_rrule_ile_bozulmuyor() -> None:
+    """Dizginin tamamı etiket sanılıyordu: pencere metni RRULE kusuyordu."""
+    from talimatname.api.routers.setup import _tekrar_adi
+    from talimatname.services.library import DENETIM, KAPANIS
+
+    assert _tekrar_adi(TUVALET.plan.rrule()) == "Günlük"
+    assert _tekrar_adi(KAPANIS.plan.rrule()) == "Günlük"
+    assert _tekrar_adi(DENETIM.plan.rrule()) == "Aylık"
 
 
 def test_uc_nokta_kutuphanede_pencere_metni(tmp_path: Path) -> None:
