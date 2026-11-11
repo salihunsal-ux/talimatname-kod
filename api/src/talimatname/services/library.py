@@ -17,7 +17,7 @@ saatine göre tanımlıyor ("kapanıştan 60 dk önce"), bu yüzden öneri
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from uuid import uuid4
 
 from talimatname.domain.actions import Priority
@@ -98,27 +98,19 @@ class LibraryTemplate:
 
 
 def _yeni_kimlikler(bolum: Section) -> Section:
-    return Section(
+    """Kopya: yalnızca kimlikler yeni, geri kalanı olduğu gibi.
+
+    Alanlar tek tek yazılıyordu ve yeni bir alan eklendiğinde kopya onu
+    **sessizce düşürüyordu**: `action_priority` (BR-10 takip işareti)
+    kütüphanede duruyor, hesaba kopyalanan şablonda yok oluyordu. Hatayı
+    bulmak zor, çünkü kopya çalışıyor ve yalnızca bir davranış eksiliyor.
+    `replace` alan listesi tutmuyor: sınıfa eklenen her şey kendiliğinden
+    kopyalanır.
+    """
+    return replace(
+        bolum,
         id=uuid4(),
-        order=bolum.order,
-        title=bolum.title,
-        items=tuple(
-            Item(
-                id=uuid4(),
-                order=madde.order,
-                type=madde.type,
-                title=madde.title,
-                hint=madde.hint,
-                required=madde.required,
-                photo_required=madde.photo_required,
-                critical=madde.critical,
-                options=madde.options,
-                min_value=madde.min_value,
-                max_value=madde.max_value,
-                unit=madde.unit,
-            )
-            for madde in bolum.items
-        ),
+        items=tuple(replace(madde, id=uuid4()) for madde in bolum.items),
     )
 
 

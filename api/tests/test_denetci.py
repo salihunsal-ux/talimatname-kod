@@ -224,3 +224,28 @@ def test_bilinmeyen_oncelik_reddediliyor() -> None:
             title="Madde",
             action_priority="acil",  # type: ignore[arg-type]
         ).validated()
+
+
+def test_kopya_madde_alanlarini_dusurmuyor() -> None:
+    """Kütüphane kopyası alan listesi tutmamalı.
+
+    Alanlar tek tek yazılıyordu: `action_priority` eklenince kopya onu
+    sessizce düşürdü, şablon hesaba geçerken takip işareti kayboldu.
+    Hatayı bulmak zor, çünkü kopya çalışıyor — yalnızca bir davranış
+    eksiliyor.
+    """
+    from dataclasses import fields
+
+    _, surum = DENETIM.copy_for_account()
+    kaynak = {m.title: m for b in DENETIM.sections for m in b.items}
+    kopya = {m.title: m for b in surum.sections for m in b.items}
+
+    assert set(kaynak) == set(kopya)
+    for baslik, asil in kaynak.items():
+        for alan in fields(asil):
+            if alan.name == "id":
+                assert getattr(kopya[baslik], alan.name) != getattr(asil, alan.name)
+            else:
+                assert getattr(kopya[baslik], alan.name) == getattr(asil, alan.name), (
+                    f"{baslik} · {alan.name} kopyada düştü"
+                )
