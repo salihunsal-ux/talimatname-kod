@@ -75,4 +75,27 @@ abstract final class S {
   static const networkError =
       'Sunucuya ulaşılamadı. Bağlantınızı kontrol edin.';
   static const retry = 'Tekrar dene';
+
+  // Liste doldurma
+  static const answerYes = 'Evet';
+  static const answerNo = 'Hayır';
+  static const answerNotDone = 'Yapılamadı';
+  static const criticalItem = 'Kritik';
+  static const valueLabel = 'Değer';
+  static const noOptions = 'Bu madde için seçenek tanımlı değil.';
+  static const photoNotYet =
+      'Bu madde fotoğraf istiyor; fotoğraf çekme henüz bu sürümde yok.';
+  static const readOnlyWindow = 'Pencere kapalı: bu listeye artık yazılamaz.';
+  static String lockedBy(String ad) => '$ad bu listeyi üstlendi.';
+  static const pendingOne = 'Gönderilmeyi bekliyor';
+  static const rejectedOne = 'Sunucu bu cevabı kabul etmedi';
+  static const allSent = 'Hepsi gönderildi';
+  static const queueBroken = 'Kuyruk açılamadı';
+  static String pending(int n) => '$n bekliyor';
+  static String range(num? alt, num? ust, String? birim) {
+    final ek = birim == null ? '' : ' $birim';
+    if (alt != null && ust != null) return 'Beklenen: $alt – $ust$ek';
+    if (alt != null) return 'En az $alt$ek';
+    return 'En çok $ust$ek';
+  }
 }

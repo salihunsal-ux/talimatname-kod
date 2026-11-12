@@ -46,3 +46,12 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Drift'in web varlıkları (yalnızca geliştirme hedefi, 1,1 MB ikili).
+# Gerekirse sürümle eşleşen dosyalar indirilir:
+#   curl -L -o web/drift_worker.js \
+#     https://github.com/simolus3/drift/releases/download/drift-<sürüm>/drift_worker.js
+#   curl -L -o web/sqlite3.wasm \
+#     https://github.com/simolus3/sqlite3.dart/releases/download/sqlite3-<sürüm>/sqlite3.wasm
+web/drift_worker.js
+web/sqlite3.wasm

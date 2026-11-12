@@ -21,6 +21,7 @@ class SessionStore {
     : _storage = storage ?? const FlutterSecureStorage();
 
   static const _key = 'session';
+  static const _deviceKey = 'device_id';
 
   final FlutterSecureStorage _storage;
 
@@ -40,5 +41,12 @@ class SessionStore {
   Future<void> write(Session session) =>
       _storage.write(key: _key, value: jsonEncode(session.toStored()));
 
+  /// Oturum silinir ama **cihaz kimliği kalır**: çıkış yapmak cihazı
+  /// değiştirmez ve kuyruktaki kayıtların sahibi aynı cihazdır.
   Future<void> clear() => _storage.delete(key: _key);
+
+  Future<String?> readDeviceId() => _storage.read(key: _deviceKey);
+
+  Future<void> writeDeviceId(String id) =>
+      _storage.write(key: _deviceKey, value: id);
 }

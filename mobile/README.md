@@ -4,15 +4,15 @@ Personelin listeyi doldurduğu uygulama. Panel (`web/`) yöneticiler
 için; burası şubede, telefonda, çoğu zaman **zayıf bağlantıyla**
 çalışır.
 
-Bu sürüm **ilk dikey dilim**: giriş → bugünün listeleri. Madde
-doldurma, kanıt çekme ve çevrimdışı kuyruk henüz yok.
+Bugünkü hâli: giriş → bugünün listeleri → **liste doldurma** ve
+çevrimdışı kuyruk. Kanıt fotoğrafı henüz yok (Spike C).
 
 ## Hedefler
 
 | Hedef | Durum | Not |
 |---|---|---|
 | Android | **asıl hedef** | `flutter build apk` |
-| Web | yalnızca geliştirme | Hızlı arayüz döngüsü. Dağıtılmaz: tarayıcıda güvenli depo yok, belirteç localStorage'a düşer |
+| Web | kısmen; yalnızca geliştirme | Giriş ve liste ekranı çalışır. **Çevrimdışı kuyruk açılmıyor** (aşağıya bakın). Dağıtılmaz: tarayıcıda güvenli depo yok, belirteç localStorage'a düşer |
 | iOS | **yok** | macOS olmadan derlenemez; ayrı karar (ADR-0013, 12 Kasım eki) |
 
 ## Çalıştırma
@@ -73,11 +73,34 @@ değerlerle karşılaştırıyor. Panelde bir renk değişirse bu test kırılı
 ekrana basılmaz (ADR-0014 md.8): `title` değişebilir, `type`
 sözleşmedir.
 
+## Web'de kuyruk açılmıyor (12 Kasım)
+
+`web/` altına Drift'in varlıkları kondu (`sqlite3.wasm`, `drift_worker.js`)
+ve adresleri `DriftWebOptions` ile verildi, ama tarayıcıda veritabanı
+`TypeError: Failed to fetch` ile açılmıyor — üstelik statik sunucunun
+günlüğünde **o dosyalara hiç istek görünmüyor**, yani hata getirmeden
+önce oluşuyor. Kök nedene inilmedi.
+
+Sonucu: **liste doldurma tarayıcıda denenemiyor.** Kuyruğun davranışı
+`test/answer_queue_test.dart` ile kapalı (12 test, bellek içi sqlite) ve
+ekran derleniyor, ama bir cevabın gerçekten yazılıp gönderildiği
+uçtan uca **yalnızca testlerde** görüldü; gerçek cihazda görülmedi.
+Sıradaki doğrulama Android telefonda.
+
+Ekran bu durumu saklamıyor: kuyruk açılamazsa üst bantta "Kuyruk
+açılamadı" yazıyor. Sessizce "hepsi gönderildi" demek, gönderilmemişken
+verilebilecek en pahalı yanlış bilgi olurdu — ilk hâli tam bunu
+yapıyordu.
+
 ## Bilinen eksikler
 
 - API istemcisi **elle yazıldı**; 02-repo üretilmiş istemci istiyor
   (openapi → dart). Depo arayüzü aynı kaldığı için üretece geçmek
   çağrı yerlerini değiştirmez.
 - Metinler tek Dart dosyasında; FR-1803 ARB istiyor.
-- Çevrimdışı kuyruk (Drift) yok. Sunucu sözleşmesi Spike A'da
-  doğrulandı (`api/tests/test_spike_a_senk.py`), istemci tarafı sırada.
+- **Fotoğraf yok** (Spike C): fotoğraf isteyen madde ekranda
+  işaretleniyor, gönderimi sunucu zaten engelliyor.
+- Kuyruk yalnızca **cevapları** taşıyor; kanıt kuyruğu fotoğrafla
+  birlikte gelecek.
+- Gönderilmiş kayıtlar `purgeSent()` ile temizlenebiliyor ama bunu
+  çağıran yok: kuyruk tablosu şimdilik büyüyor.

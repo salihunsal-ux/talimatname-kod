@@ -188,6 +188,14 @@ jobs:
         # aynı tasarım sisteminden sapamasın diye (mobile/README).
         run: flutter test
 
+      - name: Üretilmiş kod güncel mi
+        # Drift tabloları koddan üretiliyor; üretilmiş dosya depoda
+        # duruyor (ADR-0014 md.10 ile aynı kural: üretilmiş sözleşme
+        # commit'lenir ve CI tazeliğini doğrular).
+        run: |
+          dart run build_runner build --delete-conflicting-outputs
+          git diff --exit-code lib/queue/database.g.dart             || (echo "::error::database.g.dart güncel değil: build_runner çalıştırıp commit edin" && exit 1)
+
       - name: Android derlemesi
         run: flutter build apk --debug
 

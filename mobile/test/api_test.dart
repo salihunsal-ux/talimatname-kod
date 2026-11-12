@@ -233,6 +233,38 @@ void main() {
       expect(yenileme, 1, reason: 'yenileme bir kez denenmeli');
     });
 
+    test('yenileme reddedilirse oturum düşer', () async {
+      // Çalıştırınca görüldü: sunucu yenilemeyi 403'leyince uygulama
+      // her sağlayıcı için yeniden deniyordu — tek açılışta 29 istek.
+      var dusen = 0;
+      var istek = 0;
+      final client = MockClient((_) async {
+        istek++;
+        return http.Response(
+          jsonEncode({
+            'type': 'urn:talimatname:oturum-gecersiz',
+            'status': 403,
+          }),
+          403,
+          headers: {'content-type': 'application/problem+json'},
+        );
+      });
+      final api = ApiClient(
+        baseUrl: 'http://test/api/v1',
+        client: client,
+        onSessionChanged: (s) {
+          if (s == null) dusen++;
+        },
+      )..adopt(Session.fromJson(_sessionBody, now: DateTime.now()));
+
+      await expectLater(api.refresh(), throwsA(isA<ApiException>()));
+
+      expect(dusen, 1, reason: 'oturum bırakıldı');
+      expect(api.session, isNull);
+      await expectLater(api.refresh(), throwsA(isA<ApiException>()));
+      expect(istek, 1, reason: 'elde oturum yokken sunucuya gidilmez');
+    });
+
     test('ağ hatası ApiException.network olur', () async {
       final client = MockClient((_) => throw const SocketLikeError());
       final api = ApiClient(baseUrl: 'http://test/api/v1', client: client);

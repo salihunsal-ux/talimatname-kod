@@ -11,6 +11,7 @@ import 'package:http/http.dart' as http;
 
 import 'models.dart';
 import 'problem.dart';
+import 'run_models.dart';
 
 /// Derleme zamanında verilir:
 /// `flutter run --dart-define=API_BASE=https://demo.talimatname.com/api/v1`
@@ -70,12 +71,26 @@ class ApiClient {
     if (current == null || !current.refreshUsable) {
       throw ApiException(statusCode: 401, type: '${urnPrefix}oturum-yok');
     }
-    final body = await _send(
-      'POST',
-      '/auth/refresh',
-      body: {'refresh_token': current.refreshToken},
-      authenticated: false,
-    );
+    final Map<String, dynamic> body;
+    try {
+      body = await _send(
+        'POST',
+        '/auth/refresh',
+        body: {'refresh_token': current.refreshToken},
+        authenticated: false,
+      );
+    } on ApiException catch (hata) {
+      // Yenileme **reddedildiyse** oturum bitmiştir: belirteç iptal
+      // edilmiş, sunucu anahtarı değişmiş ya da süresi dolmuş olabilir.
+      // Elde tutup her istekte yeniden denemek, kullanıcıyı boş ekranda
+      // bırakırken sunucuyu dövmek olurdu — çalıştırınca görüldü:
+      // tek açılışta 29 istek gitti.
+      if (hata.isUnauthorized) {
+        _session = null;
+        onSessionChanged?.call(null);
+      }
+      rethrow;
+    }
     final session = Session.fromJson(body);
     _session = session;
     onSessionChanged?.call(session);
@@ -103,6 +118,32 @@ class ApiClient {
   Future<Manifest> manifest() async {
     final body = await _send('GET', '/sync/manifest');
     return Manifest.fromJson(body);
+  }
+
+  Future<RunView> run(String runId) async =>
+      RunView.fromJson(await _send('GET', '/runs/$runId'));
+
+  /// Şablon sürümünün maddeleri. Yayınlanmış sürüm değişmiyor (BR-18),
+  /// yani çağıran sonucu süresiz önbelleğe alabilir.
+  Future<Map<String, VersionItem>> templateVersion(String versionId) async =>
+      VersionItem.mapFromJson(
+        await _send('GET', '/template-versions/$versionId'),
+      );
+
+  /// Kuyruğu gönderir. Yanıt **200** ve sonuç kayıt başına; bu yüzden
+  /// dönen satırlar tek tek okunur, istek bütün olarak başarılı
+  /// sayılmaz.
+  Future<BatchResult> syncAnswers(List<Map<String, dynamic>> answers) async {
+    final body = await _send(
+      'POST',
+      '/sync/batch',
+      body: {
+        'answers': answers,
+        'evidence': const <Map<String, dynamic>>[],
+        'device_time': DateTime.now().toUtc().toIso8601String(),
+      },
+    );
+    return BatchResult.fromJson(body);
   }
 
   Future<Map<String, dynamic>> _send(

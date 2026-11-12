@@ -13,6 +13,7 @@ import '../api/models.dart';
 import '../api/problem.dart';
 import '../l10n/strings.dart';
 import '../state/providers.dart';
+import 'run_screen.dart';
 import '../theme/tokens.dart';
 import '../widgets/error_text.dart';
 
@@ -50,6 +51,7 @@ class TodayScreen extends ConsumerWidget {
           ],
         ),
         actions: [
+          const PendingBadge(),
           IconButton(
             tooltip: S.refresh,
             onPressed: () => ref.invalidate(manifestProvider),
@@ -137,47 +139,59 @@ class _RunCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = AppColors.of(context);
     final writable = run.writableAt(now);
-    return Container(
-      padding: const EdgeInsets.all(Gap.x4),
-      decoration: BoxDecoration(
-        color: c.surface,
-        border: Border.all(color: writable ? c.brand : c.line),
-        borderRadius: BorderRadius.circular(Corner.card),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  run.planName,
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
+    return InkWell(
+      // Penceresi açılmamış listeye dokunma daveti çıkmaz (BR-02a):
+      // kart görünür ama tıklanmaz.
+      onTap: writable
+          ? () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => RunScreen(runId: run.runId),
               ),
-              _StatusChip(run: run, now: now),
-            ],
-          ),
-          const SizedBox(height: Gap.x1),
-          Text(
-            // Ufuk 48 saat: manifestte yarının listeleri de var ve
-            // şube + plan + saat aynı olduğu için kartlar birbirinin
-            // kopyası görünüyordu. Gün, bugün değilse yazılır.
-            _dayLabel(run.businessDay) == null
-                ? run.branchName
-                : '${run.branchName} · ${_dayLabel(run.businessDay)}',
-            style: Theme.of(context).textTheme.labelSmall,
-          ),
-          const SizedBox(height: Gap.x3),
-          Text(
-            S.windowRange(_hhmm(run.windowStart), _hhmm(run.windowEnd)),
-            style: TextStyle(
-              color: c.ink2,
-              fontSize: TypeScale.label,
-              fontFeatures: const [FontFeature.tabularFigures()],
+            )
+          : null,
+      borderRadius: BorderRadius.circular(Corner.card),
+      child: Container(
+        padding: const EdgeInsets.all(Gap.x4),
+        decoration: BoxDecoration(
+          color: c.surface,
+          border: Border.all(color: writable ? c.brand : c.line),
+          borderRadius: BorderRadius.circular(Corner.card),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    run.planName,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ),
+                _StatusChip(run: run, now: now),
+              ],
             ),
-          ),
-        ],
+            const SizedBox(height: Gap.x1),
+            Text(
+              // Ufuk 48 saat: manifestte yarının listeleri de var ve
+              // şube + plan + saat aynı olduğu için kartlar birbirinin
+              // kopyası görünüyordu. Gün, bugün değilse yazılır.
+              _dayLabel(run.businessDay) == null
+                  ? run.branchName
+                  : '${run.branchName} · ${_dayLabel(run.businessDay)}',
+              style: Theme.of(context).textTheme.labelSmall,
+            ),
+            const SizedBox(height: Gap.x3),
+            Text(
+              S.windowRange(_hhmm(run.windowStart), _hhmm(run.windowEnd)),
+              style: TextStyle(
+                color: c.ink2,
+                fontSize: TypeScale.label,
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

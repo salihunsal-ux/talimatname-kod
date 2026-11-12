@@ -5,7 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../api/api_client.dart';
 import '../api/models.dart';
+import '../api/run_models.dart';
 import '../api/session_store.dart';
+import '../queue/answer_queue.dart';
+import '../queue/database.dart';
 
 final sessionStoreProvider = Provider<SessionStore>((ref) => SessionStore());
 
@@ -18,6 +21,9 @@ final apiClientProvider = Provider<ApiClient>((ref) {
       // kez kullanılırsa zincirin tamamı düşer.
       if (session == null) {
         store.clear();
+        // Oturum düştüyse ekran da düşmeli: yoksa her sağlayıcı
+        // yenilemeyi kendi başına yeniden dener.
+        ref.read(sessionProvider.notifier).dropped();
       } else {
         store.write(session);
       }
@@ -55,6 +61,11 @@ class SessionController extends AsyncNotifier<Session?> {
     await ref.read(apiClientProvider).signOut();
     state = const AsyncData(null);
   }
+
+  /// Sunucu oturumu kabul etmedi; kullanıcı giriş ekranına döner.
+  void dropped() {
+    if (state.value != null) state = const AsyncData(null);
+  }
 }
 
 final sessionProvider = AsyncNotifierProvider<SessionController, Session?>(
@@ -68,4 +79,67 @@ final manifestProvider = FutureProvider<Manifest>((ref) async {
     throw StateError('oturum yok');
   }
   return ref.read(apiClientProvider).manifest();
+});
+
+/// Kuyruk veritabanı. Uygulama ömrü boyunca tek örnek.
+final queueDatabaseProvider = Provider<QueueDatabase>((ref) {
+  final db = QueueDatabase();
+  ref.onDispose(db.close);
+  return db;
+});
+
+/// Cihaz kimliği: kayıtla birlikte gidiyor ki aynı çalıştırmayı iki
+/// cihaz doldurduğunda hangisinin yazdığı belli olsun. Oturumdan
+/// bağımsız, cihaza ait ve kalıcı.
+final deviceIdProvider = FutureProvider<String>((ref) async {
+  final store = ref.read(sessionStoreProvider);
+  final mevcut = await store.readDeviceId();
+  if (mevcut != null) return mevcut;
+  final yeni = newAnswerId();
+  await store.writeDeviceId(yeni);
+  return yeni;
+});
+
+final answerQueueProvider = FutureProvider<AnswerQueue>((ref) async {
+  return AnswerQueue(
+    db: ref.read(queueDatabaseProvider),
+    api: ref.read(apiClientProvider),
+    deviceId: await ref.watch(deviceIdProvider.future),
+  );
+});
+
+final pendingCountProvider = FutureProvider<int>((ref) async {
+  final queue = await ref.watch(answerQueueProvider.future);
+  return queue.pendingCount();
+});
+
+/// Senk sürüyor mu — düğmeyi iki kez bastırmamak için.
+class SyncingNotifier extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  void set(bool value) => state = value;
+}
+
+final syncingProvider = NotifierProvider<SyncingNotifier, bool>(
+  SyncingNotifier.new,
+);
+
+/// Kuyruğu gönderir. Sonuç ekranda sayacı tazeler; hata **yutulmaz**,
+/// kayıt kuyrukta kalır ve sayaç bunu gösterir.
+final syncProvider = Provider<Future<SyncOutcome> Function()>((ref) {
+  return () async {
+    if (ref.read(syncingProvider)) {
+      return const SyncOutcome();
+    }
+    ref.read(syncingProvider.notifier).set(true);
+    try {
+      final queue = await ref.read(answerQueueProvider.future);
+      final policy = ref.read(manifestProvider).value?.policy;
+      return await queue.sync(policy: policy);
+    } finally {
+      ref.read(syncingProvider.notifier).set(false);
+      ref.invalidate(pendingCountProvider);
+    }
+  };
 });
