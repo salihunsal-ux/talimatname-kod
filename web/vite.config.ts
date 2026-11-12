@@ -17,6 +17,11 @@ export default defineConfig({
   },
   test: {
     environment: 'jsdom',
+    // Gün kesimi **yerel** saate göre yapılıyor (BR-01, `src/tarih.ts`).
+    // CI UTC'de koşuyor, yani İstanbul'un bir gün ileride olduğu
+    // saatleri hiç görmüyordu: gece yarısı testi yerelde geçip CI'da
+    // kırıldı. Ürün Türkiye'de çalışıyor; test de o saatte koşsun.
+    env: { TZ: 'Europe/Istanbul' },
     setupFiles: ['./src/test/setup.ts'],
     globals: true,
     coverage: { reporter: ['text'], include: ['src/**/*.{ts,tsx}'] },
