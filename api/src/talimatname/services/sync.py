@@ -47,6 +47,8 @@ from talimatname.domain.sync import (
     MANIFEST_HORIZON_HOURS,
     MANIFEST_HORIZON_MAX_HOURS,
     MANIFEST_REFRESH_MINUTES,
+    MAX_BATCH_ANSWERS,
+    MAX_BATCH_EVIDENCE,
     NOT_DONE_REASON_LABELS,
     QUEUE_EVIDENCE_LIMIT,
     QUEUE_HOURS,
@@ -134,6 +136,13 @@ class QueuePolicy:
     max_evidence_bytes: int = MAX_BYTES
     queue_evidence_limit: int = QUEUE_EVIDENCE_LIMIT
     queue_hours: int = QUEUE_HOURS
+    #: Tek **partide** en çok kaç kayıt. Kuyruk sınırından ayrı:
+    #: `queue_evidence_limit` cihazın biriktirebileceği toplam, bunlar
+    #: bir isteğe sığan. Eksiklerdi ve aşılınca sunucu **bütün isteği**
+    #: 422 ile reddediyordu — modülün kendi ilkesiyle çelişen, kuyruğu
+    #: sonsuza kadar tıkayan hâl (Spike A bulgusu).
+    batch_answer_limit: int = MAX_BATCH_ANSWERS
+    batch_evidence_limit: int = MAX_BATCH_EVIDENCE
 
 
 @dataclass(frozen=True, slots=True)

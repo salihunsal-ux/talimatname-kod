@@ -6439,6 +6439,14 @@
           "queue_hours": {
             "type": "integer",
             "title": "Queue Hours"
+          },
+          "batch_answer_limit": {
+            "type": "integer",
+            "title": "Batch Answer Limit"
+          },
+          "batch_evidence_limit": {
+            "type": "integer",
+            "title": "Batch Evidence Limit"
           }
         },
         "type": "object",
@@ -6446,7 +6454,9 @@
           "max_evidence_per_item",
           "max_evidence_bytes",
           "queue_evidence_limit",
-          "queue_hours"
+          "queue_hours",
+          "batch_answer_limit",
+          "batch_evidence_limit"
         ],
         "title": "KuyrukPolitikasi",
         "description": "Cihazın uygulayacağı sınırlar (FR-0604, FR-0605, FR-0706)."

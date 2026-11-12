@@ -119,6 +119,10 @@ class KuyrukPolitikasi(BaseModel):
     max_evidence_bytes: int
     queue_evidence_limit: int
     queue_hours: int
+    #: Tek partiye sığan kayıt sayısı; kuyruk sınırından ayrı. Cihaz
+    #: kuyruğunu buna göre dilimler (Spike A bulgusu).
+    batch_answer_limit: int
+    batch_evidence_limit: int
 
 
 class ManifestCiktisi(BaseModel):

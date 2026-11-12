@@ -2860,6 +2860,10 @@ export interface components {
             queue_evidence_limit: number;
             /** Queue Hours */
             queue_hours: number;
+            /** Batch Answer Limit */
+            batch_answer_limit: number;
+            /** Batch Evidence Limit */
+            batch_evidence_limit: number;
         };
         /**
          * KuyruktakiCevap
