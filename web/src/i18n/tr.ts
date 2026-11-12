@@ -324,6 +324,22 @@ export const tr = {
     grupNe: 'Ne yapılacak',
     grupNeZaman: 'Ne zaman',
     grupPencere: 'Pencere ve tolerans',
+    grupKim: 'Kim yapacak',
+    atama: 'Atama',
+    atamaHerkes: 'Şubedeki herkes',
+    atamaRol: 'Belirli bir rol',
+    atamaKisi: 'Belirli bir kişi',
+    atamaRolSec: 'Rol',
+    atamaKisiSec: 'Kişi',
+    // Atama yalnızca "kim görecek" değil, "kime bildirim gidecek"
+    // demek (FR-0508). Varsayılan "herkes"te şubedeki her çalışan her
+    // pencerenin hatırlatmasını alıyor: günde 7 pencereli bir liste,
+    // 3 kişilik şubede 21 bildirim eder.
+    atamaAciklama:
+      'Pencere hatırlatmaları atanana gider. “Şubedeki herkes” seçiliyken listeyi ilk açan üstlenir, ama bildirimi şubedeki her çalışan alır.',
+    atamaKisiTekSube: 'Kişi ataması için tek şube seçin: bir kişi birden çok şubede çalışamaz.',
+    atamaKisiYok: 'Bu şubede atanabilecek aktif personel yok.',
+    atamaHerkesKisa: 'Herkes',
     // Tekrar dizgesi RFC 5545 (FR-0503); ekranda okunur hâli yazılır.
     // Tanınmayan dizge olduğu gibi gösterilir: uydurmaktan iyidir.
     gunAdlari: ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'],

@@ -13,20 +13,11 @@ import {
 } from '../../api/personel';
 import { subeAgaci } from '../../api/subeler';
 import { Cip } from '../../bilesenler/Cip';
-import { useYonetici } from '../../api/yetki';
+import { ROLLER, useYonetici } from '../../api/yetki';
 import { tr } from '../../i18n/tr';
 import { Dugme } from '../../bilesenler/Dugme';
 import { Hata } from '../../bilesenler/Durum';
 import { IskeletTablo } from '../../bilesenler/Iskelet';
-
-const ROLLER: { deger: Rol; etiket: string; kapsam: 'yok' | 'bolge' | 'sube' }[] = [
-  { deger: 'admin', etiket: 'Yönetici', kapsam: 'yok' },
-  { deger: 'region_manager', etiket: 'Bölge müdürü', kapsam: 'bolge' },
-  // Denetçi de bölge kapsamlı: şubeye gider ama şubeye bağlı değil.
-  { deger: 'auditor', etiket: 'Denetçi', kapsam: 'bolge' },
-  { deger: 'branch_manager', etiket: 'Şube müdürü', kapsam: 'sube' },
-  { deger: 'staff', etiket: 'Personel', kapsam: 'sube' },
-];
 
 /**
  * SCR-W-03 · Personel ve roller: liste, süzme, davet, pasifleştirme ve

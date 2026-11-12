@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { personelListesi } from '../../api/personel';
 import { gununCalistirmalari, planListesi, planOnizleme } from '../../api/planlar';
 import { sablonListesi } from '../../api/sablonlar';
 import { subeAgaci } from '../../api/subeler';
@@ -12,12 +13,14 @@ import { PlanlarSayfasi } from './PlanlarSayfasi';
 vi.mock('../../api/planlar');
 vi.mock('../../api/sablonlar');
 vi.mock('../../api/subeler');
+vi.mock('../../api/personel');
 
 const planlar = vi.mocked(planListesi);
 const calistirmalar = vi.mocked(gununCalistirmalari);
 const onizleme = vi.mocked(planOnizleme);
 const sablonlar = vi.mocked(sablonListesi);
 const subeler = vi.mocked(subeAgaci);
+const personel = vi.mocked(personelListesi);
 
 function kur() {
   const istemci = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -86,6 +89,33 @@ beforeEach(() => {
           scored_item_count: 7,
           critical_item_count: 2,
           photo_item_count: 2,
+        },
+      ],
+    },
+  ]);
+  personel.mockResolvedValue([
+    {
+      id: 'u-1',
+      full_name: 'Emre Personel',
+      phone: '+905321110005',
+      status: 'active',
+      assignments: [
+        { role: 'staff', role_label: 'Personel', scope_type: 'branch', scope_id: 'b-1' },
+      ],
+    },
+    {
+      // Bölge müdürü şubeyi görür ama orada çalışmaz: atanabilir
+      // listesinde olmamalı (sunucudaki WORKER_ROLES ile aynı küme).
+      id: 'u-2',
+      full_name: 'Murat Bölge',
+      phone: '+905321110002',
+      status: 'active',
+      assignments: [
+        {
+          role: 'region_manager',
+          role_label: 'Bölge müdürü',
+          scope_type: 'region',
+          scope_id: 'reg-1',
         },
       ],
     },
@@ -195,5 +225,72 @@ describe('Planlar sayfası', () => {
     expect(screen.queryByLabelText('Pzt')).not.toBeInTheDocument();
     await userEvent.selectOptions(screen.getByLabelText('Tekrar'), 'weekly');
     expect(screen.getByLabelText('Pzt')).toBeInTheDocument();
+  });
+
+  it('atama varsayılanı "herkes" ve listede görünür', async () => {
+    // Ayarlanabilen ama görünmeyen alan, ayarlanmamış sayılır: plan
+    // satırı kime gittiğini söylemiyordu.
+    kur();
+    await screen.findByText('Günlük kapanış');
+
+    expect(screen.getByRole('group', { name: 'Kim yapacak' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Atama')).toHaveValue('anyone');
+    expect(screen.getByRole('cell', { name: 'Herkes' })).toBeInTheDocument();
+  });
+
+  it('rol ataması gövdeye geçer ve yalnızca çalışan roller seçilebilir', async () => {
+    // Hatırlatma atanana gidiyor (FR-0508). Yönetici ve bölge müdürü
+    // şubede çalışmıyor; plana atanmaları hatırlatmayı işi yapmayacak
+    // kişiye göndermek olurdu.
+    onizleme.mockResolvedValue({ days: 7, run_count: 0, runs: [] });
+    kur();
+    await screen.findByText('Günlük kapanış');
+    await userEvent.type(screen.getByLabelText('Plan adı'), 'Tuvalet kontrolü');
+    await userEvent.selectOptions(screen.getByLabelText('Şablon'), 'v-1');
+    await userEvent.click(screen.getByLabelText('Kadıköy'));
+    await userEvent.selectOptions(screen.getByLabelText('Atama'), 'role');
+
+    const roller = [...screen.getByLabelText('Rol').querySelectorAll('option')].map(
+      (o) => o.textContent,
+    );
+    expect(roller).toEqual(['Şube müdürü', 'Personel']);
+
+    await userEvent.selectOptions(screen.getByLabelText('Rol'), 'staff');
+    await userEvent.click(screen.getByRole('button', { name: '7 gün önizle' }));
+
+    expect(onizleme).toHaveBeenCalledWith(
+      expect.objectContaining({
+        assignment: { kind: 'role', role: 'staff', user_id: null },
+      }),
+    );
+  });
+
+  it('kişi ataması birden çok şubede engellenir', async () => {
+    kur();
+    await screen.findByText('Günlük kapanış');
+    await userEvent.selectOptions(screen.getByLabelText('Atama'), 'user');
+
+    // Hiç şube seçilmemişken de aynı uyarı: tek şube şart.
+    expect(screen.getByText(/Kişi ataması için tek şube seçin/)).toBeInTheDocument();
+    expect(screen.queryByLabelText('Kişi')).not.toBeInTheDocument();
+  });
+
+  it('tek şubede kişi seçilir, seçilmeden kaydedilemez', async () => {
+    kur();
+    await screen.findByText('Günlük kapanış');
+    await userEvent.type(screen.getByLabelText('Plan adı'), 'Tuvalet kontrolü');
+    await userEvent.selectOptions(screen.getByLabelText('Şablon'), 'v-1');
+    await userEvent.click(screen.getByLabelText('Kadıköy'));
+    await userEvent.selectOptions(screen.getByLabelText('Atama'), 'user');
+
+    const secim = await screen.findByLabelText('Kişi');
+    const adlar = [...secim.querySelectorAll('option')].map((o) => o.textContent);
+    expect(adlar).toEqual(['Seçiniz', 'Emre Personel']);
+
+    // Kişi seçilmeden önizleme kapalı: sunucu da reddediyor, 422
+    // göstermek kullanıcıya bilgi vermiyor.
+    expect(screen.getByRole('button', { name: '7 gün önizle' })).toBeDisabled();
+    await userEvent.selectOptions(secim, 'u-1');
+    expect(screen.getByRole('button', { name: '7 gün önizle' })).toBeEnabled();
   });
 });

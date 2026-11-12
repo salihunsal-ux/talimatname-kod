@@ -13,8 +13,9 @@ import {
 } from '../../api/planlar';
 import { sablonListesi } from '../../api/sablonlar';
 import { subeAgaci } from '../../api/subeler';
+import { personelListesi, type Rol } from '../../api/personel';
 import { Cip } from '../../bilesenler/Cip';
-import { useYonetici } from '../../api/yetki';
+import { CALISAN_ROLLERI, ROLLER, rolEtiketi, useYonetici } from '../../api/yetki';
 import { bugunIso } from '../../tarih';
 import { tr } from '../../i18n/tr';
 import { Dugme } from '../../bilesenler/Dugme';
@@ -33,6 +34,13 @@ const DURUM_CIPI: Record<string, { renk: 'marka' | 'uyari' | 'kritik' | 'pasif';
 
 function saat(iso: string): string {
   return new Date(iso).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+}
+
+/** Atamanın okunur hâli; kişi adı listede yok, kimlik gösterilmez. */
+function atamaMetni(atama: { kind?: string; role?: string | null }): string {
+  if (atama.kind === 'role') return rolEtiketi(atama.role ?? '');
+  if (atama.kind === 'user') return tr.plan.atamaKisi;
+  return tr.plan.atamaHerkesKisa;
 }
 
 function gunAdi(isoTarih: string): string {
@@ -93,6 +101,7 @@ export function PlanlarSayfasi() {
                 <th>{tr.plan.tekrar}</th>
                 <th>{tr.plan.pencere}</th>
                 <th>{tr.plan.kapsam}</th>
+                <th>{tr.plan.atama}</th>
                 <th className="eylem">{tr.personel.islem}</th>
               </tr>
             </thead>
@@ -115,6 +124,7 @@ export function PlanlarSayfasi() {
                   <td>
                     {plan.branch_count} {tr.plan.sube}
                   </td>
+                  <td className="ikincil">{atamaMetni(plan.assignment)}</td>
                   <td className="eylem">
                     {yonetici && (
                       <Dugme
@@ -197,11 +207,26 @@ function PlanFormu() {
   const [ofset, setOfset] = useState(-60);
   const [sure, setSure] = useState(120);
   const [tolerans, setTolerans] = useState(30);
+  const [atamaTuru, setAtamaTuru] = useState<'anyone' | 'role' | 'user'>('anyone');
+  const [atamaRol, setAtamaRol] = useState<Rol>('staff');
+  const [atamaKisi, setAtamaKisi] = useState('');
 
   const yayindakiSurumler = (sablonlar.data ?? []).flatMap((s) =>
     s.versions.filter((v) => v.status === 'published').map((v) => ({ ...v, name: s.name })),
   );
   const duzSubeler = (subeler.data ?? []).flatMap((b) => b.branches);
+  // Kişi ataması tek şubede anlamlı: bir kişi üç şubede aynı anda
+  // çalışamaz. Liste de o şubeden geliyor.
+  const tekSube = seciliSubeler.length === 1 ? seciliSubeler[0] : null;
+  const adaylar = useQuery({
+    queryKey: ['personel', tekSube],
+    queryFn: () => personelListesi({ branchId: tekSube ?? undefined }),
+    enabled: atamaTuru === 'user' && tekSube !== null,
+  });
+  const atanabilir = (adaylar.data ?? []).filter(
+    (k) =>
+      k.status === 'active' && k.assignments.some((a) => CALISAN_ROLLERI.includes(a.role as Rol)),
+  );
 
   const girdi: PlanGirdisi = {
     name: ad,
@@ -225,10 +250,18 @@ function PlanFormu() {
       duration_minutes: sure,
       tolerance_minutes: tolerans,
     },
-    assignment: { kind: 'anyone', role: null, user_id: null },
+    assignment: {
+      kind: atamaTuru,
+      role: atamaTuru === 'role' ? atamaRol : null,
+      user_id: atamaTuru === 'user' && atamaKisi !== '' ? atamaKisi : null,
+    },
   };
 
-  const hazir = ad.trim() !== '' && surumId !== '' && seciliSubeler.length > 0;
+  const hazir =
+    ad.trim() !== '' &&
+    surumId !== '' &&
+    seciliSubeler.length > 0 &&
+    (atamaTuru !== 'user' || atamaKisi !== '');
 
   const onizleme = useMutation({ mutationFn: () => planOnizleme(girdi) });
   const olustur = useMutation({
@@ -236,6 +269,8 @@ function PlanFormu() {
     onSuccess: async () => {
       setAd('');
       setSeciliSubeler([]);
+      setAtamaTuru('anyone');
+      setAtamaKisi('');
       onizleme.reset();
       await kuyruk.invalidateQueries({ queryKey: ['planlar'] });
       await kuyruk.invalidateQueries({ queryKey: ['calistirmalar'] });
@@ -566,6 +601,65 @@ function PlanFormu() {
               </label>
             ))}
           </div>
+        </fieldset>
+
+        <fieldset className="alan-grubu">
+          <legend>{tr.plan.grupKim}</legend>
+          <div className="alan-sirasi">
+            <label className="alan-etiket">
+              {tr.plan.atama}
+              <select
+                value={atamaTuru}
+                onChange={(o) => setAtamaTuru(o.target.value as typeof atamaTuru)}
+                className="alan"
+              >
+                <option value="anyone">{tr.plan.atamaHerkes}</option>
+                <option value="role">{tr.plan.atamaRol}</option>
+                <option value="user">{tr.plan.atamaKisi}</option>
+              </select>
+            </label>
+
+            {atamaTuru === 'role' && (
+              <label className="alan-etiket">
+                {tr.plan.atamaRolSec}
+                <select
+                  value={atamaRol}
+                  onChange={(o) => setAtamaRol(o.target.value as Rol)}
+                  className="alan"
+                >
+                  {ROLLER.filter((r) => CALISAN_ROLLERI.includes(r.deger)).map((r) => (
+                    <option key={r.deger} value={r.deger}>
+                      {r.etiket}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+
+            {atamaTuru === 'user' &&
+              (tekSube === null ? (
+                <p className="bildiri bildiri--uyari">{tr.plan.atamaKisiTekSube}</p>
+              ) : atanabilir.length === 0 && !adaylar.isPending ? (
+                <p className="bildiri bildiri--uyari">{tr.plan.atamaKisiYok}</p>
+              ) : (
+                <label className="alan-etiket">
+                  {tr.plan.atamaKisiSec}
+                  <select
+                    value={atamaKisi}
+                    onChange={(o) => setAtamaKisi(o.target.value)}
+                    className="alan"
+                  >
+                    <option value="">{tr.personel.seciniz}</option>
+                    {atanabilir.map((k) => (
+                      <option key={k.id} value={k.id}>
+                        {k.full_name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ))}
+          </div>
+          <p className="ikincil-metin">{tr.plan.atamaAciklama}</p>
         </fieldset>
       </div>
 

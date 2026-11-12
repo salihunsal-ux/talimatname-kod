@@ -11,6 +11,31 @@ import type { Ben } from './oturum';
 
 export type Rol = 'admin' | 'region_manager' | 'auditor' | 'branch_manager' | 'staff';
 
+/**
+ * Roller ve kapsamları — **tek liste**. Önce personel sayfasının
+ * içinde duruyordu; plan editörü de rol seçtirmeye başlayınca ikinci
+ * kopya çıkacaktı ve iki liste zamanla ayrışırdı.
+ */
+export const ROLLER: { deger: Rol; etiket: string; kapsam: 'yok' | 'bolge' | 'sube' }[] = [
+  { deger: 'admin', etiket: 'Yönetici', kapsam: 'yok' },
+  { deger: 'region_manager', etiket: 'Bölge müdürü', kapsam: 'bolge' },
+  // Denetçi de bölge kapsamlı: şubeye gider ama şubeye bağlı değil.
+  { deger: 'auditor', etiket: 'Denetçi', kapsam: 'bolge' },
+  { deger: 'branch_manager', etiket: 'Şube müdürü', kapsam: 'sube' },
+  { deger: 'staff', etiket: 'Personel', kapsam: 'sube' },
+];
+
+/**
+ * Listeyi **yapan** roller (sunucudaki `WORKER_ROLES` ile aynı küme).
+ * Yönetici ve bölge müdürü her şubeyi görür ama orada çalışmaz;
+ * plana onları atamak, hatırlatmayı yapmayacak kişiye göndermektir.
+ */
+export const CALISAN_ROLLERI: Rol[] = ['branch_manager', 'staff'];
+
+export function rolEtiketi(rol: string): string {
+  return ROLLER.find((r) => r.deger === rol)?.etiket ?? rol;
+}
+
 export const OturumBaglami = createContext<Ben | null>(null);
 
 export function useBen(): Ben | null {
