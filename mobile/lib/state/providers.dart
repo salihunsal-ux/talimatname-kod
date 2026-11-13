@@ -125,6 +125,20 @@ final syncingProvider = NotifierProvider<SyncingNotifier, bool>(
   SyncingNotifier.new,
 );
 
+/// Her senk turundan sonra artan sayaç. Kuyruk satırlarını gösteren
+/// sağlayıcılar bunu izliyor: gönderim satırların `sent` durumunu
+/// değiştiriyor ama ekran bunu kendiliğinden öğrenemiyor. İlk hâlinde
+/// gönderilmiş cevap "Gönderilmeyi bekliyor" diye kalıyordu, üst bant
+/// ise "Hepsi gönderildi" diyordu — emülatörde görüldü.
+class SyncTick extends Notifier<int> {
+  @override
+  int build() => 0;
+
+  void bump() => state++;
+}
+
+final syncTickProvider = NotifierProvider<SyncTick, int>(SyncTick.new);
+
 /// Kuyruğu gönderir. Sonuç ekranda sayacı tazeler; hata **yutulmaz**,
 /// kayıt kuyrukta kalır ve sayaç bunu gösterir.
 final syncProvider = Provider<Future<SyncOutcome> Function()>((ref) {
@@ -140,6 +154,7 @@ final syncProvider = Provider<Future<SyncOutcome> Function()>((ref) {
     } finally {
       ref.read(syncingProvider.notifier).set(false);
       ref.invalidate(pendingCountProvider);
+      ref.read(syncTickProvider.notifier).bump();
     }
   };
 });

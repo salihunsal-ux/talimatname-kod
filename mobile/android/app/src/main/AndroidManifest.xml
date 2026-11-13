@@ -1,6 +1,10 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+﻿<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Uygulama sunucuyla konuÅŸuyor. Åablon bu izni yalnÄ±zca debug
+         manifestine koyuyor: sÃ¼rÃ¼m derlemesi izinsiz Ã§Ä±kar ve her istek
+         sessizce "aÄŸ yok" olur. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
-        android:label="talimatname_saha"
+        android:label="Talimatname"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

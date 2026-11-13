@@ -40,6 +40,8 @@ final queuedForRunProvider = FutureProvider.family<List<QueuedAnswer>, String>((
   ref,
   runId,
 ) async {
+  // Senk satırların durumunu değiştirir; tur bitince yeniden oku.
+  ref.watch(syncTickProvider);
   final queue = await ref.watch(answerQueueProvider.future);
   return queue.forRun(runId);
 });

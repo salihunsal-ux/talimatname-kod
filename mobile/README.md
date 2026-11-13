@@ -44,6 +44,30 @@ flutter run --dart-define=API_BASE=https://demo.talimatname.com/api/v1
 SMS sağlayıcısı bağlı olmadığı sürece giriş kodu **ekranda** gösterilir
 ve uygulama bunu açıkça söyler (ST-067): "kod telefona gönderilmedi".
 
+## Emülatörde doğrulama (13 Kasım)
+
+Sanal cihaz `talimatname` (Pixel 6, Android 16). Hızlandırma için
+Windows Hypervisor Platform açık olmalı.
+
+```sh
+emulator -avd talimatname
+flutter run --dart-define=API_BASE=https://demo.talimatname.com/api/v1
+```
+
+Demo sunucusuna karşı görülenler: giriş, bugünün listeleri, bağlantılı
+cevap, **uçak modunda cevap → uygulamayı öldür → aç → kuyruk duruyor →
+bağlantı gelince sunucuya ulaşıyor**. Spike A'nın istemci ölçütü buydu.
+
+Görülen ve henüz yapılmayanlar:
+
+- Bağlantı geri geldiğinde senk **kendiliğinden başlamıyor**; yeni bir
+  cevap ya da üst banttaki sayaca dokunmak gerekiyor. Arka plan senki
+  (WorkManager) sırada.
+- Uygulama çevrimdışı açılırsa liste gelmiyor: manifest cihazda
+  saklanmıyor. Kuyruk ve oturum duruyor ama ekran boş.
+- Listeyi **gönderme** (submit) adımı yok; cevaplar sunucuya gidiyor,
+  çalıştırma "devam ediyor"da kalıyor.
+
 ## Kapılar
 
 ```sh
@@ -81,11 +105,8 @@ ve adresleri `DriftWebOptions` ile verildi, ama tarayıcıda veritabanı
 günlüğünde **o dosyalara hiç istek görünmüyor**, yani hata getirmeden
 önce oluşuyor. Kök nedene inilmedi.
 
-Sonucu: **liste doldurma tarayıcıda denenemiyor.** Kuyruğun davranışı
-`test/answer_queue_test.dart` ile kapalı (12 test, bellek içi sqlite) ve
-ekran derleniyor, ama bir cevabın gerçekten yazılıp gönderildiği
-uçtan uca **yalnızca testlerde** görüldü; gerçek cihazda görülmedi.
-Sıradaki doğrulama Android telefonda.
+Sonucu: **liste doldurma tarayıcıda denenemiyor**; doğrulama Android
+emülatöründe yapılıyor.
 
 Ekran bu durumu saklamıyor: kuyruk açılamazsa üst bantta "Kuyruk
 açılamadı" yazıyor. Sessizce "hepsi gönderildi" demek, gönderilmemişken
