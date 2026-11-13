@@ -113,6 +113,8 @@ class AnswerQueue {
     String contentType = 'image/jpeg',
     QueuePolicy? policy,
     DateTime? at,
+    double? latitude,
+    double? longitude,
   }) async {
     final dizin = evidenceDir;
     if (dizin == null) return PhotoResult.unsupported;
@@ -148,6 +150,8 @@ class AnswerQueue {
         contentType: contentType,
         capturedAt: at ?? DateTime.now(),
         deviceId: deviceId,
+        latitude: Value(latitude),
+        longitude: Value(longitude),
       ),
     );
     // Cevap kanıt sayısını beyan ediyor; sayı değişti, yeniden gitmeli.
@@ -331,6 +335,11 @@ class AnswerQueue {
     'from_gallery': false,
     'captured_at': k.capturedAt.toUtc().toIso8601String(),
     'device_id': k.deviceId,
+    // Konum yoksa alan hiç gitmez; sunucu "konum yok" bayrağını koyar.
+    if (k.latitude != null && k.longitude != null) ...{
+      'latitude': k.latitude,
+      'longitude': k.longitude,
+    },
   };
 
   Map<String, dynamic> _toWire(QueuedAnswer row, int evidenceCount) => {

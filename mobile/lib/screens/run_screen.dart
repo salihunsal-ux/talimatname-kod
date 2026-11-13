@@ -19,6 +19,7 @@ import '../api/run_models.dart';
 import '../l10n/strings.dart';
 import '../queue/answer_queue.dart';
 import '../queue/database.dart';
+import '../queue/location.dart';
 import '../state/providers.dart';
 import '../state/run_providers.dart';
 import '../theme/tokens.dart';
@@ -429,14 +430,38 @@ class _ItemCardState extends ConsumerState<_ItemCard> {
   }
 
   Future<void> _takePhoto() async {
+    // Sistem izin penceresinden önce **neden** istendiği söylenir;
+    // açıklamasız konum izni reddedilir ve reddedilmesi de haklıdır.
+    if (await locationNeedsRationale() && mounted) {
+      await showDialog<void>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text(S.locationWhyTitle),
+          content: const Text(S.locationWhyBody),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text(S.locationWhyOk),
+            ),
+          ],
+        ),
+      );
+    }
+    if (!mounted) return;
+    // Konum, personel kadrajı ayarlarken **paralel** okunur: fotoğrafın
+    // kabulünü bekletmemek için.
+    final konum = currentCoordinates();
     final baytlar = await Navigator.of(
       context,
     ).push<List<int>>(MaterialPageRoute(builder: (_) => const CameraScreen()));
     if (baytlar == null || !mounted) return;
+    final yer = await konum;
     final sonuc = await ref.read(addPhotoProvider)(
       runId: widget.runId,
       itemId: item.itemId,
       bytes: baytlar,
+      latitude: yer?.latitude,
+      longitude: yer?.longitude,
     );
     if (!mounted || sonuc == PhotoResult.added) return;
     final mesaj = switch (sonuc) {

@@ -91,12 +91,16 @@ final addPhotoProvider =
         required String runId,
         required String itemId,
         required List<int> bytes,
+        double? latitude,
+        double? longitude,
       })
     >((ref) {
       return ({
         required String runId,
         required String itemId,
         required List<int> bytes,
+        double? latitude,
+        double? longitude,
       }) async {
         final queue = await ref.read(answerQueueProvider.future);
         final sonuc = await queue.addPhoto(
@@ -104,6 +108,8 @@ final addPhotoProvider =
           itemId: itemId,
           bytes: bytes,
           policy: ref.read(manifestProvider).value?.policy,
+          latitude: latitude,
+          longitude: longitude,
         );
         if (sonuc == PhotoResult.added) {
           ref.invalidate(evidenceForRunProvider(runId));

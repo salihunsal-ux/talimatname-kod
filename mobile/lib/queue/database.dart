@@ -92,6 +92,10 @@ class QueuedEvidence extends Table {
   DateTimeColumn get capturedAt => dateTime()();
   TextColumn get deviceId => text()();
 
+  /// Çekim anındaki konum; alınamadıysa boş (izin yok, GPS kapalı).
+  RealColumn get latitude => real().nullable()();
+  RealColumn get longitude => real().nullable()();
+
   /// Baytlar yüklendi ve sunucu özeti doğruladı.
   BoolColumn get uploaded => boolean().withDefault(const Constant(false))();
   BoolColumn get blocked => boolean().withDefault(const Constant(false))();
@@ -122,7 +126,7 @@ class QueueDatabase extends _$QueueDatabase {
       );
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -132,7 +136,14 @@ class QueueDatabase extends _$QueueDatabase {
       // yükseltme, gönderilmemiş cevabı silemez.
       if (from < 2) await m.createTable(cachedDocs);
       // 2 → 3: kanıt kuyruğu.
-      if (from < 3) await m.createTable(queuedEvidence);
+      if (from < 3) {
+        await m.createTable(queuedEvidence);
+      } else if (from < 4) {
+        // 3 → 4: kanıta konum. Tablo 3'te kurulduysa sütun eklenir;
+        // daha eskiden gelen kurulum tabloyu zaten yeni hâliyle kurdu.
+        await m.addColumn(queuedEvidence, queuedEvidence.latitude);
+        await m.addColumn(queuedEvidence, queuedEvidence.longitude);
+      }
     },
   );
 

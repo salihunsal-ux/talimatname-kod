@@ -96,6 +96,13 @@ abstract final class S {
       'Cihazda bekleyen fotoğraf sınırı doldu. Bağlantı gelip yüklenince '
       'yenisini çekebilirsiniz.';
   static const photoUnsupported = 'Bu cihazda fotoğraf çekilemiyor.';
+  static const locationWhyTitle = 'Konum neden isteniyor?';
+  static const locationWhyBody =
+      'Fotoğrafın şubede çekildiğini göstermek için çekim anındaki konum '
+      'fotoğrafla birlikte kaydedilir. Konum yalnızca fotoğraf çekerken '
+      'okunur; sürekli izlenmez. İzin vermezseniz de fotoğraf çekebilirsiniz, '
+      'o fotoğraf “konum yok” olarak işaretlenir.';
+  static const locationWhyOk = 'Anladım';
   static const cameraMissing = 'Bu cihazda kamera bulunamadı.';
   static const cameraDenied =
       'Kamera izni verilmedi. Ayarlardan izin verip yeniden deneyin.';

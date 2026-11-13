@@ -1117,6 +1117,28 @@ class $QueuedEvidenceTable extends QueuedEvidence
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _latitudeMeta = const VerificationMeta(
+    'latitude',
+  );
+  @override
+  late final GeneratedColumn<double> latitude = GeneratedColumn<double>(
+    'latitude',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _longitudeMeta = const VerificationMeta(
+    'longitude',
+  );
+  @override
+  late final GeneratedColumn<double> longitude = GeneratedColumn<double>(
+    'longitude',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _uploadedMeta = const VerificationMeta(
     'uploaded',
   );
@@ -1170,6 +1192,8 @@ class $QueuedEvidenceTable extends QueuedEvidence
     contentType,
     capturedAt,
     deviceId,
+    latitude,
+    longitude,
     uploaded,
     blocked,
     lastErrorCode,
@@ -1269,6 +1293,18 @@ class $QueuedEvidenceTable extends QueuedEvidence
     } else if (isInserting) {
       context.missing(_deviceIdMeta);
     }
+    if (data.containsKey('latitude')) {
+      context.handle(
+        _latitudeMeta,
+        latitude.isAcceptableOrUnknown(data['latitude']!, _latitudeMeta),
+      );
+    }
+    if (data.containsKey('longitude')) {
+      context.handle(
+        _longitudeMeta,
+        longitude.isAcceptableOrUnknown(data['longitude']!, _longitudeMeta),
+      );
+    }
     if (data.containsKey('uploaded')) {
       context.handle(
         _uploadedMeta,
@@ -1339,6 +1375,14 @@ class $QueuedEvidenceTable extends QueuedEvidence
         DriftSqlType.string,
         data['${effectivePrefix}device_id'],
       )!,
+      latitude: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}latitude'],
+      ),
+      longitude: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}longitude'],
+      ),
       uploaded: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}uploaded'],
@@ -1376,6 +1420,10 @@ class QueuedEvidenceData extends DataClass
   final DateTime capturedAt;
   final String deviceId;
 
+  /// Çekim anındaki konum; alınamadıysa boş (izin yok, GPS kapalı).
+  final double? latitude;
+  final double? longitude;
+
   /// Baytlar yüklendi ve sunucu özeti doğruladı.
   final bool uploaded;
   final bool blocked;
@@ -1391,6 +1439,8 @@ class QueuedEvidenceData extends DataClass
     required this.contentType,
     required this.capturedAt,
     required this.deviceId,
+    this.latitude,
+    this.longitude,
     required this.uploaded,
     required this.blocked,
     this.lastErrorCode,
@@ -1408,6 +1458,12 @@ class QueuedEvidenceData extends DataClass
     map['content_type'] = Variable<String>(contentType);
     map['captured_at'] = Variable<DateTime>(capturedAt);
     map['device_id'] = Variable<String>(deviceId);
+    if (!nullToAbsent || latitude != null) {
+      map['latitude'] = Variable<double>(latitude);
+    }
+    if (!nullToAbsent || longitude != null) {
+      map['longitude'] = Variable<double>(longitude);
+    }
     map['uploaded'] = Variable<bool>(uploaded);
     map['blocked'] = Variable<bool>(blocked);
     if (!nullToAbsent || lastErrorCode != null) {
@@ -1428,6 +1484,12 @@ class QueuedEvidenceData extends DataClass
       contentType: Value(contentType),
       capturedAt: Value(capturedAt),
       deviceId: Value(deviceId),
+      latitude: latitude == null && nullToAbsent
+          ? const Value.absent()
+          : Value(latitude),
+      longitude: longitude == null && nullToAbsent
+          ? const Value.absent()
+          : Value(longitude),
       uploaded: Value(uploaded),
       blocked: Value(blocked),
       lastErrorCode: lastErrorCode == null && nullToAbsent
@@ -1452,6 +1514,8 @@ class QueuedEvidenceData extends DataClass
       contentType: serializer.fromJson<String>(json['contentType']),
       capturedAt: serializer.fromJson<DateTime>(json['capturedAt']),
       deviceId: serializer.fromJson<String>(json['deviceId']),
+      latitude: serializer.fromJson<double?>(json['latitude']),
+      longitude: serializer.fromJson<double?>(json['longitude']),
       uploaded: serializer.fromJson<bool>(json['uploaded']),
       blocked: serializer.fromJson<bool>(json['blocked']),
       lastErrorCode: serializer.fromJson<String?>(json['lastErrorCode']),
@@ -1471,6 +1535,8 @@ class QueuedEvidenceData extends DataClass
       'contentType': serializer.toJson<String>(contentType),
       'capturedAt': serializer.toJson<DateTime>(capturedAt),
       'deviceId': serializer.toJson<String>(deviceId),
+      'latitude': serializer.toJson<double?>(latitude),
+      'longitude': serializer.toJson<double?>(longitude),
       'uploaded': serializer.toJson<bool>(uploaded),
       'blocked': serializer.toJson<bool>(blocked),
       'lastErrorCode': serializer.toJson<String?>(lastErrorCode),
@@ -1488,6 +1554,8 @@ class QueuedEvidenceData extends DataClass
     String? contentType,
     DateTime? capturedAt,
     String? deviceId,
+    Value<double?> latitude = const Value.absent(),
+    Value<double?> longitude = const Value.absent(),
     bool? uploaded,
     bool? blocked,
     Value<String?> lastErrorCode = const Value.absent(),
@@ -1502,6 +1570,8 @@ class QueuedEvidenceData extends DataClass
     contentType: contentType ?? this.contentType,
     capturedAt: capturedAt ?? this.capturedAt,
     deviceId: deviceId ?? this.deviceId,
+    latitude: latitude.present ? latitude.value : this.latitude,
+    longitude: longitude.present ? longitude.value : this.longitude,
     uploaded: uploaded ?? this.uploaded,
     blocked: blocked ?? this.blocked,
     lastErrorCode: lastErrorCode.present
@@ -1526,6 +1596,8 @@ class QueuedEvidenceData extends DataClass
           ? data.capturedAt.value
           : this.capturedAt,
       deviceId: data.deviceId.present ? data.deviceId.value : this.deviceId,
+      latitude: data.latitude.present ? data.latitude.value : this.latitude,
+      longitude: data.longitude.present ? data.longitude.value : this.longitude,
       uploaded: data.uploaded.present ? data.uploaded.value : this.uploaded,
       blocked: data.blocked.present ? data.blocked.value : this.blocked,
       lastErrorCode: data.lastErrorCode.present
@@ -1547,6 +1619,8 @@ class QueuedEvidenceData extends DataClass
           ..write('contentType: $contentType, ')
           ..write('capturedAt: $capturedAt, ')
           ..write('deviceId: $deviceId, ')
+          ..write('latitude: $latitude, ')
+          ..write('longitude: $longitude, ')
           ..write('uploaded: $uploaded, ')
           ..write('blocked: $blocked, ')
           ..write('lastErrorCode: $lastErrorCode')
@@ -1566,6 +1640,8 @@ class QueuedEvidenceData extends DataClass
     contentType,
     capturedAt,
     deviceId,
+    latitude,
+    longitude,
     uploaded,
     blocked,
     lastErrorCode,
@@ -1584,6 +1660,8 @@ class QueuedEvidenceData extends DataClass
           other.contentType == this.contentType &&
           other.capturedAt == this.capturedAt &&
           other.deviceId == this.deviceId &&
+          other.latitude == this.latitude &&
+          other.longitude == this.longitude &&
           other.uploaded == this.uploaded &&
           other.blocked == this.blocked &&
           other.lastErrorCode == this.lastErrorCode);
@@ -1600,6 +1678,8 @@ class QueuedEvidenceCompanion extends UpdateCompanion<QueuedEvidenceData> {
   final Value<String> contentType;
   final Value<DateTime> capturedAt;
   final Value<String> deviceId;
+  final Value<double?> latitude;
+  final Value<double?> longitude;
   final Value<bool> uploaded;
   final Value<bool> blocked;
   final Value<String?> lastErrorCode;
@@ -1615,6 +1695,8 @@ class QueuedEvidenceCompanion extends UpdateCompanion<QueuedEvidenceData> {
     this.contentType = const Value.absent(),
     this.capturedAt = const Value.absent(),
     this.deviceId = const Value.absent(),
+    this.latitude = const Value.absent(),
+    this.longitude = const Value.absent(),
     this.uploaded = const Value.absent(),
     this.blocked = const Value.absent(),
     this.lastErrorCode = const Value.absent(),
@@ -1631,6 +1713,8 @@ class QueuedEvidenceCompanion extends UpdateCompanion<QueuedEvidenceData> {
     required String contentType,
     required DateTime capturedAt,
     required String deviceId,
+    this.latitude = const Value.absent(),
+    this.longitude = const Value.absent(),
     this.uploaded = const Value.absent(),
     this.blocked = const Value.absent(),
     this.lastErrorCode = const Value.absent(),
@@ -1656,6 +1740,8 @@ class QueuedEvidenceCompanion extends UpdateCompanion<QueuedEvidenceData> {
     Expression<String>? contentType,
     Expression<DateTime>? capturedAt,
     Expression<String>? deviceId,
+    Expression<double>? latitude,
+    Expression<double>? longitude,
     Expression<bool>? uploaded,
     Expression<bool>? blocked,
     Expression<String>? lastErrorCode,
@@ -1672,6 +1758,8 @@ class QueuedEvidenceCompanion extends UpdateCompanion<QueuedEvidenceData> {
       if (contentType != null) 'content_type': contentType,
       if (capturedAt != null) 'captured_at': capturedAt,
       if (deviceId != null) 'device_id': deviceId,
+      if (latitude != null) 'latitude': latitude,
+      if (longitude != null) 'longitude': longitude,
       if (uploaded != null) 'uploaded': uploaded,
       if (blocked != null) 'blocked': blocked,
       if (lastErrorCode != null) 'last_error_code': lastErrorCode,
@@ -1690,6 +1778,8 @@ class QueuedEvidenceCompanion extends UpdateCompanion<QueuedEvidenceData> {
     Value<String>? contentType,
     Value<DateTime>? capturedAt,
     Value<String>? deviceId,
+    Value<double?>? latitude,
+    Value<double?>? longitude,
     Value<bool>? uploaded,
     Value<bool>? blocked,
     Value<String?>? lastErrorCode,
@@ -1706,6 +1796,8 @@ class QueuedEvidenceCompanion extends UpdateCompanion<QueuedEvidenceData> {
       contentType: contentType ?? this.contentType,
       capturedAt: capturedAt ?? this.capturedAt,
       deviceId: deviceId ?? this.deviceId,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
       uploaded: uploaded ?? this.uploaded,
       blocked: blocked ?? this.blocked,
       lastErrorCode: lastErrorCode ?? this.lastErrorCode,
@@ -1746,6 +1838,12 @@ class QueuedEvidenceCompanion extends UpdateCompanion<QueuedEvidenceData> {
     if (deviceId.present) {
       map['device_id'] = Variable<String>(deviceId.value);
     }
+    if (latitude.present) {
+      map['latitude'] = Variable<double>(latitude.value);
+    }
+    if (longitude.present) {
+      map['longitude'] = Variable<double>(longitude.value);
+    }
     if (uploaded.present) {
       map['uploaded'] = Variable<bool>(uploaded.value);
     }
@@ -1774,6 +1872,8 @@ class QueuedEvidenceCompanion extends UpdateCompanion<QueuedEvidenceData> {
           ..write('contentType: $contentType, ')
           ..write('capturedAt: $capturedAt, ')
           ..write('deviceId: $deviceId, ')
+          ..write('latitude: $latitude, ')
+          ..write('longitude: $longitude, ')
           ..write('uploaded: $uploaded, ')
           ..write('blocked: $blocked, ')
           ..write('lastErrorCode: $lastErrorCode, ')
@@ -2328,6 +2428,8 @@ typedef $$QueuedEvidenceTableCreateCompanionBuilder =
       required String contentType,
       required DateTime capturedAt,
       required String deviceId,
+      Value<double?> latitude,
+      Value<double?> longitude,
       Value<bool> uploaded,
       Value<bool> blocked,
       Value<String?> lastErrorCode,
@@ -2345,6 +2447,8 @@ typedef $$QueuedEvidenceTableUpdateCompanionBuilder =
       Value<String> contentType,
       Value<DateTime> capturedAt,
       Value<String> deviceId,
+      Value<double?> latitude,
+      Value<double?> longitude,
       Value<bool> uploaded,
       Value<bool> blocked,
       Value<String?> lastErrorCode,
@@ -2407,6 +2511,16 @@ class $$QueuedEvidenceTableFilterComposer
 
   ColumnFilters<String> get deviceId => $composableBuilder(
     column: $table.deviceId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get latitude => $composableBuilder(
+    column: $table.latitude,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get longitude => $composableBuilder(
+    column: $table.longitude,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -2485,6 +2599,16 @@ class $$QueuedEvidenceTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<double> get latitude => $composableBuilder(
+    column: $table.latitude,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get longitude => $composableBuilder(
+    column: $table.longitude,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get uploaded => $composableBuilder(
     column: $table.uploaded,
     builder: (column) => ColumnOrderings(column),
@@ -2546,6 +2670,12 @@ class $$QueuedEvidenceTableAnnotationComposer
   GeneratedColumn<String> get deviceId =>
       $composableBuilder(column: $table.deviceId, builder: (column) => column);
 
+  GeneratedColumn<double> get latitude =>
+      $composableBuilder(column: $table.latitude, builder: (column) => column);
+
+  GeneratedColumn<double> get longitude =>
+      $composableBuilder(column: $table.longitude, builder: (column) => column);
+
   GeneratedColumn<bool> get uploaded =>
       $composableBuilder(column: $table.uploaded, builder: (column) => column);
 
@@ -2605,6 +2735,8 @@ class $$QueuedEvidenceTableTableManager
                 Value<String> contentType = const Value.absent(),
                 Value<DateTime> capturedAt = const Value.absent(),
                 Value<String> deviceId = const Value.absent(),
+                Value<double?> latitude = const Value.absent(),
+                Value<double?> longitude = const Value.absent(),
                 Value<bool> uploaded = const Value.absent(),
                 Value<bool> blocked = const Value.absent(),
                 Value<String?> lastErrorCode = const Value.absent(),
@@ -2620,6 +2752,8 @@ class $$QueuedEvidenceTableTableManager
                 contentType: contentType,
                 capturedAt: capturedAt,
                 deviceId: deviceId,
+                latitude: latitude,
+                longitude: longitude,
                 uploaded: uploaded,
                 blocked: blocked,
                 lastErrorCode: lastErrorCode,
@@ -2637,6 +2771,8 @@ class $$QueuedEvidenceTableTableManager
                 required String contentType,
                 required DateTime capturedAt,
                 required String deviceId,
+                Value<double?> latitude = const Value.absent(),
+                Value<double?> longitude = const Value.absent(),
                 Value<bool> uploaded = const Value.absent(),
                 Value<bool> blocked = const Value.absent(),
                 Value<String?> lastErrorCode = const Value.absent(),
@@ -2652,6 +2788,8 @@ class $$QueuedEvidenceTableTableManager
                 contentType: contentType,
                 capturedAt: capturedAt,
                 deviceId: deviceId,
+                latitude: latitude,
+                longitude: longitude,
                 uploaded: uploaded,
                 blocked: blocked,
                 lastErrorCode: lastErrorCode,

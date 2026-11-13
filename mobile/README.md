@@ -94,6 +94,13 @@ Sonradan eklenen ve aynı yolla görülenler (yerel API'ye karşı,
   Yüklenmiş kare cihazdan silindiği için yalnızca bağlantı varken
   görünür.
 
+- **Konum (BR-15):** fotoğraf çekilirken okunuyor ve kanıtla gidiyor;
+  sunucu konumlu kanıta "konum yok" bayrağı koymuyor. İzin "uygulama
+  kullanılırken"; önce açıklama gösteriliyor. Android'in kendi konum
+  yöneticisi kullanılıyor (Play servisleri yolu Google'a veri paylaşımı
+  onayı istiyordu). Konum alınamazsa fotoğraf yine çekilir.
+  Emülatörde sahte GPS konumuyla görüldü.
+
 Hâlâ yapılmayanlar:
 
 - **Gerçek cihaz ölçümü yok.** Emülatörün kamerası sahte sahne veriyor:
@@ -101,9 +108,6 @@ Hâlâ yapılmayanlar:
   gerçek telefonu temsil etmiyor. Spike C'nin kabul ölçütleri (çekim →
   madde tamam ≤ 3 sn, dosya ≤ 300 KB ve **okunur**) düşük segment bir
   Android'de ölçülmeden kapanmış sayılmaz.
-- **Konum gönderilmiyor.** Sunucu konumsuz kanıtı `no_location`
-  bayrağıyla işaretliyor (inceleme çağrısı, ret değil). Konum izni
-  istemek ürün kararı; alınmadı.
 - **Uygulama kapalıyken senk yok** (WorkManager). Otomatik senk yalnızca
   uygulama açıkken çalışıyor.
 

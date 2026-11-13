@@ -30,6 +30,7 @@ class FakeServer {
 
   final calls = <String>[];
   final answers = <Map<String, dynamic>>[];
+  final evidence = <Map<String, dynamic>>[];
   final uploads = <String, List<int>>{};
   final completed = <String>[];
 
@@ -42,6 +43,7 @@ class FakeServer {
       final kanitlar = (govde['evidence'] as List<dynamic>)
           .cast<Map<String, dynamic>>();
       answers.addAll(cevaplar);
+      evidence.addAll(kanitlar);
       return http.Response(
         jsonEncode({
           'answers': [
@@ -365,5 +367,27 @@ void main() {
     );
 
     expect(sonuc, PhotoResult.added);
+  });
+
+  test('konum varsa kanıtla gider, yoksa alan hiç gitmez', () async {
+    // Konumsuz kanıt reddedilmez; sunucu "konum yok" bayrağı koyar.
+    final sunucu = FakeServer();
+    final queue = kur(sunucu);
+    await queue.answer(runId: 'r1', itemId: 'i1', state: 'passed');
+    await queue.addPhoto(
+      runId: 'r1',
+      itemId: 'i1',
+      bytes: foto(51),
+      latitude: 40.9903,
+      longitude: 29.0291,
+    );
+    await queue.addPhoto(runId: 'r1', itemId: 'i1', bytes: foto(52));
+
+    await queue.sync(policy: _policy);
+
+    expect(sunucu.evidence, hasLength(2));
+    expect(sunucu.evidence.first['latitude'], 40.9903);
+    expect(sunucu.evidence.first['longitude'], 29.0291);
+    expect(sunucu.evidence.last.containsKey('latitude'), isFalse);
   });
 }
