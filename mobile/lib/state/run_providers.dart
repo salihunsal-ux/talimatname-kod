@@ -60,6 +60,30 @@ final evidenceForRunProvider =
       return queue.evidenceForRun(runId);
     });
 
+/// Yüklenmiş kanıtın görüntüleme adresi. Adres 15 dakika geçerli;
+/// sağlayıcı ekrandan çıkınca bırakılıyor, yani bayat adres tutulmuyor.
+final evidenceUrlProvider = FutureProvider.autoDispose
+    .family<String, ({String id, String variant})>(
+      (ref, k) => ref.read(apiClientProvider).evidenceViewUrl(k.id, k.variant),
+    );
+
+/// Cihazdan çıkmamış fotoğrafı kaldırır.
+final removePhotoProvider =
+    Provider<
+      Future<void> Function({required String runId, required String evidenceId})
+    >((ref) {
+      return ({required String runId, required String evidenceId}) async {
+        final queue = await ref.read(answerQueueProvider.future);
+        await queue.removePhoto(evidenceId);
+        // Kaldırılamadıysa (bu arada yüklendiyse) da ekran tazelenir:
+        // kare artık "gönderildi" görünür ve silme düğmesi kalkar.
+        ref.invalidate(evidenceForRunProvider(runId));
+        ref.invalidate(queuedForRunProvider(runId));
+        ref.invalidate(pendingCountProvider);
+        ref.read(syncProvider)().ignore();
+      };
+    });
+
 /// Çekilmiş fotoğrafı kuyruğa ekler ve bağlantı varsa gönderir.
 final addPhotoProvider =
     Provider<

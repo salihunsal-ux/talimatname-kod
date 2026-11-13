@@ -101,6 +101,12 @@ abstract final class S {
       'Kamera izni verilmedi. Ayarlardan izin verip yeniden deneyin.';
   static const cameraFailed = 'Fotoğraf çekilemedi. Yeniden deneyin.';
   static const cameraClose = 'Kapat';
+  static const cameraUse = 'Kullan';
+  static const cameraRetake = 'Yeniden çek';
+  static const cameraReviewHint =
+      'Gönderilen fotoğraf silinemez. Uygunsa kullanın.';
+  static const photoRemove = 'Fotoğrafı kaldır';
+  static const photoOnServer = 'Gönderildi';
   static const cameraShoot = 'Fotoğraf çek';
   static const noteLabel = 'Not (zorunlu)';
   static const submit = 'Listeyi gönder';

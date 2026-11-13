@@ -193,6 +193,19 @@ class ApiClient {
     }
   }
 
+  /// Kanıtın 15 dakikalık görüntüleme adresi (tam adres). `variant`:
+  /// `thumbnail` · `stamped` · `raw`.
+  Future<String> evidenceViewUrl(String evidenceId, String variant) async {
+    final body = await _send(
+      'GET',
+      '/evidence/$evidenceId/url?variant=$variant',
+    );
+    final url = body['url'] as String;
+    return url.startsWith('http')
+        ? url
+        : Uri.parse(baseUrl).resolve(url).toString();
+  }
+
   /// Sunucu depodaki baytların özetini hesaplar; tutmuyorsa reddeder.
   Future<void> completeEvidence(String evidenceId) =>
       _send('POST', '/evidence/$evidenceId/complete', body: const {});

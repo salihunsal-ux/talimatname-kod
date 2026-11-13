@@ -155,6 +155,22 @@ class AnswerQueue {
     return PhotoResult.added;
   }
 
+  /// Cihazdan çıkmamış fotoğrafı kaldırır.
+  ///
+  /// Yüklenmiş kanıt **kaldırılamaz**: sunucuya ulaşan kanıt
+  /// değiştirilemez kayıttır ve sunucuda silme ucu yok (FR-0609). O
+  /// durumda `false` döner ve hiçbir şey değişmez.
+  Future<bool> removePhoto(String evidenceId) async {
+    final kayit = await db.evidenceById(evidenceId);
+    if (kayit == null || kayit.uploaded) return false;
+    await db.deleteEvidence(evidenceId);
+    final dosya = File(kayit.filePath);
+    if (dosya.existsSync()) await dosya.delete();
+    // Cevabın beyan ettiği kanıt sayısı değişti.
+    await db.markUnsent(kayit.answerId);
+    return true;
+  }
+
   Future<List<QueuedEvidenceData>> evidenceForRun(String runId) =>
       db.evidenceForRun(runId);
 

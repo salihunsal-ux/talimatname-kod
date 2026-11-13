@@ -307,4 +307,63 @@ void main() {
     // 1 cevap partisi + 2 kanıt partisi (2 + 1).
     expect(sunucu.calls.where((c) => c.endsWith('/sync/batch')), hasLength(3));
   });
+
+  test('cihazdan çıkmamış fotoğraf kaldırılabilir', () async {
+    final sunucu = FakeServer();
+    final queue = kur(sunucu);
+    await queue.answer(runId: 'r1', itemId: 'i1', state: 'passed');
+    await queue.addPhoto(runId: 'r1', itemId: 'i1', bytes: foto(21));
+    await queue.addPhoto(runId: 'r1', itemId: 'i1', bytes: foto(22));
+    final ilk = (await db.evidenceForRun('r1')).first;
+
+    expect(await queue.removePhoto(ilk.evidenceId), isTrue);
+
+    expect(await db.evidenceCount('r1', 'i1'), 1);
+    expect(dizin.listSync(), hasLength(1), reason: 'dosyası da silindi');
+    await queue.sync(policy: _policy);
+    expect(sunucu.answers.last['evidence_count'], 1);
+    expect(sunucu.uploads, hasLength(1), reason: 'kaldırılan kare gitmedi');
+  });
+
+  test('yüklenmiş kanıt kaldırılamaz', () async {
+    // Sunucuya ulaşan kanıt değiştirilemez kayıttır (FR-0609).
+    final queue = kur(FakeServer());
+    await queue.answer(runId: 'r1', itemId: 'i1', state: 'passed');
+    await queue.addPhoto(runId: 'r1', itemId: 'i1', bytes: foto(23));
+    await queue.sync(policy: _policy);
+    final kayit = (await db.evidenceForRun('r1')).single;
+
+    expect(await queue.removePhoto(kayit.evidenceId), isFalse);
+
+    expect(await db.evidenceCount('r1', 'i1'), 1);
+    expect(
+      await queue.pendingCount(),
+      0,
+      reason: 'cevap yeniden kuyruğa girmedi',
+    );
+  });
+
+  test('kaldırılan karenin yeri yeniden kullanılabilir', () async {
+    final queue = kur(FakeServer());
+    await queue.answer(runId: 'r1', itemId: 'i1', state: 'passed');
+    for (var i = 1; i <= 3; i++) {
+      await queue.addPhoto(
+        runId: 'r1',
+        itemId: 'i1',
+        bytes: foto(30 + i),
+        policy: _policy,
+      );
+    }
+    final biri = (await db.evidenceForRun('r1')).first;
+    await queue.removePhoto(biri.evidenceId);
+
+    final sonuc = await queue.addPhoto(
+      runId: 'r1',
+      itemId: 'i1',
+      bytes: foto(40),
+      policy: _policy,
+    );
+
+    expect(sonuc, PhotoResult.added);
+  });
 }

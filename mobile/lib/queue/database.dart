@@ -250,6 +250,14 @@ class QueueDatabase extends _$QueueDatabase {
         ),
       );
 
+  Future<QueuedEvidenceData?> evidenceById(String evidenceId) => (select(
+    queuedEvidence,
+  )..where((t) => t.evidenceId.equals(evidenceId))).getSingleOrNull();
+
+  Future<int> deleteEvidence(String evidenceId) => (delete(
+    queuedEvidence,
+  )..where((t) => t.evidenceId.equals(evidenceId))).go();
+
   Future<List<String>> sentAnswerIds() async => [
     for (final c in await (select(
       queuedAnswers,

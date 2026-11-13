@@ -85,6 +85,15 @@ Sonradan eklenen ve aynı yolla görülenler (yerel API'ye karşı,
   açmadan uçak modu, öldür-aç, liste maddeleriyle açıldı). 12 saatten
   uzaktaki listeler inmiyor.
 
+- **Fotoğrafı görme ve kaldırma:** maddede küçük resim şeridi, dokununca
+  büyütme. Cihazdan çıkmamış kare kaldırılabilir; **yüklenmiş kanıt
+  kaldırılamaz** — sunucuda silme ucu yok ve bu bilinçli (FR-0609,
+  "kanıt silinmez"). Yanlış karenin kayda girmemesi için çekimden sonra
+  önizleme var ("Yeniden çek / Kullan"). Bu, Spike C'nin "2 dokunuş"
+  hedefini **üçe** çıkarıyor; karar bilinçli ve geri alınabilir.
+  Yüklenmiş kare cihazdan silindiği için yalnızca bağlantı varken
+  görünür.
+
 Hâlâ yapılmayanlar:
 
 - **Gerçek cihaz ölçümü yok.** Emülatörün kamerası sahte sahne veriyor:
@@ -95,8 +104,6 @@ Hâlâ yapılmayanlar:
 - **Konum gönderilmiyor.** Sunucu konumsuz kanıtı `no_location`
   bayrağıyla işaretliyor (inceleme çağrısı, ret değil). Konum izni
   istemek ürün kararı; alınmadı.
-- Çekilen fotoğraf ekranda **gösterilmiyor**, yalnızca sayılıyor; yanlış
-  kareyi silme de yok.
 - **Uygulama kapalıyken senk yok** (WorkManager). Otomatik senk yalnızca
   uygulama açıkken çalışıyor.
 

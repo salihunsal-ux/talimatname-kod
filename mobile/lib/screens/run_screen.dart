@@ -23,6 +23,7 @@ import '../state/providers.dart';
 import '../state/run_providers.dart';
 import '../theme/tokens.dart';
 import '../widgets/error_text.dart';
+import '../widgets/evidence_strip.dart';
 import 'camera_screen.dart';
 
 class RunScreen extends ConsumerWidget {
@@ -401,6 +402,14 @@ class _ItemCardState extends ConsumerState<_ItemCard> {
             ),
           ],
         ),
+        if (gecerli.isNotEmpty) ...[
+          const SizedBox(height: Gap.x2),
+          EvidenceStrip(
+            runId: widget.runId,
+            evidence: widget.evidence,
+            enabled: widget.enabled,
+          ),
+        ],
         if (gerekli || bekleyen || reddedilen) ...[
           const SizedBox(height: Gap.x1),
           Text(

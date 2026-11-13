@@ -54,6 +54,15 @@ class _CameraScreenState extends State<CameraScreen> {
   String? _error;
   bool _busy = false;
 
+  /// Çekilmiş ama henüz kabul edilmemiş kare.
+  ///
+  /// Önizleme Spike C'nin "2 dokunuş" hedefini üçe çıkarıyor ve bu
+  /// bilinçli: sunucuya ulaşan kanıt silinemiyor, bağlantı varken de
+  /// kare saniyeler içinde yükleniyor. Önizleme olmadan yanlış çekilen
+  /// kare geri alınamaz bir kayıt olur ve madde başına üç hakkın birini
+  /// harcar.
+  Uint8List? _shot;
+
   @override
   void initState() {
     super.initState();
@@ -107,7 +116,10 @@ class _CameraScreenState extends State<CameraScreen> {
       final kare = await controller.takePicture();
       final baytlar = await compressPhoto(kare.path);
       if (!mounted) return;
-      Navigator.of(context).pop(baytlar);
+      setState(() {
+        _busy = false;
+        _shot = baytlar;
+      });
     } on Object {
       if (!mounted) return;
       setState(() {
@@ -121,6 +133,8 @@ class _CameraScreenState extends State<CameraScreen> {
   Widget build(BuildContext context) {
     final c = AppColors.of(context);
     final controller = _controller;
+    final kare = _shot;
+    if (kare != null) return _review(context, kare);
     return Scaffold(
       backgroundColor: Colors.black,
       body: SafeArea(
@@ -186,6 +200,61 @@ class _CameraScreenState extends State<CameraScreen> {
                   ),
                 ),
               ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _review(BuildContext context, Uint8List kare) {
+    final c = AppColors.of(context);
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: SafeArea(
+        child: Column(
+          children: [
+            Expanded(child: Center(child: Image.memory(kare))),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(Gap.x4, Gap.x3, Gap.x4, 0),
+              child: Text(
+                S.cameraReviewHint,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: c.anchorMuted,
+                  fontSize: TypeScale.meta,
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(Gap.x4),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => setState(() => _shot = null),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: c.anchorInk,
+                        side: BorderSide(color: c.anchorMuted),
+                        minimumSize: const Size.fromHeight(minTouchTarget + 4),
+                      ),
+                      child: const Text(S.cameraRetake),
+                    ),
+                  ),
+                  const SizedBox(width: Gap.x3),
+                  Expanded(
+                    child: FilledButton(
+                      onPressed: () => Navigator.of(context).pop(kare),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: c.anchorBrand,
+                        foregroundColor: Colors.black,
+                        minimumSize: const Size.fromHeight(minTouchTarget + 4),
+                      ),
+                      child: const Text(S.cameraUse),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),
