@@ -744,15 +744,282 @@ class QueuedAnswersCompanion extends UpdateCompanion<QueuedAnswer> {
   }
 }
 
+class $CachedDocsTable extends CachedDocs
+    with TableInfo<$CachedDocsTable, CachedDoc> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CachedDocsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _pathMeta = const VerificationMeta('path');
+  @override
+  late final GeneratedColumn<String> path = GeneratedColumn<String>(
+    'path',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _bodyMeta = const VerificationMeta('body');
+  @override
+  late final GeneratedColumn<String> body = GeneratedColumn<String>(
+    'body',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _fetchedAtMeta = const VerificationMeta(
+    'fetchedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> fetchedAt = GeneratedColumn<DateTime>(
+    'fetched_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [path, body, fetchedAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'cached_docs';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CachedDoc> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('path')) {
+      context.handle(
+        _pathMeta,
+        path.isAcceptableOrUnknown(data['path']!, _pathMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_pathMeta);
+    }
+    if (data.containsKey('body')) {
+      context.handle(
+        _bodyMeta,
+        body.isAcceptableOrUnknown(data['body']!, _bodyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_bodyMeta);
+    }
+    if (data.containsKey('fetched_at')) {
+      context.handle(
+        _fetchedAtMeta,
+        fetchedAt.isAcceptableOrUnknown(data['fetched_at']!, _fetchedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_fetchedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {path};
+  @override
+  CachedDoc map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CachedDoc(
+      path: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}path'],
+      )!,
+      body: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}body'],
+      )!,
+      fetchedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}fetched_at'],
+      )!,
+    );
+  }
+
+  @override
+  $CachedDocsTable createAlias(String alias) {
+    return $CachedDocsTable(attachedDatabase, alias);
+  }
+}
+
+class CachedDoc extends DataClass implements Insertable<CachedDoc> {
+  /// İstek yolu (`/sync/manifest`, `/runs/<id>` …).
+  final String path;
+  final String body;
+  final DateTime fetchedAt;
+  const CachedDoc({
+    required this.path,
+    required this.body,
+    required this.fetchedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['path'] = Variable<String>(path);
+    map['body'] = Variable<String>(body);
+    map['fetched_at'] = Variable<DateTime>(fetchedAt);
+    return map;
+  }
+
+  CachedDocsCompanion toCompanion(bool nullToAbsent) {
+    return CachedDocsCompanion(
+      path: Value(path),
+      body: Value(body),
+      fetchedAt: Value(fetchedAt),
+    );
+  }
+
+  factory CachedDoc.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CachedDoc(
+      path: serializer.fromJson<String>(json['path']),
+      body: serializer.fromJson<String>(json['body']),
+      fetchedAt: serializer.fromJson<DateTime>(json['fetchedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'path': serializer.toJson<String>(path),
+      'body': serializer.toJson<String>(body),
+      'fetchedAt': serializer.toJson<DateTime>(fetchedAt),
+    };
+  }
+
+  CachedDoc copyWith({String? path, String? body, DateTime? fetchedAt}) =>
+      CachedDoc(
+        path: path ?? this.path,
+        body: body ?? this.body,
+        fetchedAt: fetchedAt ?? this.fetchedAt,
+      );
+  CachedDoc copyWithCompanion(CachedDocsCompanion data) {
+    return CachedDoc(
+      path: data.path.present ? data.path.value : this.path,
+      body: data.body.present ? data.body.value : this.body,
+      fetchedAt: data.fetchedAt.present ? data.fetchedAt.value : this.fetchedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CachedDoc(')
+          ..write('path: $path, ')
+          ..write('body: $body, ')
+          ..write('fetchedAt: $fetchedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(path, body, fetchedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CachedDoc &&
+          other.path == this.path &&
+          other.body == this.body &&
+          other.fetchedAt == this.fetchedAt);
+}
+
+class CachedDocsCompanion extends UpdateCompanion<CachedDoc> {
+  final Value<String> path;
+  final Value<String> body;
+  final Value<DateTime> fetchedAt;
+  final Value<int> rowid;
+  const CachedDocsCompanion({
+    this.path = const Value.absent(),
+    this.body = const Value.absent(),
+    this.fetchedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  CachedDocsCompanion.insert({
+    required String path,
+    required String body,
+    required DateTime fetchedAt,
+    this.rowid = const Value.absent(),
+  }) : path = Value(path),
+       body = Value(body),
+       fetchedAt = Value(fetchedAt);
+  static Insertable<CachedDoc> custom({
+    Expression<String>? path,
+    Expression<String>? body,
+    Expression<DateTime>? fetchedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (path != null) 'path': path,
+      if (body != null) 'body': body,
+      if (fetchedAt != null) 'fetched_at': fetchedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  CachedDocsCompanion copyWith({
+    Value<String>? path,
+    Value<String>? body,
+    Value<DateTime>? fetchedAt,
+    Value<int>? rowid,
+  }) {
+    return CachedDocsCompanion(
+      path: path ?? this.path,
+      body: body ?? this.body,
+      fetchedAt: fetchedAt ?? this.fetchedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (path.present) {
+      map['path'] = Variable<String>(path.value);
+    }
+    if (body.present) {
+      map['body'] = Variable<String>(body.value);
+    }
+    if (fetchedAt.present) {
+      map['fetched_at'] = Variable<DateTime>(fetchedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CachedDocsCompanion(')
+          ..write('path: $path, ')
+          ..write('body: $body, ')
+          ..write('fetchedAt: $fetchedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$QueueDatabase extends GeneratedDatabase {
   _$QueueDatabase(QueryExecutor e) : super(e);
   $QueueDatabaseManager get managers => $QueueDatabaseManager(this);
   late final $QueuedAnswersTable queuedAnswers = $QueuedAnswersTable(this);
+  late final $CachedDocsTable cachedDocs = $CachedDocsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
-  List<DatabaseSchemaEntity> get allSchemaEntities => [queuedAnswers];
+  List<DatabaseSchemaEntity> get allSchemaEntities => [
+    queuedAnswers,
+    cachedDocs,
+  ];
 }
 
 typedef $$QueuedAnswersTableCreateCompanionBuilder =
@@ -1105,10 +1372,178 @@ typedef $$QueuedAnswersTableProcessedTableManager =
       QueuedAnswer,
       PrefetchHooks Function()
     >;
+typedef $$CachedDocsTableCreateCompanionBuilder = CachedDocsCompanion Function({
+  required String path,
+  required String body,
+  required DateTime fetchedAt,
+  Value<int> rowid,
+});
+typedef $$CachedDocsTableUpdateCompanionBuilder = CachedDocsCompanion Function({
+  Value<String> path,
+  Value<String> body,
+  Value<DateTime> fetchedAt,
+  Value<int> rowid,
+});
+
+class $$CachedDocsTableFilterComposer
+    extends Composer<_$QueueDatabase, $CachedDocsTable> {
+  $$CachedDocsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get path => $composableBuilder(
+    column: $table.path,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get body => $composableBuilder(
+    column: $table.body,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get fetchedAt => $composableBuilder(
+    column: $table.fetchedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$CachedDocsTableOrderingComposer
+    extends Composer<_$QueueDatabase, $CachedDocsTable> {
+  $$CachedDocsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get path => $composableBuilder(
+    column: $table.path,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get body => $composableBuilder(
+    column: $table.body,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get fetchedAt => $composableBuilder(
+    column: $table.fetchedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$CachedDocsTableAnnotationComposer
+    extends Composer<_$QueueDatabase, $CachedDocsTable> {
+  $$CachedDocsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get path =>
+      $composableBuilder(column: $table.path, builder: (column) => column);
+
+  GeneratedColumn<String> get body =>
+      $composableBuilder(column: $table.body, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get fetchedAt =>
+      $composableBuilder(column: $table.fetchedAt, builder: (column) => column);
+}
+
+class $$CachedDocsTableTableManager
+    extends
+        RootTableManager<
+          _$QueueDatabase,
+          $CachedDocsTable,
+          CachedDoc,
+          $$CachedDocsTableFilterComposer,
+          $$CachedDocsTableOrderingComposer,
+          $$CachedDocsTableAnnotationComposer,
+          $$CachedDocsTableCreateCompanionBuilder,
+          $$CachedDocsTableUpdateCompanionBuilder,
+          (
+            CachedDoc,
+            BaseReferences<_$QueueDatabase, $CachedDocsTable, CachedDoc>,
+          ),
+          CachedDoc,
+          PrefetchHooks Function()
+        > {
+  $$CachedDocsTableTableManager(_$QueueDatabase db, $CachedDocsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CachedDocsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CachedDocsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CachedDocsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> path = const Value.absent(),
+                Value<String> body = const Value.absent(),
+                Value<DateTime> fetchedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CachedDocsCompanion(
+                path: path,
+                body: body,
+                fetchedAt: fetchedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String path,
+                required String body,
+                required DateTime fetchedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => CachedDocsCompanion.insert(
+                path: path,
+                body: body,
+                fetchedAt: fetchedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$CachedDocsTable, CachedDoc>(table),
+                  BaseReferences<_$QueueDatabase, $CachedDocsTable, CachedDoc>(
+                    db,
+                    table,
+                    e,
+                  ),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$CachedDocsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$QueueDatabase,
+      $CachedDocsTable,
+      CachedDoc,
+      $$CachedDocsTableFilterComposer,
+      $$CachedDocsTableOrderingComposer,
+      $$CachedDocsTableAnnotationComposer,
+      $$CachedDocsTableCreateCompanionBuilder,
+      $$CachedDocsTableUpdateCompanionBuilder,
+      (CachedDoc, BaseReferences<_$QueueDatabase, $CachedDocsTable, CachedDoc>),
+      CachedDoc,
+      PrefetchHooks Function()
+    >;
 
 class $QueueDatabaseManager {
   final _$QueueDatabase _db;
   $QueueDatabaseManager(this._db);
   $$QueuedAnswersTableTableManager get queuedAnswers =>
       $$QueuedAnswersTableTableManager(_db, _db.queuedAnswers);
+  $$CachedDocsTableTableManager get cachedDocs =>
+      $$CachedDocsTableTableManager(_db, _db.cachedDocs);
 }

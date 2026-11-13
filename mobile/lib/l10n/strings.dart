@@ -105,6 +105,9 @@ abstract final class S {
     'passed': 'Başarılı',
     'failed': 'Başarısız',
   };
+  static String offlineSince(String saat) =>
+      'Çevrimdışı: liste $saat itibarıyla. Cevaplarınız cihazda saklanır.';
+  static const alreadySubmitted = 'Bu liste gönderildi; artık değiştirilemez.';
   static const readOnlyWindow = 'Pencere kapalı: bu listeye artık yazılamaz.';
   static String lockedBy(String ad) => '$ad bu listeyi üstlendi.';
   static const pendingOne = 'Gönderilmeyi bekliyor';

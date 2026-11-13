@@ -15,24 +15,28 @@ import 'providers.dart';
 
 /// Ağdan gelen kısım: görünüm + seçenekler.
 class RunDetail {
-  const RunDetail({required this.view, required this.options});
+  const RunDetail({required this.view, required this.options, this.staleSince});
 
   final RunView view;
   final Map<String, VersionItem> options;
+
+  /// Doluysa görünüm cihazdaki kopyadan; sunucuya ulaşılamadı.
+  final DateTime? staleSince;
 }
 
 final runDetailProvider = FutureProvider.family<RunDetail, String>((
   ref,
   runId,
 ) async {
-  final api = ref.read(apiClientProvider);
-  final view = await api.run(runId);
+  ref.watch(refetchTickProvider);
+  final doc = await ref.read(docCacheProvider).get('/runs/$runId');
   final versionId = await ref.watch(runVersionProvider(runId).future);
   return RunDetail(
-    view: view,
+    view: RunView.fromJson(doc.json),
     options: versionId == null
         ? const {}
         : await ref.watch(templateVersionProvider(versionId).future),
+    staleSince: doc.stale ? doc.fetchedAt : null,
   );
 });
 
@@ -67,7 +71,10 @@ final templateVersionProvider =
       versionId,
     ) async {
       ref.keepAlive();
-      return ref.read(apiClientProvider).templateVersion(versionId);
+      final doc = await ref
+          .read(docCacheProvider)
+          .get('/template-versions/$versionId');
+      return VersionItem.mapFromJson(doc.json);
     });
 
 /// Cevabı kuyruğa yazar; ekranı ağa gitmeden tazeler ve bağlantı varsa
@@ -159,7 +166,7 @@ final submitProvider = Provider<Future<SubmitOutcome> Function(String runId)>((
     try {
       final view = await api.submit(runId);
       ref.invalidate(runDetailProvider(runId));
-      ref.invalidate(manifestProvider);
+      ref.invalidate(manifestDocProvider);
       return SubmitDone(view);
     } on ApiException catch (hata) {
       if (hata.isNetwork) return const SubmitNeedsNetwork();

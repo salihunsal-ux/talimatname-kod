@@ -58,7 +58,21 @@ class QueuedAnswers extends Table {
   Set<Column> get primaryKey => {answerId};
 }
 
-@DriftDatabase(tables: [QueuedAnswers])
+/// Sunucudan en son alınan belgeler (manifest, çalıştırma görünümü,
+/// şablon sürümü). Şubede bağlantı yokken uygulama açılırsa liste
+/// buradan gelir; emülatörde görüldü ki bu olmadan kuyruk ve oturum
+/// dursa da ekran boş kalıyor ve personel iş göremiyor (FR-0701).
+class CachedDocs extends Table {
+  /// İstek yolu (`/sync/manifest`, `/runs/<id>` …).
+  TextColumn get path => text()();
+  TextColumn get body => text()();
+  DateTimeColumn get fetchedAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {path};
+}
+
+@DriftDatabase(tables: [QueuedAnswers, CachedDocs])
 class QueueDatabase extends _$QueueDatabase {
   QueueDatabase([QueryExecutor? executor])
     : super(
@@ -79,7 +93,33 @@ class QueueDatabase extends _$QueueDatabase {
       );
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+    onCreate: (m) => m.createAll(),
+    onUpgrade: (m, from, to) async {
+      // 1 → 2: belge önbelleği eklendi. Kuyruk tablosuna dokunulmuyor:
+      // yükseltme, gönderilmemiş cevabı silemez.
+      if (from < 2) await m.createTable(cachedDocs);
+    },
+  );
+
+  Future<void> putDoc(String path, String body) => into(cachedDocs)
+      .insertOnConflictUpdate(
+        CachedDocsCompanion.insert(
+          path: path,
+          body: body,
+          fetchedAt: DateTime.now(),
+        ),
+      );
+
+  Future<CachedDoc?> getDoc(String path) =>
+      (select(cachedDocs)..where((t) => t.path.equals(path))).getSingleOrNull();
+
+  /// Oturum kapanınca önbellek silinir: başka biri giriş yaparsa
+  /// öncekinin listelerini görmemeli.
+  Future<int> clearDocs() => delete(cachedDocs).go();
 
   /// `(run, item)` için var olan kayıt; yoksa `null`.
   Future<QueuedAnswer?> forItem(String runId, String itemId) =>

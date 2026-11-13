@@ -13,6 +13,7 @@ import 'screens/sign_in_screen.dart';
 import 'screens/today_screen.dart';
 import 'state/providers.dart';
 import 'theme/app_theme.dart';
+import 'widgets/auto_sync.dart';
 
 void main() {
   runApp(const ProviderScope(child: TalimatnameApp()));
@@ -27,7 +28,7 @@ class TalimatnameApp extends StatelessWidget {
     debugShowCheckedModeBanner: false,
     theme: buildTheme(Brightness.light),
     darkTheme: buildTheme(Brightness.dark),
-    home: const _Root(),
+    home: const AutoSync(child: _Root()),
   );
 }
 

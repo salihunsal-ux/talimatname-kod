@@ -115,6 +115,10 @@ class ApiClient {
     }
   }
 
+  /// Kimlikli GET, ham gövdeyle. Önbellek katmanı gövdeyi olduğu gibi
+  /// saklıyor; ayrıştırma çağıranda.
+  Future<Map<String, dynamic>> getJson(String path) => _send('GET', path);
+
   Future<Manifest> manifest() async {
     final body = await _send('GET', '/sync/manifest');
     return Manifest.fromJson(body);

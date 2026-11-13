@@ -69,7 +69,12 @@ class _Body extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final yazilabilir = detay.view.writableAt(DateTime.now());
+    // Gönderilmiş ya da kapanmış çalıştırma salt okunur: pencere açık
+    // olsa da sunucu yazmayı reddeder.
+    final acik =
+        detay.view.status == 'scheduled' || detay.view.status == 'in_progress';
+    final yazilabilir = acik && detay.view.writableAt(DateTime.now());
+    final ben = ref.watch(sessionProvider).value?.fullName;
     // Kuyruk ayrı sağlayıcıdan: cevap yazınca yalnızca bu tazeleniyor,
     // görünüm için ağa gidilmiyor.
     final kuyruk = {
@@ -86,8 +91,14 @@ class _Body extends ConsumerWidget {
     return ListView(
       padding: const EdgeInsets.all(Gap.x4),
       children: [
-        if (!yazilabilir) _notice(context, S.readOnlyWindow),
-        if (detay.view.lockedByName != null)
+        if (detay.staleSince != null)
+          _notice(context, S.offlineSince(_hhmm(detay.staleSince!))),
+        if (detay.view.status == 'submitted')
+          _notice(context, S.alreadySubmitted)
+        else if (!yazilabilir)
+          _notice(context, S.readOnlyWindow),
+        // Listeyi üstlenen kişiye kendi adını söylemenin anlamı yok.
+        if (detay.view.lockedByName != null && detay.view.lockedByName != ben)
           _notice(context, S.lockedBy(detay.view.lockedByName!)),
         for (final bolum in detay.view.sections) ...[
           Padding(
@@ -119,6 +130,10 @@ class _Body extends ConsumerWidget {
       ],
     );
   }
+
+  static String _hhmm(DateTime t) =>
+      '${t.hour.toString().padLeft(2, '0')}:'
+      '${t.minute.toString().padLeft(2, '0')}';
 
   Widget _notice(BuildContext context, String text) {
     final c = AppColors.of(context);

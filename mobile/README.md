@@ -58,15 +58,32 @@ Demo sunucusuna karşı görülenler: giriş, bugünün listeleri, bağlantılı
 cevap, **uçak modunda cevap → uygulamayı öldür → aç → kuyruk duruyor →
 bağlantı gelince sunucuya ulaşıyor**. Spike A'nın istemci ölçütü buydu.
 
-Görülen ve henüz yapılmayanlar:
+Sonradan eklenen ve aynı yolla görülenler (yerel API'ye karşı,
+`--dart-define=API_BASE=http://10.0.2.2:8010/api/v1`):
 
-- Bağlantı geri geldiğinde senk **kendiliğinden başlamıyor**; yeni bir
-  cevap ya da üst banttaki sayaca dokunmak gerekiyor. Arka plan senki
-  (WorkManager) sırada.
-- Uygulama çevrimdışı açılırsa liste gelmiyor: manifest cihazda
-  saklanmıyor. Kuyruk ve oturum duruyor ama ekran boş.
-- Listeyi **gönderme** (submit) adımı yok; cevaplar sunucuya gidiyor,
-  çalıştırma "devam ediyor"da kalıyor.
+- **Listeyi gönderme:** eksik varken sunucunun eksik listesi, tamamken
+  "Liste gönderildi · Başarılı · Puan: %100".
+- **"Yapılamadı" sebebi ve not:** sebep seçilmeden cevap yazılmıyor,
+  olumsuz cevapta not alanı açılıyor (BR-06, BR-09).
+- **Çevrimdışı açılış:** liste ve çalıştırma cihazdaki son kopyadan
+  geliyor, "Çevrimdışı: liste SS:DD itibarıyla" uyarısıyla. Yalnızca ağ
+  hatasında kopyaya düşülür; sunucu "hayır" dediyse eski kopya
+  gösterilmez.
+- **Otomatik senk:** uygulama açıkken her 20 saniyede bir ve öne
+  gelince. Bağlantı dönünce bekleyen cevap dokunmadan gidiyor, uyarı
+  kendiliğinden kalkıyor.
+
+Hâlâ yapılmayanlar:
+
+- **Fotoğraf yok** (Spike C). Olumsuz cevap not **ve fotoğraf** istediği
+  için, içinde tek bir "Hayır" ya da "Yapılamadı" olan liste şu an
+  gönderilemiyor. Sıradaki iş bu.
+- **Uygulama kapalıyken senk yok** (WorkManager). Otomatik senk yalnızca
+  uygulama açıkken çalışıyor.
+- Bir çalıştırma çevrimdışı açılabilsin diye **önce bir kez
+  bağlantılıyken açılmış** olmalı: manifest listeyi taşıyor ama maddeleri
+  taşımıyor. Vardiya başında bağlantı varken listeyi açmayan personel,
+  bağlantı gidince o listeyi dolduramaz.
 
 ## Kapılar
 

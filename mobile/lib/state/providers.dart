@@ -9,6 +9,7 @@ import '../api/run_models.dart';
 import '../api/session_store.dart';
 import '../queue/answer_queue.dart';
 import '../queue/database.dart';
+import '../queue/doc_cache.dart';
 
 final sessionStoreProvider = Provider<SessionStore>((ref) => SessionStore());
 
@@ -59,6 +60,8 @@ class SessionController extends AsyncNotifier<Session?> {
 
   Future<void> signOut() async {
     await ref.read(apiClientProvider).signOut();
+    // Başka biri giriş yaparsa öncekinin listelerini görmemeli.
+    await ref.read(queueDatabaseProvider).clearDocs();
     state = const AsyncData(null);
   }
 
@@ -73,13 +76,25 @@ final sessionProvider = AsyncNotifierProvider<SessionController, Session?>(
 );
 
 /// Bugünün listeleri. Oturum değişince kendiliğinden yeniden çekilir.
-final manifestProvider = FutureProvider<Manifest>((ref) async {
+final manifestDocProvider = FutureProvider<Doc>((ref) async {
   final session = await ref.watch(sessionProvider.future);
   if (session == null) {
     throw StateError('oturum yok');
   }
-  return ref.read(apiClientProvider).manifest();
+  return ref.read(docCacheProvider).get('/sync/manifest');
 });
+
+final manifestProvider = FutureProvider<Manifest>((ref) async {
+  final doc = await ref.watch(manifestDocProvider.future);
+  return Manifest.fromJson(doc.json);
+});
+
+final docCacheProvider = Provider<DocCache>(
+  (ref) => DocCache(
+    db: ref.read(queueDatabaseProvider),
+    api: ref.read(apiClientProvider),
+  ),
+);
 
 /// Kuyruk veritabanı. Uygulama ömrü boyunca tek örnek.
 final queueDatabaseProvider = Provider<QueueDatabase>((ref) {
@@ -138,6 +153,11 @@ class SyncTick extends Notifier<int> {
 }
 
 final syncTickProvider = NotifierProvider<SyncTick, int>(SyncTick.new);
+
+/// Cihazdaki kopyadan gösterilen belgelerin yeniden istenmesi için
+/// sayaç. Bağlantı gelince "Çevrimdışı" uyarısı kendiliğinden kalkmalı;
+/// emülatörde senk gittiği hâlde uyarı ekranda kalıyordu.
+final refetchTickProvider = NotifierProvider<SyncTick, int>(SyncTick.new);
 
 /// Kuyruğu gönderir. Sonuç ekranda sayacı tazeler; hata **yutulmaz**,
 /// kayıt kuyrukta kalır ve sayaç bunu gösterir.

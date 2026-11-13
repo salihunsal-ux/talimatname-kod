@@ -54,7 +54,7 @@ class TodayScreen extends ConsumerWidget {
           const PendingBadge(),
           IconButton(
             tooltip: S.refresh,
-            onPressed: () => ref.invalidate(manifestProvider),
+            onPressed: () => ref.invalidate(manifestDocProvider),
             icon: const Icon(Icons.refresh),
           ),
           IconButton(
@@ -65,11 +65,11 @@ class TodayScreen extends ConsumerWidget {
         ],
       ),
       body: RefreshIndicator(
-        onRefresh: () async => ref.invalidate(manifestProvider),
+        onRefresh: () async => ref.invalidate(manifestDocProvider),
         child: manifest.when(
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (hata, _) => _error(context, ref, hata),
-          data: (data) => _list(context, data),
+          data: (data) => _list(context, ref, data),
         ),
       ),
     );
@@ -91,7 +91,7 @@ class TodayScreen extends ConsumerWidget {
     ],
   );
 
-  Widget _list(BuildContext context, Manifest manifest) {
+  Widget _list(BuildContext context, WidgetRef ref, Manifest manifest) {
     if (manifest.runs.isEmpty) return _empty(context);
     final now = DateTime.now();
     // Yazılabilir olanlar üstte, sonra açılış saatine göre: personelin
@@ -102,11 +102,35 @@ class TodayScreen extends ConsumerWidget {
         final bi = b.writableAt(now) ? 0 : 1;
         return ai != bi ? ai - bi : a.windowStart.compareTo(b.windowStart);
       });
+    final doc = ref.watch(manifestDocProvider).value;
+    final bayat = doc != null && doc.stale;
+    final c = AppColors.of(context);
     return ListView.separated(
       padding: const EdgeInsets.all(Gap.x4),
-      itemCount: runs.length,
+      itemCount: runs.length + (bayat ? 1 : 0),
       separatorBuilder: (_, _) => const SizedBox(height: Gap.x3),
-      itemBuilder: (context, i) => _RunCard(run: runs[i], now: now),
+      itemBuilder: (context, i) {
+        if (bayat && i == 0) {
+          // Liste cihazdaki kopyadan geliyorsa bunu söyle: pencere
+          // durumları o ana göre, sunucu bu arada değişmiş olabilir.
+          final t = doc.fetchedAt;
+          return Container(
+            padding: const EdgeInsets.all(Gap.x3),
+            decoration: BoxDecoration(
+              color: c.warningLight,
+              borderRadius: BorderRadius.circular(Corner.button),
+            ),
+            child: Text(
+              S.offlineSince(
+                '${t.hour.toString().padLeft(2, '0')}:'
+                '${t.minute.toString().padLeft(2, '0')}',
+              ),
+              style: TextStyle(color: c.warning, fontSize: TypeScale.label),
+            ),
+          );
+        }
+        return _RunCard(run: runs[i - (bayat ? 1 : 0)], now: now);
+      },
     );
   }
 
