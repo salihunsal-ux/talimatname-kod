@@ -70,6 +70,20 @@ class SessionController extends AsyncNotifier<Session?> {
     state = const AsyncData(null);
   }
 
+  /// Saklanan oturumu yeniden okur. Arka plan işi uygulama kapalıyken
+  /// yenileme belirtecini döndürmüş olabilir; bellekteki eski belirteçle
+  /// devam etmek, sunucunun zinciri iptal etmesine yol açar.
+  Future<void> reload() async {
+    final stored = await ref.read(sessionStoreProvider).read();
+    if (stored == null) {
+      if (state.value != null) state = const AsyncData(null);
+      return;
+    }
+    if (stored.refreshToken == state.value?.refreshToken) return;
+    ref.read(apiClientProvider).adopt(stored);
+    state = AsyncData(stored);
+  }
+
   /// Sunucu oturumu kabul etmedi; kullanıcı giriş ekranına döner.
   void dropped() {
     if (state.value != null) state = const AsyncData(null);

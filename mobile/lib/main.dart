@@ -5,9 +5,11 @@
 /// gerçek sunucuya karşı çalıştığını göstermek için var.
 library;
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
+import 'background/sync_worker.dart';
 import 'l10n/strings.dart';
 import 'screens/sign_in_screen.dart';
 import 'screens/today_screen.dart';
@@ -15,7 +17,9 @@ import 'state/providers.dart';
 import 'theme/app_theme.dart';
 import 'widgets/auto_sync.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  if (!kIsWeb) await initBackgroundSync();
   runApp(const ProviderScope(child: TalimatnameApp()));
 }
 

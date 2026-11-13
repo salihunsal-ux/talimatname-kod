@@ -101,15 +101,27 @@ Sonradan eklenen ve aynı yolla görülenler (yerel API'ye karşı,
   onayı istiyordu). Konum alınamazsa fotoğraf yine çekilir.
   Emülatörde sahte GPS konumuyla görüldü.
 
+- **Arka plan senki (WorkManager):** uygulama arka plana geçerken
+  bekleyen kayıt varsa ağ koşullu bir iş kuyruğa alınıyor; bağlantı
+  gelince Android onu kendisi çalıştırıyor. Emülatörde görüldü:
+  çevrimdışı cevap, ana ekrana çıkış, bağlantı açıldı, iş 2 saniye
+  içinde çalıştı ve cevap uygulama açılmadan sunucuya ulaştı.
+  Uygulama öne gelince iş iptal ediliyor ve saklanan oturum yeniden
+  okunuyor: arka planda dönen yenileme belirteci bellekteki eskisiyle
+  kullanılırsa sunucu zinciri iptal eder.
+
 Hâlâ yapılmayanlar:
 
+- **Arka plan senkinin sınırları ölçülmedi.** Android, pil tasarrufu ve
+  üretici kısıtlarıyla (Xiaomi, Huawei, Samsung) arka plan işlerini
+  geciktirebilir ya da hiç çalıştırmayabilir; emülatörde bunların hiçbiri
+  yok. Uygulama zorla durdurulursa (ayarlardan "Durdur") iş de silinir.
+  Kayıt kaybolmaz, uygulama açılınca gider.
 - **Gerçek cihaz ölçümü yok.** Emülatörün kamerası sahte sahne veriyor:
   kare 14 KB'a sıkıştı ve kameranın ilk açılışı ~10 sn sürdü. İkisi de
   gerçek telefonu temsil etmiyor. Spike C'nin kabul ölçütleri (çekim →
   madde tamam ≤ 3 sn, dosya ≤ 300 KB ve **okunur**) düşük segment bir
   Android'de ölçülmeden kapanmış sayılmaz.
-- **Uygulama kapalıyken senk yok** (WorkManager). Otomatik senk yalnızca
-  uygulama açıkken çalışıyor.
 
 Derleme notu: `android/gradle.properties` içinde `kotlin.incremental=false`.
 Proje ile pub önbelleği farklı sürücülerdeyse (D: ve C:) Kotlin derleyen
