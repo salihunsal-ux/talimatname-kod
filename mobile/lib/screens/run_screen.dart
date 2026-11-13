@@ -8,9 +8,12 @@
 /// işaretleniyor ve gönderimi sunucu zaten engelliyor.
 library;
 
+import 'dart:convert';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../api/models.dart';
 import '../api/problem.dart';
 import '../api/run_models.dart';
 import '../l10n/strings.dart';
@@ -76,6 +79,10 @@ class _Body extends ConsumerWidget {
         satir.itemId: satir,
     };
 
+    final sebepler =
+        ref.watch(manifestProvider).value?.notDoneReasons ??
+        const <NotDoneReason>[];
+
     return ListView(
       padding: const EdgeInsets.all(Gap.x4),
       children: [
@@ -96,12 +103,18 @@ class _Body extends ConsumerWidget {
               child: _ItemCard(
                 runId: detay.view.runId,
                 item: madde,
+                // Anahtar maddeye bağlı: not yazarken kart yeniden
+                // kurulmamalı, yoksa yazılan metin kaybolur.
+                key: ValueKey(madde.itemId),
                 options: detay.options[madde.itemId]?.options ?? const [],
+                reasons: sebepler,
                 queued: kuyruk[madde.itemId],
                 enabled: yazilabilir,
               ),
             ),
         ],
+        const SizedBox(height: Gap.x4),
+        _SubmitBar(view: detay.view, enabled: yazilabilir),
         const SizedBox(height: Gap.x8),
       ],
     );
@@ -125,24 +138,91 @@ class _Body extends ConsumerWidget {
   }
 }
 
-/// Tek madde: başlık, tür bilgisi ve cevap denetimi.
-class _ItemCard extends ConsumerWidget {
+/// Tek madde: başlık, tür bilgisi, cevap denetimi ve gerekiyorsa
+/// sebep + not.
+///
+/// Sunucunun iki kuralı burada karşılanıyor; yoksa kayıt ya senkte
+/// reddedilir ya da liste gönderilemez:
+///
+/// * "Yapılamadı" **sebepsiz yazılamaz** (BR-09). Bu yüzden düğmeye
+///   basmak cevabı yazmıyor; önce sebep seçtiriyor.
+/// * Başarısız ve yapılamadı cevaplarında **not zorunlu** (BR-06).
+class _ItemCard extends ConsumerStatefulWidget {
   const _ItemCard({
     required this.runId,
     required this.item,
     required this.options,
+    required this.reasons,
     required this.queued,
     required this.enabled,
+    super.key,
   });
 
   final String runId;
   final RunItem item;
   final List<ChoiceOption> options;
+  final List<NotDoneReason> reasons;
   final QueuedAnswer? queued;
   final bool enabled;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_ItemCard> createState() => _ItemCardState();
+}
+
+class _ItemCardState extends ConsumerState<_ItemCard> {
+  /// "Yapılamadı"ya basıldı ama sebep henüz seçilmedi.
+  bool _awaitingReason = false;
+
+  late final TextEditingController _note = TextEditingController(
+    text: widget.queued?.note ?? widget.item.serverNote ?? '',
+  );
+
+  RunItem get item => widget.item;
+  QueuedAnswer? get queued => widget.queued;
+
+  String? get _state => queued?.state ?? item.serverState;
+  String? get _reason => queued?.notDoneReason ?? item.serverReason;
+
+  @override
+  void dispose() {
+    _note.dispose();
+    super.dispose();
+  }
+
+  void _write(
+    String state, {
+    Object? value,
+    String? reason,
+    bool keepValue = false,
+  }) {
+    final eskiDeger = queued?.valueJson == null
+        ? null
+        : jsonDecode(queued!.valueJson!);
+    final not = _note.text.trim();
+    ref
+        .read(answerProvider)(
+          runId: widget.runId,
+          itemId: item.itemId,
+          state: state,
+          value: keepValue ? eskiDeger : value,
+          note: not.isEmpty ? null : not,
+          notDoneReason: state == 'not_done' ? reason : null,
+        )
+        .ignore();
+  }
+
+  /// Not değiştiyse cevabı aynı durum ve değerle yeniden yazar.
+  void _saveNote() {
+    final durum = _state;
+    if (durum == null) return;
+    final yeni = _note.text.trim();
+    final eski = (queued?.note ?? item.serverNote ?? '').trim();
+    if (yeni == eski) return;
+    _write(durum, reason: _reason, keepValue: true);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final c = AppColors.of(context);
     if (!item.answerable) {
       // Talimat maddesi puanlanmıyor ve cevaplanmıyor; okunacak metin.
@@ -156,7 +236,8 @@ class _ItemCard extends ConsumerWidget {
       );
     }
 
-    final durum = queued?.state ?? item.serverState;
+    final durum = _state;
+    final sorunlu = durum == 'failed' || durum == 'not_done';
     return Container(
       padding: const EdgeInsets.all(Gap.x4),
       decoration: BoxDecoration(
@@ -180,17 +261,60 @@ class _ItemCard extends ConsumerWidget {
                 _chip(context, S.criticalItem, c.critical, c.criticalLight),
             ],
           ),
-          if (item.photoRequired) ...[
+          if (item.photoRequired || sorunlu) ...[
             const SizedBox(height: Gap.x2),
-            // Fotoğraf yolu Spike C'de. Maddeyi gizlemek yerine
-            // söylüyoruz: personel neden gönderemediğini bilmeli.
+            // Fotoğraf yolu Spike C'de. Gizlemek yerine söylüyoruz:
+            // personel listeyi neden gönderemediğini bilmeli.
             Text(
-              S.photoNotYet,
+              sorunlu ? S.photoNeededForIssue : S.photoNotYet,
               style: TextStyle(color: c.warning, fontSize: TypeScale.meta),
             ),
           ],
           const SizedBox(height: Gap.x3),
-          _control(context, ref),
+          _control(context),
+          if (_awaitingReason || durum == 'not_done') ...[
+            const SizedBox(height: Gap.x3),
+            Text(
+              S.reasonTitle,
+              style: TextStyle(color: c.ink2, fontSize: TypeScale.label),
+            ),
+            const SizedBox(height: Gap.x2),
+            Wrap(
+              spacing: Gap.x2,
+              runSpacing: Gap.x2,
+              children: [
+                for (final sebep in widget.reasons)
+                  SizedBox(
+                    width: 150,
+                    child: _Pick(
+                      label: sebep.label,
+                      color: c.warning,
+                      selected: !_awaitingReason && _reason == sebep.code,
+                      enabled: widget.enabled,
+                      onTap: () {
+                        setState(() => _awaitingReason = false);
+                        _write('not_done', reason: sebep.code);
+                      },
+                    ),
+                  ),
+              ],
+            ),
+          ],
+          if (sorunlu && !_awaitingReason) ...[
+            const SizedBox(height: Gap.x3),
+            TextField(
+              controller: _note,
+              enabled: widget.enabled,
+              minLines: 1,
+              maxLines: 3,
+              decoration: const InputDecoration(labelText: S.noteLabel),
+              onSubmitted: (_) => _saveNote(),
+              onTapOutside: (_) {
+                FocusScope.of(context).unfocus();
+                _saveNote();
+              },
+            ),
+          ],
           if (queued != null && !queued!.sent) ...[
             const SizedBox(height: Gap.x2),
             Text(
@@ -206,56 +330,50 @@ class _ItemCard extends ConsumerWidget {
     );
   }
 
-  Widget _control(BuildContext context, WidgetRef ref) {
-    final durum = queued?.state ?? item.serverState;
+  Widget _control(BuildContext context) {
     switch (item.type) {
       case 'choice':
         return _Choices(
-          options: options,
+          options: widget.options,
           selected: queued?.valueJson,
-          enabled: enabled,
+          enabled: widget.enabled,
           // Geçer/kalır kararını şıkkın kendisi taşıyor; sunucu da
           // aynı kuralı uyguluyor, yani ekranda görünen sonuç senkten
           // sonra değişmiyor.
-          onPick: (secim) => _write(
-            ref,
-            secim.passing ? 'passed' : 'failed',
-            value: secim.label,
-          ),
+          onPick: (secim) =>
+              _write(secim.passing ? 'passed' : 'failed', value: secim.label),
         );
       case 'number':
       case 'temperature':
         return _NumberField(
           item: item,
           initial: queued?.valueJson,
-          enabled: enabled,
+          enabled: widget.enabled,
           onSubmit: (sayi, aralikta) =>
-              _write(ref, aralikta ? 'passed' : 'failed', value: sayi),
+              _write(aralikta ? 'passed' : 'failed', value: sayi),
         );
       case 'text':
         return _TextField(
           initial: queued?.valueJson,
-          enabled: enabled,
-          onSubmit: (metin) => _write(ref, 'passed', value: metin),
+          enabled: widget.enabled,
+          onSubmit: (metin) => _write('passed', value: metin),
         );
       default:
         return _YesNo(
-          state: durum,
-          enabled: enabled,
-          onPick: (yeni) => _write(ref, yeni),
+          state: _awaitingReason ? 'not_done' : _state,
+          enabled: widget.enabled,
+          onPick: (yeni) {
+            if (yeni == 'not_done') {
+              // Sebepsiz "yapılamadı" sunucuda reddedilir; cevap sebep
+              // seçilince yazılır.
+              setState(() => _awaitingReason = true);
+              return;
+            }
+            setState(() => _awaitingReason = false);
+            _write(yeni);
+          },
         );
     }
-  }
-
-  void _write(WidgetRef ref, String state, {Object? value}) {
-    ref
-        .read(answerProvider)(
-          runId: runId,
-          itemId: item.itemId,
-          state: state,
-          value: value,
-        )
-        .ignore();
   }
 
   Widget _chip(BuildContext context, String text, Color fg, Color bg) =>
@@ -521,6 +639,108 @@ class _TextFieldState extends State<_TextField> {
     onTapOutside: (_) {
       if (_controller.text.trim().isNotEmpty) widget.onSubmit(_controller.text);
     },
+  );
+}
+
+/// Listeyi gönderme: düğme, sonuç ya da sunucunun bulduğu eksikler.
+class _SubmitBar extends ConsumerStatefulWidget {
+  const _SubmitBar({required this.view, required this.enabled});
+
+  final RunView view;
+  final bool enabled;
+
+  @override
+  ConsumerState<_SubmitBar> createState() => _SubmitBarState();
+}
+
+class _SubmitBarState extends ConsumerState<_SubmitBar> {
+  bool _busy = false;
+  SubmitOutcome? _outcome;
+
+  Future<void> _submit() async {
+    setState(() {
+      _busy = true;
+      _outcome = null;
+    });
+    final sonuc = await ref.read(submitProvider)(widget.view.runId);
+    if (!mounted) return;
+    setState(() {
+      _busy = false;
+      _outcome = sonuc;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = AppColors.of(context);
+    final sonuc = _outcome;
+    final gonderilmis = sonuc is SubmitDone
+        ? sonuc.view
+        : (widget.view.status == 'submitted' ? widget.view : null);
+
+    if (gonderilmis != null) {
+      final basarili = gonderilmis.result != 'failed';
+      return _box(
+        context,
+        bg: basarili ? c.brandLight : c.criticalLight,
+        fg: basarili ? c.brand : c.critical,
+        lines: [
+          S.submitted,
+          if (gonderilmis.result != null)
+            S.resultLabels[gonderilmis.result] ?? gonderilmis.result!,
+          if (gonderilmis.scorePercent != null)
+            S.score(gonderilmis.scorePercent!),
+        ],
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (sonuc is SubmitNeedsNetwork)
+          _box(
+            context,
+            bg: c.warningLight,
+            fg: c.warning,
+            lines: const [S.submitNeedsNetwork],
+          ),
+        if (sonuc is SubmitBlocked)
+          _box(
+            context,
+            bg: c.criticalLight,
+            fg: c.critical,
+            lines: [
+              S.submitBlocked,
+              for (final eksik in sonuc.blockers)
+                '• ${eksik.title} — ${S.blockerKinds[eksik.kind] ?? eksik.kind}',
+            ],
+          ),
+        if (sonuc is SubmitRejected) ErrorText(error: sonuc.error),
+        if (sonuc != null) const SizedBox(height: Gap.x3),
+        FilledButton(
+          onPressed: widget.enabled && !_busy ? _submit : null,
+          child: Text(_busy ? S.submitting : S.submit),
+        ),
+      ],
+    );
+  }
+
+  Widget _box(
+    BuildContext context, {
+    required Color bg,
+    required Color fg,
+    required List<String> lines,
+  }) => Container(
+    width: double.infinity,
+    padding: const EdgeInsets.all(Gap.x3),
+    decoration: BoxDecoration(
+      color: bg,
+      borderRadius: BorderRadius.circular(Corner.button),
+    ),
+    child: Text(
+      lines.join('\n'),
+      style: TextStyle(color: fg, fontSize: TypeScale.label, height: 1.5),
+    ),
   );
 }
 

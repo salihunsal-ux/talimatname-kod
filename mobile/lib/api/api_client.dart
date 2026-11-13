@@ -130,6 +130,12 @@ class ApiClient {
         await _send('GET', '/template-versions/$versionId'),
       );
 
+  /// Listeyi gönderir. Eksik varsa sunucu 422 döner; puan ve sonuç
+  /// **sunucuda** hesaplanır, cihaz hesaplamaz.
+  Future<RunView> submit(String runId) async => RunView.fromJson(
+    await _send('POST', '/runs/$runId/submit', body: const {}),
+  );
+
   /// Kuyruğu gönderir. Yanıt **200** ve sonuç kayıt başına; bu yüzden
   /// dönen satırlar tek tek okunur, istek bütün olarak başarılı
   /// sayılmaz.

@@ -4,4 +4,7 @@
          to allow setting breakpoints, to provide hot reload, etc.
     -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Yalnızca debug: emülatörden yerel API'ye (http://10.0.2.2) düz
+         HTTP. Sürüm derlemesinde yok; orada yalnızca HTTPS. -->
+    <application android:usesCleartextTraffic="true"/>
 </manifest>

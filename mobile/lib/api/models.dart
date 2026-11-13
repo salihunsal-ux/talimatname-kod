@@ -177,6 +177,7 @@ class Manifest {
     required this.refreshAfterMinutes,
     required this.runs,
     required this.policy,
+    this.notDoneReasons = const [],
   });
 
   final DateTime serverTime;
@@ -186,6 +187,9 @@ class Manifest {
   final int refreshAfterMinutes;
   final List<ManifestRun> runs;
   final QueuePolicy policy;
+
+  /// "Yapılamadı" sebepleri; etiketleri sunucu veriyor (BR-09).
+  final List<NotDoneReason> notDoneReasons;
 
   static Manifest fromJson(Map<String, dynamic> json) {
     final clock = json['clock'] as Map<String, dynamic>;
@@ -201,6 +205,22 @@ class Manifest {
           .map(ManifestRun.fromJson)
           .toList(growable: false),
       policy: QueuePolicy.fromJson(json['policy'] as Map<String, dynamic>),
+      notDoneReasons: (json['not_done_reasons'] as List<dynamic>? ?? const [])
+          .whereType<Map<String, dynamic>>()
+          .map(
+            (s) => NotDoneReason(
+              code: s['code'] as String,
+              label: s['label'] as String,
+            ),
+          )
+          .toList(growable: false),
     );
   }
+}
+
+class NotDoneReason {
+  const NotDoneReason({required this.code, required this.label});
+
+  final String code;
+  final String label;
 }

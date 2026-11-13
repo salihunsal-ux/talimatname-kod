@@ -94,6 +94,8 @@ class RunView {
     required this.sections,
     required this.blockers,
     this.lockedByName,
+    this.result,
+    this.scorePercent,
   });
 
   final String runId;
@@ -106,10 +108,14 @@ class RunView {
 
   /// Gönderimi engelleyen eksikler; **sunucu** hesaplıyor. Cihaz
   /// yeniden hesaplamıyor: iki yerde kural, iki kural demektir.
-  final List<String> blockers;
+  final List<Blocker> blockers;
 
   /// Çalıştırmayı üstlenen kişi (FR-0521, çalıştırma kilidi).
   final String? lockedByName;
+
+  /// Gönderilmiş çalıştırmada sonuç (`passed`/`failed`) ve puan.
+  final String? result;
+  final int? scorePercent;
 
   bool writableAt(DateTime now) =>
       !now.isBefore(writableFrom) && now.isBefore(toleranceEnd);
@@ -132,10 +138,32 @@ class RunView {
         .map(RunSection.fromJson)
         .toList(growable: false),
     blockers: (json['blockers'] as List<dynamic>? ?? const [])
-        .map((b) => b.toString())
+        .whereType<Map<String, dynamic>>()
+        .map(
+          (b) => Blocker(
+            itemId: b['item_id'] as String,
+            title: (b['title'] ?? '') as String,
+            kind: (b['kind'] ?? '') as String,
+          ),
+        )
         .toList(growable: false),
+    result: json['result'] as String?,
+    scorePercent: (json['score_percent'] as num?)?.round(),
     lockedByName: json['locked_by_name'] as String?,
   );
+}
+
+/// Gönderimi engelleyen eksik. `kind`: `unanswered` · `evidence` · `note`.
+class Blocker {
+  const Blocker({
+    required this.itemId,
+    required this.title,
+    required this.kind,
+  });
+
+  final String itemId;
+  final String title;
+  final String kind;
 }
 
 class RunSection {
@@ -171,6 +199,8 @@ class RunItem {
     this.maxValue,
     this.unit,
     this.serverState,
+    this.serverNote,
+    this.serverReason,
   });
 
   final String itemId;
@@ -186,6 +216,8 @@ class RunItem {
 
   /// Sunucuda kayıtlı cevabın durumu; yoksa `null`.
   final String? serverState;
+  final String? serverNote;
+  final String? serverReason;
 
   bool get answerable => type != 'instruction';
 
@@ -203,6 +235,8 @@ class RunItem {
       maxValue: json['max_value'] as num?,
       unit: json['unit'] as String?,
       serverState: cevap?['state'] as String?,
+      serverNote: cevap?['note'] as String?,
+      serverReason: cevap?['not_done_reason'] as String?,
     );
   }
 }

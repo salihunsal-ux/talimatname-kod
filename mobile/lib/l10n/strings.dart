@@ -85,6 +85,26 @@ abstract final class S {
   static const noOptions = 'Bu madde için seçenek tanımlı değil.';
   static const photoNotYet =
       'Bu madde fotoğraf istiyor; fotoğraf çekme henüz bu sürümde yok.';
+  static const photoNeededForIssue =
+      'Olumsuz cevap fotoğraf da ister; fotoğraf çekme henüz bu sürümde yok.';
+  static const reasonTitle = 'Neden yapılamadı?';
+  static const noteLabel = 'Not (zorunlu)';
+  static const submit = 'Listeyi gönder';
+  static const submitting = 'Gönderiliyor…';
+  static const submitNeedsNetwork =
+      'Göndermek için bağlantı gerekli. Cevaplarınız cihazda duruyor.';
+  static const submitBlocked = 'Liste gönderilemedi. Eksikler:';
+  static const blockerKinds = <String, String>{
+    'unanswered': 'cevaplanmadı',
+    'evidence': 'fotoğraf eksik',
+    'note': 'not eksik',
+  };
+  static const submitted = 'Liste gönderildi';
+  static String score(int puan) => 'Puan: %$puan';
+  static const resultLabels = <String, String>{
+    'passed': 'Başarılı',
+    'failed': 'Başarısız',
+  };
   static const readOnlyWindow = 'Pencere kapalı: bu listeye artık yazılamaz.';
   static String lockedBy(String ad) => '$ad bu listeyi üstlendi.';
   static const pendingOne = 'Gönderilmeyi bekliyor';
