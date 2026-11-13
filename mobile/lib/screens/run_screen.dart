@@ -17,11 +17,13 @@ import '../api/models.dart';
 import '../api/problem.dart';
 import '../api/run_models.dart';
 import '../l10n/strings.dart';
+import '../queue/answer_queue.dart';
 import '../queue/database.dart';
 import '../state/providers.dart';
 import '../state/run_providers.dart';
 import '../theme/tokens.dart';
 import '../widgets/error_text.dart';
+import 'camera_screen.dart';
 
 class RunScreen extends ConsumerWidget {
   const RunScreen({required this.runId, super.key});
@@ -84,9 +86,13 @@ class _Body extends ConsumerWidget {
         satir.itemId: satir,
     };
 
-    final sebepler =
-        ref.watch(manifestProvider).value?.notDoneReasons ??
-        const <NotDoneReason>[];
+    final manifest = ref.watch(manifestProvider).value;
+    final sebepler = manifest?.notDoneReasons ?? const <NotDoneReason>[];
+    final fotoSiniri =
+        manifest?.policy.maxEvidencePerItem ?? defaultMaxEvidencePerItem;
+    final kanitlar =
+        ref.watch(evidenceForRunProvider(detay.view.runId)).value ??
+        const <QueuedEvidenceData>[];
 
     return ListView(
       padding: const EdgeInsets.all(Gap.x4),
@@ -119,6 +125,11 @@ class _Body extends ConsumerWidget {
                 key: ValueKey(madde.itemId),
                 options: detay.options[madde.itemId]?.options ?? const [],
                 reasons: sebepler,
+                photoLimit: fotoSiniri,
+                evidence: [
+                  for (final k in kanitlar)
+                    if (k.itemId == madde.itemId) k,
+                ],
                 queued: kuyruk[madde.itemId],
                 enabled: yazilabilir,
               ),
@@ -168,6 +179,8 @@ class _ItemCard extends ConsumerStatefulWidget {
     required this.item,
     required this.options,
     required this.reasons,
+    required this.photoLimit,
+    required this.evidence,
     required this.queued,
     required this.enabled,
     super.key,
@@ -177,6 +190,10 @@ class _ItemCard extends ConsumerStatefulWidget {
   final RunItem item;
   final List<ChoiceOption> options;
   final List<NotDoneReason> reasons;
+  final int photoLimit;
+
+  /// Bu maddeye bağlı, cihazdaki kanıt satırları.
+  final List<QueuedEvidenceData> evidence;
   final QueuedAnswer? queued;
   final bool enabled;
 
@@ -276,15 +293,6 @@ class _ItemCardState extends ConsumerState<_ItemCard> {
                 _chip(context, S.criticalItem, c.critical, c.criticalLight),
             ],
           ),
-          if (item.photoRequired || sorunlu) ...[
-            const SizedBox(height: Gap.x2),
-            // Fotoğraf yolu Spike C'de. Gizlemek yerine söylüyoruz:
-            // personel listeyi neden gönderemediğini bilmeli.
-            Text(
-              sorunlu ? S.photoNeededForIssue : S.photoNotYet,
-              style: TextStyle(color: c.warning, fontSize: TypeScale.meta),
-            ),
-          ],
           const SizedBox(height: Gap.x3),
           _control(context),
           if (_awaitingReason || durum == 'not_done') ...[
@@ -330,6 +338,10 @@ class _ItemCardState extends ConsumerState<_ItemCard> {
               },
             ),
           ],
+          if (durum != null && !_awaitingReason) ...[
+            const SizedBox(height: Gap.x3),
+            _photoRow(context, sorunlu),
+          ],
           if (queued != null && !queued!.sent) ...[
             const SizedBox(height: Gap.x2),
             Text(
@@ -343,6 +355,88 @@ class _ItemCardState extends ConsumerState<_ItemCard> {
         ],
       ),
     );
+  }
+
+  /// Fotoğraf satırı: düğme, sayaç ve bekleyen/ret durumu.
+  ///
+  /// Madde cevaplanmadan görünmez: kanıt bir cevaba bağlanır. İki
+  /// dokunuş hedefi (Spike C): bu düğme ve deklanşör.
+  Widget _photoRow(BuildContext context, bool sorunlu) {
+    final c = AppColors.of(context);
+    final gecerli = [
+      for (final k in widget.evidence)
+        if (!k.blocked) k,
+    ];
+    final sayi = gecerli.length > item.serverEvidenceCount
+        ? gecerli.length
+        : item.serverEvidenceCount;
+    final bekleyen = gecerli.any((k) => !k.uploaded);
+    final reddedilen = widget.evidence.any((k) => k.blocked);
+    final gerekli = (item.photoRequired || sorunlu) && sayi == 0;
+    final dolu = sayi >= widget.photoLimit;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            OutlinedButton.icon(
+              onPressed: widget.enabled && !dolu ? _takePhoto : null,
+              icon: const Icon(Icons.photo_camera_outlined, size: 20),
+              label: const Text(S.takePhoto),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: gerekli ? c.warning : c.brand,
+                side: BorderSide(color: gerekli ? c.warning : c.line),
+                minimumSize: const Size(minTouchTarget, minTouchTarget),
+              ),
+            ),
+            const SizedBox(width: Gap.x3),
+            Text(
+              S.photoCount(sayi, widget.photoLimit),
+              style: TextStyle(
+                color: c.ink2,
+                fontSize: TypeScale.label,
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
+            ),
+          ],
+        ),
+        if (gerekli || bekleyen || reddedilen) ...[
+          const SizedBox(height: Gap.x1),
+          Text(
+            reddedilen
+                ? S.photoRejected
+                : bekleyen
+                ? S.photoPending
+                : (sorunlu ? S.photoIssueHint : S.photoRequiredHint),
+            style: TextStyle(
+              color: reddedilen ? c.critical : (bekleyen ? c.muted : c.warning),
+              fontSize: TypeScale.meta,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Future<void> _takePhoto() async {
+    final baytlar = await Navigator.of(
+      context,
+    ).push<List<int>>(MaterialPageRoute(builder: (_) => const CameraScreen()));
+    if (baytlar == null || !mounted) return;
+    final sonuc = await ref.read(addPhotoProvider)(
+      runId: widget.runId,
+      itemId: item.itemId,
+      bytes: baytlar,
+    );
+    if (!mounted || sonuc == PhotoResult.added) return;
+    final mesaj = switch (sonuc) {
+      PhotoResult.needsAnswer => S.photoNeedsAnswer,
+      PhotoResult.itemFull => S.photoItemFull,
+      PhotoResult.queueFull => S.photoQueueFull,
+      _ => S.photoUnsupported,
+    };
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(mesaj)));
   }
 
   Widget _control(BuildContext context) {

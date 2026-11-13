@@ -143,18 +143,59 @@ class ApiClient {
   /// Kuyruğu gönderir. Yanıt **200** ve sonuç kayıt başına; bu yüzden
   /// dönen satırlar tek tek okunur, istek bütün olarak başarılı
   /// sayılmaz.
-  Future<BatchResult> syncAnswers(List<Map<String, dynamic>> answers) async {
+  Future<BatchResult> syncAnswers(List<Map<String, dynamic>> answers) =>
+      _syncBatch(answers: answers);
+
+  /// Kanıt **niyetlerini** bildirir; baytlar bu istekte yok. Dönen her
+  /// kayıt için yükleme adresi gelir.
+  Future<BatchResult> syncEvidence(List<Map<String, dynamic>> evidence) =>
+      _syncBatch(evidence: evidence);
+
+  Future<BatchResult> _syncBatch({
+    List<Map<String, dynamic>> answers = const [],
+    List<Map<String, dynamic>> evidence = const [],
+  }) async {
     final body = await _send(
       'POST',
       '/sync/batch',
       body: {
         'answers': answers,
-        'evidence': const <Map<String, dynamic>>[],
+        'evidence': evidence,
         'device_time': DateTime.now().toUtc().toIso8601String(),
       },
     );
     return BatchResult.fromJson(body);
   }
+
+  /// Baytları yükleme adresine gönderir. Adres göreliyse API'nin
+  /// kökünden çözülür. Oturum başlığı gitmiyor: yetki adresteki tek
+  /// kullanımlık belirteçte, ve adres nesne deposuna aitse oturum
+  /// belirtecini oraya sızdırmak istemeyiz.
+  Future<void> uploadEvidence(
+    String uploadUrl,
+    List<int> bytes,
+    String contentType,
+  ) async {
+    final hedef = uploadUrl.startsWith('http')
+        ? Uri.parse(uploadUrl)
+        : Uri.parse(baseUrl).resolve(uploadUrl);
+    final istek = http.Request('PUT', hedef)
+      ..headers['Content-Type'] = contentType
+      ..bodyBytes = bytes;
+    http.Response yanit;
+    try {
+      yanit = await http.Response.fromStream(await _client.send(istek));
+    } on Object catch (hata) {
+      throw ApiException.network(hata);
+    }
+    if (yanit.statusCode >= 400) {
+      throw ApiException.parse(yanit.statusCode, utf8.decode(yanit.bodyBytes));
+    }
+  }
+
+  /// Sunucu depodaki baytların özetini hesaplar; tutmuyorsa reddeder.
+  Future<void> completeEvidence(String evidenceId) =>
+      _send('POST', '/evidence/$evidenceId/complete', body: const {});
 
   Future<Map<String, dynamic>> _send(
     String method,

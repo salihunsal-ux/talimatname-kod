@@ -4,8 +4,8 @@ Personelin listeyi doldurduğu uygulama. Panel (`web/`) yöneticiler
 için; burası şubede, telefonda, çoğu zaman **zayıf bağlantıyla**
 çalışır.
 
-Bugünkü hâli: giriş → bugünün listeleri → **liste doldurma** ve
-çevrimdışı kuyruk. Kanıt fotoğrafı henüz yok (Spike C).
+Bugünkü hâli: giriş → bugünün listeleri → liste doldurma, kanıt
+fotoğrafı, çevrimdışı kuyruk ve gönderme. Yalnızca emülatörde görüldü.
 
 ## Hedefler
 
@@ -73,17 +73,33 @@ Sonradan eklenen ve aynı yolla görülenler (yerel API'ye karşı,
   gelince. Bağlantı dönünce bekleyen cevap dokunmadan gidiyor, uyarı
   kendiliğinden kalkıyor.
 
+- **Fotoğraf (Spike C, emülatörde):** madde cevaplanınca "Fotoğraf çek"
+  düğmesi çıkıyor; uygulama içi kamera, deklanşör, cihazda sıkıştırma
+  (hedef ≤ 300 KB) ve SHA-256. Fotoğraf cevaptan **sonra** gönderiliyor,
+  baytlar yüklenip sunucuda özetle doğrulanıyor ("stored"). Galeri yolu
+  yok. Damgayı sunucu basıyor.
+
 Hâlâ yapılmayanlar:
 
-- **Fotoğraf yok** (Spike C). Olumsuz cevap not **ve fotoğraf** istediği
-  için, içinde tek bir "Hayır" ya da "Yapılamadı" olan liste şu an
-  gönderilemiyor. Sıradaki iş bu.
+- **Gerçek cihaz ölçümü yok.** Emülatörün kamerası sahte sahne veriyor:
+  kare 14 KB'a sıkıştı ve kameranın ilk açılışı ~10 sn sürdü. İkisi de
+  gerçek telefonu temsil etmiyor. Spike C'nin kabul ölçütleri (çekim →
+  madde tamam ≤ 3 sn, dosya ≤ 300 KB ve **okunur**) düşük segment bir
+  Android'de ölçülmeden kapanmış sayılmaz.
+- **Konum gönderilmiyor.** Sunucu konumsuz kanıtı `no_location`
+  bayrağıyla işaretliyor (inceleme çağrısı, ret değil). Konum izni
+  istemek ürün kararı; alınmadı.
+- Çekilen fotoğraf ekranda **gösterilmiyor**, yalnızca sayılıyor; yanlış
+  kareyi silme de yok.
 - **Uygulama kapalıyken senk yok** (WorkManager). Otomatik senk yalnızca
   uygulama açıkken çalışıyor.
 - Bir çalıştırma çevrimdışı açılabilsin diye **önce bir kez
   bağlantılıyken açılmış** olmalı: manifest listeyi taşıyor ama maddeleri
-  taşımıyor. Vardiya başında bağlantı varken listeyi açmayan personel,
-  bağlantı gidince o listeyi dolduramaz.
+  taşımıyor.
+
+Derleme notu: `android/gradle.properties` içinde `kotlin.incremental=false`.
+Proje ile pub önbelleği farklı sürücülerdeyse (D: ve C:) Kotlin derleyen
+eklentiler "Could not close incremental caches" ile kırılıyor.
 
 ## Kapılar
 

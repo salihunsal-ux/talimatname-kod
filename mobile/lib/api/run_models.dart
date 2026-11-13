@@ -12,6 +12,9 @@ import 'problem.dart';
 /// (`batch_answer_limit`); bu, manifest henüz indirilmemişken
 /// kullanılan değer.
 const defaultBatchAnswerLimit = 200;
+const defaultBatchEvidenceLimit = 50;
+const defaultMaxEvidencePerItem = 3;
+const defaultQueueEvidenceLimit = 500;
 
 /// Cihazda üretilen kayıt kimliği (RFC 4122 sürüm 4).
 ///
@@ -69,15 +72,62 @@ class BatchRow {
   }
 }
 
+/// `/sync/batch` yanıtındaki tek kanıt kaydı.
+class EvidenceRow {
+  const EvidenceRow({
+    required this.evidenceId,
+    required this.outcome,
+    this.uploadUrl,
+    this.errorCode,
+    this.retryable = false,
+  });
+
+  final String evidenceId;
+
+  /// `accepted` · `resumed` · `duplicate` · `rejected`
+  final String outcome;
+
+  /// Baytların yükleneceği adres. Yerel depoda **göreli**, nesne
+  /// deposunda tam adres.
+  final String? uploadUrl;
+  final String? errorCode;
+  final bool retryable;
+
+  /// Yükleme bekleniyor: yeni kayıt ya da yarım kalmış yükleme.
+  bool get needsUpload => outcome == 'accepted' || outcome == 'resumed';
+
+  /// Aynı fotoğraf sunucuda zaten var; cihaz kuyruktan düşürebilir.
+  bool get duplicate => outcome == 'duplicate';
+
+  static EvidenceRow fromJson(Map<String, dynamic> json) {
+    final hata = json['error'] as Map<String, dynamic>?;
+    final tur = hata?['type'] as String?;
+    return EvidenceRow(
+      evidenceId: json['evidence_id'] as String,
+      outcome: json['outcome'] as String,
+      uploadUrl: json['upload_url'] as String?,
+      errorCode: tur == null
+          ? null
+          : (tur.startsWith(urnPrefix) ? tur.substring(urnPrefix.length) : tur),
+      retryable: (hata?['retryable'] ?? false) as bool,
+    );
+  }
+}
+
 class BatchResult {
-  const BatchResult({required this.answers});
+  const BatchResult({required this.answers, this.evidence = const []});
 
   final List<BatchRow> answers;
+  final List<EvidenceRow> evidence;
 
   static BatchResult fromJson(Map<String, dynamic> json) => BatchResult(
     answers: (json['answers'] as List<dynamic>? ?? const [])
         .whereType<Map<String, dynamic>>()
         .map(BatchRow.fromJson)
+        .toList(growable: false),
+    evidence: (json['evidence'] as List<dynamic>? ?? const [])
+        .whereType<Map<String, dynamic>>()
+        .map(EvidenceRow.fromJson)
         .toList(growable: false),
   );
 }
@@ -201,6 +251,7 @@ class RunItem {
     this.serverState,
     this.serverNote,
     this.serverReason,
+    this.serverEvidenceCount = 0,
   });
 
   final String itemId;
@@ -218,6 +269,9 @@ class RunItem {
   final String? serverState;
   final String? serverNote;
   final String? serverReason;
+
+  /// Sunucuda bu cevaba bağlı kanıt sayısı (başka cihazdan da olabilir).
+  final int serverEvidenceCount;
 
   bool get answerable => type != 'instruction';
 
@@ -237,6 +291,7 @@ class RunItem {
       serverState: cevap?['state'] as String?,
       serverNote: cevap?['note'] as String?,
       serverReason: cevap?['not_done_reason'] as String?,
+      serverEvidenceCount: (cevap?['evidence_count'] as num?)?.toInt() ?? 0,
     );
   }
 }

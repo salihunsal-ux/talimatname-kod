@@ -1,7 +1,11 @@
 /// Riverpod sağlayıcıları: istemci, oturum ve manifest.
 library;
 
+import 'dart:io';
+
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path_provider/path_provider.dart';
 
 import '../api/api_client.dart';
 import '../api/models.dart';
@@ -116,10 +120,18 @@ final deviceIdProvider = FutureProvider<String>((ref) async {
 });
 
 final answerQueueProvider = FutureProvider<AnswerQueue>((ref) async {
+  // Fotoğraflar uygulamanın kendi dizininde: galeride görünmez,
+  // başka uygulama okuyamaz. Web'de dosya sistemi yok.
+  Directory? kanitDizini;
+  if (!kIsWeb) {
+    final kok = await getApplicationDocumentsDirectory();
+    kanitDizini = Directory('${kok.path}${Platform.pathSeparator}kanit');
+  }
   return AnswerQueue(
     db: ref.read(queueDatabaseProvider),
     api: ref.read(apiClientProvider),
     deviceId: await ref.watch(deviceIdProvider.future),
+    evidenceDir: kanitDizini,
   );
 });
 

@@ -83,11 +83,25 @@ abstract final class S {
   static const criticalItem = 'Kritik';
   static const valueLabel = 'Değer';
   static const noOptions = 'Bu madde için seçenek tanımlı değil.';
-  static const photoNotYet =
-      'Bu madde fotoğraf istiyor; fotoğraf çekme henüz bu sürümde yok.';
-  static const photoNeededForIssue =
-      'Olumsuz cevap fotoğraf da ister; fotoğraf çekme henüz bu sürümde yok.';
   static const reasonTitle = 'Neden yapılamadı?';
+  static const takePhoto = 'Fotoğraf çek';
+  static String photoCount(int n, int sinir) => '$n/$sinir fotoğraf';
+  static const photoRequiredHint = 'Bu madde fotoğraf istiyor.';
+  static const photoIssueHint = 'Olumsuz cevap fotoğraf da ister.';
+  static const photoPending = 'Fotoğraf yüklenmeyi bekliyor';
+  static const photoRejected = 'Bir fotoğrafı sunucu kabul etmedi';
+  static const photoNeedsAnswer = 'Önce maddeyi cevaplayın.';
+  static const photoItemFull = 'Bu madde için fotoğraf sınırı doldu.';
+  static const photoQueueFull =
+      'Cihazda bekleyen fotoğraf sınırı doldu. Bağlantı gelip yüklenince '
+      'yenisini çekebilirsiniz.';
+  static const photoUnsupported = 'Bu cihazda fotoğraf çekilemiyor.';
+  static const cameraMissing = 'Bu cihazda kamera bulunamadı.';
+  static const cameraDenied =
+      'Kamera izni verilmedi. Ayarlardan izin verip yeniden deneyin.';
+  static const cameraFailed = 'Fotoğraf çekilemedi. Yeniden deneyin.';
+  static const cameraClose = 'Kapat';
+  static const cameraShoot = 'Fotoğraf çek';
   static const noteLabel = 'Not (zorunlu)';
   static const submit = 'Listeyi gönder';
   static const submitting = 'Gönderiliyor…';

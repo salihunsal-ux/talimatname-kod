@@ -10,6 +10,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../api/problem.dart';
 import '../api/run_models.dart';
+import '../queue/answer_queue.dart';
 import '../queue/database.dart';
 import 'providers.dart';
 
@@ -50,6 +51,45 @@ final queuedForRunProvider = FutureProvider.family<List<QueuedAnswer>, String>((
   final queue = await ref.watch(answerQueueProvider.future);
   return queue.forRun(runId);
 });
+
+/// Cihazdaki kanıt satırları (yüklenmiş olanlar dahil).
+final evidenceForRunProvider =
+    FutureProvider.family<List<QueuedEvidenceData>, String>((ref, runId) async {
+      ref.watch(syncTickProvider);
+      final queue = await ref.watch(answerQueueProvider.future);
+      return queue.evidenceForRun(runId);
+    });
+
+/// Çekilmiş fotoğrafı kuyruğa ekler ve bağlantı varsa gönderir.
+final addPhotoProvider =
+    Provider<
+      Future<PhotoResult> Function({
+        required String runId,
+        required String itemId,
+        required List<int> bytes,
+      })
+    >((ref) {
+      return ({
+        required String runId,
+        required String itemId,
+        required List<int> bytes,
+      }) async {
+        final queue = await ref.read(answerQueueProvider.future);
+        final sonuc = await queue.addPhoto(
+          runId: runId,
+          itemId: itemId,
+          bytes: bytes,
+          policy: ref.read(manifestProvider).value?.policy,
+        );
+        if (sonuc == PhotoResult.added) {
+          ref.invalidate(evidenceForRunProvider(runId));
+          ref.invalidate(queuedForRunProvider(runId));
+          ref.invalidate(pendingCountProvider);
+          ref.read(syncProvider)().ignore();
+        }
+        return sonuc;
+      };
+    });
 
 /// Çalıştırmanın şablon sürümü manifestten okunuyor: görünüm onu
 /// taşımıyor (Spike A bulgusu).

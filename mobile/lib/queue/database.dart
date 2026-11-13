@@ -72,7 +72,36 @@ class CachedDocs extends Table {
   Set<Column> get primaryKey => {path};
 }
 
-@DriftDatabase(tables: [QueuedAnswers, CachedDocs])
+/// Gönderilmeyi bekleyen kanıt fotoğrafı (FR-0601…0606).
+///
+/// Baytlar veritabanında değil **dosyada**; satır dosyanın yolunu ve
+/// özetini taşıyor. Özet çekim anında hesaplanıyor ve sunucu yüklemeden
+/// sonra aynı özeti kendi hesaplıyor: yolda değişen dosya reddedilir.
+class QueuedEvidence extends Table {
+  TextColumn get evidenceId => text()();
+  TextColumn get runId => text()();
+  TextColumn get itemId => text()();
+
+  /// Kanıtın bağlandığı cevap; sunucu cevabı görmeden kanıtı kabul
+  /// etmez, bu yüzden kanıt cevaptan **sonra** gönderilir.
+  TextColumn get answerId => text()();
+  TextColumn get filePath => text()();
+  TextColumn get sha256 => text()();
+  IntColumn get sizeBytes => integer()();
+  TextColumn get contentType => text()();
+  DateTimeColumn get capturedAt => dateTime()();
+  TextColumn get deviceId => text()();
+
+  /// Baytlar yüklendi ve sunucu özeti doğruladı.
+  BoolColumn get uploaded => boolean().withDefault(const Constant(false))();
+  BoolColumn get blocked => boolean().withDefault(const Constant(false))();
+  TextColumn get lastErrorCode => text().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {evidenceId};
+}
+
+@DriftDatabase(tables: [QueuedAnswers, CachedDocs, QueuedEvidence])
 class QueueDatabase extends _$QueueDatabase {
   QueueDatabase([QueryExecutor? executor])
     : super(
@@ -93,7 +122,7 @@ class QueueDatabase extends _$QueueDatabase {
       );
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -102,6 +131,8 @@ class QueueDatabase extends _$QueueDatabase {
       // 1 → 2: belge önbelleği eklendi. Kuyruk tablosuna dokunulmuyor:
       // yükseltme, gönderilmemiş cevabı silemez.
       if (from < 2) await m.createTable(cachedDocs);
+      // 2 → 3: kanıt kuyruğu.
+      if (from < 3) await m.createTable(queuedEvidence);
     },
   );
 
@@ -166,5 +197,69 @@ class QueueDatabase extends _$QueueDatabase {
   Future<int> purgeSent() =>
       (delete(queuedAnswers)..where((t) => t.sent.equals(true))).go();
 
-  Future<int> pendingCount() async => (await pending()).length;
+  /// Bekleyen **her şey**: cevaplar ve yüklenmemiş fotoğraflar. Sayaç
+  /// yalnızca cevapları sayarsa, fotoğrafı yüklenmemiş bir liste
+  /// "hepsi gönderildi" görünür.
+  Future<int> pendingCount() async =>
+      (await pending()).length + (await pendingEvidence()).length;
+
+  Future<void> putEvidence(QueuedEvidenceCompanion row) =>
+      into(queuedEvidence).insertOnConflictUpdate(row);
+
+  Future<List<QueuedEvidenceData>> evidenceForRun(String runId) =>
+      (select(queuedEvidence)..where((t) => t.runId.equals(runId))).get();
+
+  /// Maddeye bağlı, reddedilmemiş kanıt sayısı (yüklenmiş olanlar dahil).
+  Future<int> evidenceCount(String runId, String itemId) async =>
+      (await (select(queuedEvidence)..where(
+                (t) =>
+                    t.runId.equals(runId) &
+                    t.itemId.equals(itemId) &
+                    t.blocked.equals(false),
+              ))
+              .get())
+          .length;
+
+  Future<List<QueuedEvidenceData>> pendingEvidence({int? limit}) {
+    final q = select(queuedEvidence)
+      ..where((t) => t.uploaded.equals(false) & t.blocked.equals(false))
+      ..orderBy([(t) => OrderingTerm(expression: t.capturedAt)]);
+    if (limit != null) q.limit(limit);
+    return q.get();
+  }
+
+  Future<void> markEvidenceUploaded(String evidenceId) =>
+      (update(
+        queuedEvidence,
+      )..where((t) => t.evidenceId.equals(evidenceId))).write(
+        const QueuedEvidenceCompanion(
+          uploaded: Value(true),
+          lastErrorCode: Value(null),
+        ),
+      );
+
+  Future<void> markEvidenceRejected(
+    String evidenceId,
+    String code, {
+    required bool permanent,
+  }) => (update(queuedEvidence)..where((t) => t.evidenceId.equals(evidenceId)))
+      .write(
+        QueuedEvidenceCompanion(
+          lastErrorCode: Value(code),
+          blocked: Value(permanent),
+        ),
+      );
+
+  Future<List<String>> sentAnswerIds() async => [
+    for (final c in await (select(
+      queuedAnswers,
+    )..where((t) => t.sent.equals(true))).get())
+      c.answerId,
+  ];
+
+  /// Cevabı yeniden gönderilecek diye işaretler (kanıt sayısı değişti).
+  Future<void> markUnsent(String answerId) =>
+      (update(queuedAnswers)..where((t) => t.answerId.equals(answerId))).write(
+        const QueuedAnswersCompanion(sent: Value(false)),
+      );
 }
