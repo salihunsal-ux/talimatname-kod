@@ -14,6 +14,7 @@ import '../api/session_store.dart';
 import '../queue/answer_queue.dart';
 import '../queue/database.dart';
 import '../queue/doc_cache.dart';
+import '../queue/prefetch.dart';
 
 final sessionStoreProvider = Provider<SessionStore>((ref) => SessionStore());
 
@@ -91,6 +92,18 @@ final manifestDocProvider = FutureProvider<Doc>((ref) async {
 final manifestProvider = FutureProvider<Manifest>((ref) async {
   final doc = await ref.watch(manifestDocProvider.future);
   return Manifest.fromJson(doc.json);
+});
+
+/// Manifest sunucudan taze geldiğinde yakındaki listeleri önden indirir.
+/// Kopyadan gelen manifestte çalışmaz: zaten bağlantı yok.
+final prefetchProvider = FutureProvider<int>((ref) async {
+  final doc = await ref.watch(manifestDocProvider.future);
+  if (doc.stale) return 0;
+  return prefetchRuns(
+    ref.read(docCacheProvider),
+    Manifest.fromJson(doc.json),
+    DateTime.now(),
+  );
 });
 
 final docCacheProvider = Provider<DocCache>(

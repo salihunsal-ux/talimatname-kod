@@ -79,6 +79,12 @@ Sonradan eklenen ve aynı yolla görülenler (yerel API'ye karşı,
   baytlar yüklenip sunucuda özetle doğrulanıyor ("stored"). Galeri yolu
   yok. Damgayı sunucu basıyor.
 
+- **Önden indirme:** manifest taze gelince, şu an açık olan ve 12 saat
+  içinde açılacak listelerin maddeleri arka planda iniyor. Hiç
+  açılmamış liste çevrimdışı açılabiliyor (emülatörde: giriş, listeyi
+  açmadan uçak modu, öldür-aç, liste maddeleriyle açıldı). 12 saatten
+  uzaktaki listeler inmiyor.
+
 Hâlâ yapılmayanlar:
 
 - **Gerçek cihaz ölçümü yok.** Emülatörün kamerası sahte sahne veriyor:
@@ -93,9 +99,6 @@ Hâlâ yapılmayanlar:
   kareyi silme de yok.
 - **Uygulama kapalıyken senk yok** (WorkManager). Otomatik senk yalnızca
   uygulama açıkken çalışıyor.
-- Bir çalıştırma çevrimdışı açılabilsin diye **önce bir kez
-  bağlantılıyken açılmış** olmalı: manifest listeyi taşıyor ama maddeleri
-  taşımıyor.
 
 Derleme notu: `android/gradle.properties` içinde `kotlin.incremental=false`.
 Proje ile pub önbelleği farklı sürücülerdeyse (D: ve C:) Kotlin derleyen

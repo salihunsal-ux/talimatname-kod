@@ -29,6 +29,20 @@ class DocCache {
   final QueueDatabase db;
   final ApiClient api;
 
+  /// Belge önbellekte yoksa (ya da [maxAge]'den eskiyse) indirir.
+  /// İndirdiyse `true`. [maxAge] verilmezse var olan kopya yeterlidir:
+  /// değişmeyen belgeler (yayınlanmış şablon sürümü) için.
+  Future<bool> warm(String path, {Duration? maxAge}) async {
+    final kayit = await db.getDoc(path);
+    if (kayit != null) {
+      if (maxAge == null) return false;
+      if (DateTime.now().difference(kayit.fetchedAt) < maxAge) return false;
+    }
+    final json = await api.getJson(path);
+    await db.putDoc(path, jsonEncode(json));
+    return true;
+  }
+
   Future<Doc> get(String path) async {
     try {
       final json = await api.getJson(path);

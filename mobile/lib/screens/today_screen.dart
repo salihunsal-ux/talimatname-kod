@@ -24,6 +24,9 @@ class TodayScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final c = AppColors.of(context);
     final manifest = ref.watch(manifestProvider);
+    // Yakındaki listelerin maddeleri arka planda iniyor; ekran bunu
+    // beklemiyor, yalnızca sağlayıcıyı canlı tutuyor.
+    ref.watch(prefetchProvider);
     final session = ref.watch(sessionProvider).value;
 
     return Scaffold(
